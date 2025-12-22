@@ -1,0 +1,48 @@
+erDiagram
+    users ||--o{ candidates : "creates"
+    candidates ||--|| assessments : "has"
+    assessments ||--o{ responses : "contains"
+    assessments ||--o| ai_analyses : "generates"
+
+    users {
+        uuid id PK
+        string email UK
+        string name
+        enum role
+        timestamp created_at
+    }
+
+    candidates {
+        uuid id PK
+        uuid created_by FK
+        string name
+        string email
+        string position
+        timestamp created_at
+    }
+
+    assessments {
+        uuid id PK
+        uuid candidate_id FK
+        string token UK
+        enum status
+        timestamp expires_at
+        jsonb progress
+    }
+
+    responses {
+        uuid id PK
+        uuid assessment_id FK
+        string question_id
+        jsonb answer
+        timestamp answered_at
+    }
+
+    ai_analyses {
+        uuid id PK
+        uuid assessment_id FK
+        jsonb scores
+        text summary
+        jsonb strengths
+        jsonb weaknesses
+    }

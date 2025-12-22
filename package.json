@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "diagram": "./scripts/generate-diagrams.sh",
+    "diagram:view": "for f in docs/diagrams/png/*.png; do imgcat \"$f\"; done"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",

@@ -1,0 +1,8 @@
+stateDiagram-v2
+    [*] --> pending: 検査URL発行
+    pending --> in_progress: 候補者アクセス
+    pending --> expired: 7日経過
+    in_progress --> completed: 検査完了
+    in_progress --> expired: 7日経過
+    completed --> [*]
+    expired --> [*]

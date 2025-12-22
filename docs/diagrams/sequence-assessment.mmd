@@ -1,0 +1,28 @@
+sequenceDiagram
+    actor Candidate as 候補者
+    participant Web as 検査ページ
+    participant API as API
+    participant DB as Supabase
+
+    Candidate->>Web: 検査URLアクセス
+    Web->>API: GET /assessment/:token
+    API->>DB: assessments SELECT
+
+    alt 有効期限切れ
+        API-->>Web: エラー
+        Web-->>Candidate: 期限切れ画面
+    else 有効
+        API->>DB: status更新
+        API-->>Web: 検査データ
+        Web-->>Candidate: 検査フォーム
+    end
+
+    loop 各ページ
+        Candidate->>Web: 回答
+        Web->>API: POST responses
+        API->>DB: INSERT
+    end
+
+    Candidate->>Web: 完了
+    Web->>API: complete
+    API->>DB: status=completed

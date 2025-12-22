@@ -1,0 +1,14 @@
+sequenceDiagram
+    actor Admin as 管理者
+    participant Web as 管理画面
+    participant API as API
+    participant DB as Supabase
+
+    Admin->>Web: 候補者登録画面
+    Admin->>Web: 情報入力
+    Web->>API: POST /api/candidates
+    API->>DB: candidates INSERT
+    API->>API: トークン生成
+    API->>DB: assessments INSERT
+    API-->>Web: 検査URL
+    Web-->>Admin: URL表示
