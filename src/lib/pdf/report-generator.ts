@@ -8,9 +8,10 @@ import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium-min';
 import { DOMAIN_LABELS, DOMAIN_DESCRIPTIONS } from '@/lib/analysis';
 
-// Remote chromium binary for Vercel serverless
+// Remote chromium binary for Vercel serverless (must match @sparticuz/chromium-min version)
+// Using x64 for Vercel's AWS Lambda environment
 const CHROMIUM_REMOTE_URL =
-  'https://github.com/nicholaschiang/chromium/releases/download/v131.0.0/chromium-pack.tar';
+  'https://github.com/Sparticuz/chromium/releases/download/v143.0.0/chromium-v143.0.0-pack.x64.tar';
 import type { Domain } from '@/lib/analysis';
 
 export interface ReportData {
