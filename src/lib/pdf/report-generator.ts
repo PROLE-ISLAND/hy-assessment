@@ -106,6 +106,9 @@ function generateHTML(data: ReportData): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>適性検査結果レポート</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -114,7 +117,7 @@ function generateHTML(data: ReportData): string {
     }
 
     body {
-      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
       font-size: 12px;
       line-height: 1.6;
       color: #333;
@@ -476,6 +479,9 @@ export async function generatePDF(data: ReportData): Promise<Buffer> {
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    // Wait for Google Fonts to load
+    await page.evaluateHandle('document.fonts.ready');
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
