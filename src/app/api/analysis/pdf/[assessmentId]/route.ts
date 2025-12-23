@@ -24,11 +24,14 @@ interface AssessmentWithAnalysis {
     name: string;
   };
   ai_analyses: Array<{
+    version: number;
     scores: Record<string, number>;
     strengths: string[];
     weaknesses: string[];
     summary: string | null;
     recommendation: string | null;
+    model_version: string;
+    prompt_version: string;
     analyzed_at: string;
     is_latest: boolean;
   }>;
@@ -48,6 +51,11 @@ export async function GET(
     const { assessmentId } = await params;
     const supabase = createAdminClient();
 
+    // Parse version query parameter
+    const searchParams = request.nextUrl.searchParams;
+    const versionParam = searchParams.get('version');
+    const requestedVersion = versionParam ? parseInt(versionParam, 10) : null;
+
     // Get assessment with analysis
     const { data: assessment, error } = await supabase
       .from('assessments')
@@ -66,11 +74,14 @@ export async function GET(
           name
         ),
         ai_analyses(
+          version,
           scores,
           strengths,
           weaknesses,
           summary,
           recommendation,
+          model_version,
+          prompt_version,
           analyzed_at,
           is_latest
         )
@@ -86,9 +97,24 @@ export async function GET(
       );
     }
 
-    // Check if analysis exists
-    const latestAnalysis = assessment.ai_analyses?.find((a) => a.is_latest);
-    if (!latestAnalysis) {
+    // Find the requested analysis version or latest
+    let targetAnalysis: AssessmentWithAnalysis['ai_analyses'][0] | undefined;
+
+    if (requestedVersion !== null && !isNaN(requestedVersion)) {
+      // Find specific version
+      targetAnalysis = assessment.ai_analyses?.find((a) => a.version === requestedVersion);
+      if (!targetAnalysis) {
+        return NextResponse.json(
+          { error: `Analysis version ${requestedVersion} not found` },
+          { status: 404 }
+        );
+      }
+    } else {
+      // Find latest version
+      targetAnalysis = assessment.ai_analyses?.find((a) => a.is_latest);
+    }
+
+    if (!targetAnalysis) {
       return NextResponse.json(
         { error: 'Analysis not found. Please run analysis first.' },
         { status: 400 }
@@ -102,22 +128,23 @@ export async function GET(
       position: assessment.candidates?.position || '不明',
       templateName: assessment.assessment_templates?.name || 'GFD-Gate',
       completedAt: assessment.completed_at || new Date().toISOString(),
-      analyzedAt: latestAnalysis.analyzed_at,
-      overallScore: getOverallScore(latestAnalysis.scores),
-      scores: latestAnalysis.scores,
-      strengths: latestAnalysis.strengths,
-      weaknesses: latestAnalysis.weaknesses,
-      summary: latestAnalysis.summary,
-      recommendation: latestAnalysis.recommendation,
+      analyzedAt: targetAnalysis.analyzed_at,
+      overallScore: getOverallScore(targetAnalysis.scores),
+      scores: targetAnalysis.scores,
+      strengths: targetAnalysis.strengths,
+      weaknesses: targetAnalysis.weaknesses,
+      summary: targetAnalysis.summary,
+      recommendation: targetAnalysis.recommendation,
     };
 
     // Generate PDF
     const pdfBuffer = await generatePDF(reportData);
 
-    // Generate filename
+    // Generate filename with version info
     const candidateName = assessment.candidates?.persons?.name || 'candidate';
     const date = new Date().toISOString().split('T')[0];
-    const filename = `assessment_report_${candidateName}_${date}.pdf`;
+    const versionSuffix = targetAnalysis.is_latest ? '' : `_v${targetAnalysis.version}`;
+    const filename = `assessment_report_${candidateName}_${date}${versionSuffix}.pdf`;
 
     // Convert Buffer to Uint8Array for NextResponse compatibility
     const pdfUint8Array = new Uint8Array(pdfBuffer);

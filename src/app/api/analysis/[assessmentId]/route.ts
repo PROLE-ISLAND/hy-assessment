@@ -167,6 +167,12 @@ export async function POST(
   }
 }
 
+// Request body type for re-analysis
+interface ReanalyzeRequest {
+  promptTemplateId?: string; // Optional: use specific prompt template
+  model?: string; // Optional: override model
+}
+
 // PUT endpoint for re-analysis
 export async function PUT(
   request: NextRequest,
@@ -175,6 +181,18 @@ export async function PUT(
   try {
     const { assessmentId } = await params;
     const supabase = createAdminClient();
+
+    // Parse request body for optional parameters
+    let reanalyzeOptions: ReanalyzeRequest = {};
+    try {
+      const body = await request.json();
+      reanalyzeOptions = {
+        promptTemplateId: body.promptTemplateId,
+        model: body.model,
+      };
+    } catch {
+      // Empty body is fine, use defaults
+    }
 
     // Mark existing analyses as not latest
     await supabase
@@ -234,10 +252,13 @@ export async function PUT(
 
     const newVersion = (latestVersion?.version || 0) + 1;
 
-    // Run analysis
+    // Run analysis with optional prompt/model overrides
     const analysisInput = {
       responses,
       candidatePosition: assessment.candidates?.position || '不明',
+      organizationId: assessment.organization_id,
+      promptTemplateId: reanalyzeOptions.promptTemplateId,
+      modelOverride: reanalyzeOptions.model,
     };
 
     const analysisResult = USE_MOCK
@@ -297,6 +318,8 @@ export async function PUT(
       summary: analysisResult.aiAnalysis.summary,
       recommendation: analysisResult.aiAnalysis.recommendation,
       validityFlags: analysisResult.scoringResult.validityFlags,
+      modelVersion: analysisResult.modelVersion,
+      promptVersion: analysisResult.promptVersion,
     });
   } catch (error) {
     console.error('Re-analysis error:', error);

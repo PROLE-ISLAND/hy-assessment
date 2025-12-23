@@ -32,6 +32,9 @@ export interface AnalyzeAssessmentInput {
   responses: ResponseData[];
   candidatePosition: string;
   organizationId?: string; // Optional: for org-specific prompts
+  // Optional: for re-analysis with specific settings
+  promptTemplateId?: string; // Use specific prompt template
+  modelOverride?: string; // Override model
 }
 
 export interface AnalyzeAssessmentResult {
@@ -54,15 +57,43 @@ interface PromptConfig {
 // Prompt Loading
 // =====================================================
 
+interface LoadPromptOptions {
+  organizationId?: string;
+  promptTemplateId?: string; // Load specific template by ID
+  modelOverride?: string; // Override the model
+}
+
 /**
  * Load active system prompt from database
  * Falls back to hardcoded prompt if not found
  */
-async function loadActivePrompt(organizationId?: string): Promise<PromptConfig> {
+async function loadActivePrompt(options: LoadPromptOptions = {}): Promise<PromptConfig> {
+  const { organizationId, promptTemplateId, modelOverride } = options;
+
   try {
     // Dynamic import to avoid circular dependencies
     const { createAdminClient } = await import('@/lib/supabase/server');
     const adminSupabase = createAdminClient();
+
+    // If specific template ID is provided, load that one
+    if (promptTemplateId) {
+      const { data: specificPrompt } = await adminSupabase
+        .from('prompt_templates')
+        .select('*')
+        .eq('id', promptTemplateId)
+        .is('deleted_at', null)
+        .single<PromptTemplate>();
+
+      if (specificPrompt) {
+        return {
+          systemPrompt: specificPrompt.content,
+          model: modelOverride || specificPrompt.model,
+          temperature: specificPrompt.temperature,
+          maxTokens: specificPrompt.max_tokens,
+          version: specificPrompt.version,
+        };
+      }
+    }
 
     // Try to find org-specific active prompt first, then system-wide
     let query = adminSupabase
@@ -81,7 +112,7 @@ async function loadActivePrompt(organizationId?: string): Promise<PromptConfig> 
       if (orgPrompt) {
         return {
           systemPrompt: orgPrompt.content,
-          model: orgPrompt.model,
+          model: modelOverride || orgPrompt.model,
           temperature: orgPrompt.temperature,
           maxTokens: orgPrompt.max_tokens,
           version: orgPrompt.version,
@@ -102,7 +133,7 @@ async function loadActivePrompt(organizationId?: string): Promise<PromptConfig> 
     if (systemPrompt) {
       return {
         systemPrompt: systemPrompt.content,
-        model: systemPrompt.model,
+        model: modelOverride || systemPrompt.model,
         temperature: systemPrompt.temperature,
         maxTokens: systemPrompt.max_tokens,
         version: systemPrompt.version,
@@ -115,7 +146,7 @@ async function loadActivePrompt(organizationId?: string): Promise<PromptConfig> 
   // Fallback to hardcoded prompt
   return {
     systemPrompt: ANALYSIS_SYSTEM_PROMPT,
-    model: DEFAULT_MODEL,
+    model: modelOverride || DEFAULT_MODEL,
     temperature: DEFAULT_TEMPERATURE,
     maxTokens: DEFAULT_MAX_TOKENS,
     version: DEFAULT_PROMPT_VERSION,
@@ -129,11 +160,12 @@ async function loadActivePrompt(organizationId?: string): Promise<PromptConfig> 
 /**
  * Analyze assessment responses using scoring engine and OpenAI
  * Dynamically loads prompts from database
+ * Supports specific prompt template and model override for re-analysis
  */
 export async function analyzeAssessment(
   input: AnalyzeAssessmentInput
 ): Promise<AnalyzeAssessmentResult> {
-  const { responses, candidatePosition, organizationId } = input;
+  const { responses, candidatePosition, organizationId, promptTemplateId, modelOverride } = input;
 
   // 1. Calculate scores using scoring engine
   const scoringResult = calculateScores(responses);
@@ -159,8 +191,12 @@ export async function analyzeAssessment(
     candidatePosition,
   };
 
-  // 5. Load active prompt from database
-  const promptConfig = await loadActivePrompt(organizationId);
+  // 5. Load active prompt from database (or specific template if provided)
+  const promptConfig = await loadActivePrompt({
+    organizationId,
+    promptTemplateId,
+    modelOverride,
+  });
 
   // 6. Call OpenAI API with dynamic prompt
   const { aiAnalysis, tokensUsed } = await callOpenAI(analysisInput, promptConfig);
