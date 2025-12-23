@@ -1,0 +1,377 @@
+// =====================================================
+// Database Types for hy-assessment
+// Auto-generated from Supabase schema
+// =====================================================
+
+// =====================================================
+// Enums
+// =====================================================
+
+export type UserRole = 'admin' | 'recruiter' | 'viewer';
+export type AssessmentStatus = 'pending' | 'in_progress' | 'completed' | 'expired';
+export type AuditAction = 'view' | 'create' | 'update' | 'delete' | 'export';
+export type AuditEntityType = 'candidate' | 'assessment' | 'analysis' | 'template' | 'user';
+export type PromptKey = 'system' | 'analysis_user' | 'judgment';
+
+// =====================================================
+// Base Types
+// =====================================================
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  settings: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface Person {
+  id: string;
+  organization_id: string;
+  name: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface User {
+  id: string;
+  organization_id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface Candidate {
+  id: string;
+  organization_id: string;
+  person_id: string;
+  position: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface AssessmentType {
+  id: string;
+  organization_id: string | null;
+  code: string;
+  name: string;
+  default_validity_days: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AssessmentTemplate {
+  id: string;
+  organization_id: string;
+  type_id: string;
+  name: string;
+  version: string;
+  questions: SurveyJSDefinition;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface Assessment {
+  id: string;
+  organization_id: string;
+  candidate_id: string;
+  template_id: string;
+  token: string;
+  status: AssessmentStatus;
+  progress: AssessmentProgress;
+  expires_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface Response {
+  id: string;
+  organization_id: string;
+  assessment_id: string;
+  question_id: string;
+  answer: unknown;
+  page_number: number;
+  answered_at: string;
+  created_at: string;
+}
+
+export interface AIAnalysis {
+  id: string;
+  organization_id: string;
+  assessment_id: string;
+  scores: Record<string, number>;
+  strengths: string[];
+  weaknesses: string[];
+  summary: string | null;
+  recommendation: string | null;
+  model_version: string;
+  prompt_version: string;
+  tokens_used: number;
+  version: number;
+  is_latest: boolean;
+  analyzed_at: string;
+  created_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  organization_id: string;
+  user_id: string | null;
+  action: AuditAction;
+  entity_type: AuditEntityType;
+  entity_id: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface PromptTemplate {
+  id: string;
+  organization_id: string | null;
+  key: PromptKey;
+  name: string;
+  description: string | null;
+  version: string;
+  content: string;
+  model: string;
+  temperature: number;
+  max_tokens: number;
+  is_active: boolean;
+  is_default: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+// =====================================================
+// Extended Types with Relations
+// =====================================================
+
+export interface CandidateWithPerson extends Candidate {
+  person: Person;
+}
+
+export interface CandidateWithAssessments extends CandidateWithPerson {
+  assessments: Assessment[];
+}
+
+export interface AssessmentWithRelations extends Assessment {
+  candidate: CandidateWithPerson;
+  template: AssessmentTemplate;
+  responses?: Response[];
+  analysis?: AIAnalysis;
+}
+
+export interface UserWithOrganization extends User {
+  organization: Organization;
+}
+
+// =====================================================
+// Form/Input Types
+// =====================================================
+
+export interface CreateOrganizationInput {
+  name: string;
+  slug: string;
+  settings?: Record<string, unknown>;
+}
+
+export interface CreatePersonInput {
+  organization_id: string;
+  name: string;
+  email: string;
+}
+
+export interface CreateCandidateInput {
+  organization_id: string;
+  person_id: string;
+  position: string;
+  notes?: string;
+}
+
+export interface CreateAssessmentInput {
+  organization_id: string;
+  candidate_id: string;
+  template_id: string;
+  expires_at?: string;
+}
+
+export interface CreateUserInput {
+  id: string; // From Supabase Auth
+  organization_id: string;
+  email: string;
+  name: string;
+  role?: UserRole;
+}
+
+// =====================================================
+// SurveyJS Types
+// =====================================================
+
+export interface SurveyJSDefinition {
+  title?: string;
+  description?: string;
+  pages?: SurveyJSPage[];
+  showProgressBar?: 'top' | 'bottom' | 'both' | 'none';
+  showQuestionNumbers?: 'on' | 'off' | 'onPage';
+  questionErrorLocation?: 'top' | 'bottom';
+  [key: string]: unknown;
+}
+
+export interface SurveyJSPage {
+  name: string;
+  title?: string;
+  elements: SurveyJSElement[];
+}
+
+export interface SurveyJSElement {
+  type: string;
+  name: string;
+  title?: string;
+  description?: string;
+  isRequired?: boolean;
+  [key: string]: unknown;
+}
+
+// =====================================================
+// Progress Types
+// =====================================================
+
+export interface AssessmentProgress {
+  currentPage?: number;
+  totalPages?: number;
+  answeredQuestions?: string[];
+  lastActivityAt?: string;
+}
+
+// =====================================================
+// API Response Types
+// =====================================================
+
+export interface ApiResponse<T> {
+  data: T | null;
+  error: ApiError | null;
+}
+
+export interface ApiError {
+  message: string;
+  code?: string;
+  details?: unknown;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  count: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+// =====================================================
+// Session/Auth Types
+// =====================================================
+
+export interface SessionUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  organization_id: string;
+  organization_slug: string;
+}
+
+export interface JWTClaims {
+  sub: string;
+  email: string;
+  organization_id: string;
+  role: UserRole;
+  iat: number;
+  exp: number;
+}
+
+// =====================================================
+// Database Type Helpers (for Supabase client)
+// =====================================================
+
+export interface Database {
+  public: {
+    Tables: {
+      organizations: {
+        Row: Organization;
+        Insert: Omit<Organization, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<Organization, 'id' | 'created_at'>>;
+      };
+      persons: {
+        Row: Person;
+        Insert: Omit<Person, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<Person, 'id' | 'created_at'>>;
+      };
+      users: {
+        Row: User;
+        Insert: Omit<User, 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<User, 'id' | 'created_at'>>;
+      };
+      candidates: {
+        Row: Candidate;
+        Insert: Omit<Candidate, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<Candidate, 'id' | 'created_at'>>;
+      };
+      assessment_types: {
+        Row: AssessmentType;
+        Insert: Omit<AssessmentType, 'id' | 'created_at'>;
+        Update: Partial<Omit<AssessmentType, 'id' | 'created_at'>>;
+      };
+      assessment_templates: {
+        Row: AssessmentTemplate;
+        Insert: Omit<AssessmentTemplate, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<AssessmentTemplate, 'id' | 'created_at'>>;
+      };
+      assessments: {
+        Row: Assessment;
+        Insert: Omit<Assessment, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<Assessment, 'id' | 'created_at'>>;
+      };
+      responses: {
+        Row: Response;
+        Insert: Omit<Response, 'id' | 'created_at'>;
+        Update: Partial<Omit<Response, 'id' | 'created_at'>>;
+      };
+      ai_analyses: {
+        Row: AIAnalysis;
+        Insert: Omit<AIAnalysis, 'id' | 'created_at'>;
+        Update: Partial<Omit<AIAnalysis, 'id' | 'created_at'>>;
+      };
+      audit_logs: {
+        Row: AuditLog;
+        Insert: Omit<AuditLog, 'id' | 'created_at'>;
+        Update: never; // Audit logs should never be updated
+      };
+      prompt_templates: {
+        Row: PromptTemplate;
+        Insert: Omit<PromptTemplate, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<PromptTemplate, 'id' | 'created_at'>>;
+      };
+    };
+    Enums: {
+      user_role: UserRole;
+      assessment_status: AssessmentStatus;
+      audit_action: AuditAction;
+      audit_entity_type: AuditEntityType;
+      prompt_key: PromptKey;
+    };
+  };
+}

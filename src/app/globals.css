@@ -66,11 +66,12 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  /* Refined chart colors - Indigo/Teal palette (softer, professional) */
+  --chart-1: oklch(0.55 0.22 270);    /* Indigo - primary */
+  --chart-2: oklch(0.65 0.16 175);    /* Teal - secondary */
+  --chart-3: oklch(0.70 0.18 45);     /* Orange - accent */
+  --chart-4: oklch(0.65 0.22 340);    /* Pink - accent */
+  --chart-5: oklch(0.58 0.22 290);    /* Violet - accent */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -100,11 +101,12 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  /* Refined chart colors for dark mode - slightly brighter */
+  --chart-1: oklch(0.65 0.20 270);    /* Indigo - brighter for dark bg */
+  --chart-2: oklch(0.72 0.15 175);    /* Teal */
+  --chart-3: oklch(0.75 0.17 45);     /* Orange */
+  --chart-4: oklch(0.70 0.20 340);    /* Pink */
+  --chart-5: oklch(0.68 0.20 290);    /* Violet */
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -123,3 +125,159 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* =====================================================
+ * Glassmorphism Design System
+ * Frosted glass effects for modern UI
+ * ===================================================== */
+
+@layer components {
+  /* Glass Panel - Base glass effect */
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-lg;
+  }
+
+  .glass-light {
+    @apply bg-white/50 backdrop-blur-lg border border-white/30;
+  }
+
+  .glass-dark {
+    @apply bg-black/20 backdrop-blur-xl border border-white/10;
+  }
+
+  /* Glass Card - For chart containers */
+  .glass-card {
+    @apply bg-white/60 backdrop-blur-xl rounded-xl border border-white/40 shadow-xl;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  /* Glass Tooltip - For chart tooltips */
+  .glass-tooltip {
+    @apply bg-white/80 backdrop-blur-xl rounded-lg border border-white/40;
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  /* Glass Chart Container */
+  .glass-chart {
+    @apply relative overflow-hidden rounded-xl;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0.4) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.06),
+      0 2px 8px rgba(0, 0, 0, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .glass-chart::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.4) 0%,
+      transparent 50%
+    );
+  }
+}
+
+/* Dark mode adjustments for glassmorphism */
+.dark {
+  .glass {
+    @apply bg-gray-900/60 border-white/10;
+  }
+
+  .glass-light {
+    @apply bg-gray-800/40 border-white/5;
+  }
+
+  .glass-card {
+    @apply bg-gray-900/50 border-white/10;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-tooltip {
+    @apply bg-gray-900/80 border-white/10;
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-chart {
+    background: linear-gradient(
+      135deg,
+      rgba(30, 30, 40, 0.8) 0%,
+      rgba(20, 20, 30, 0.6) 100%
+    );
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-chart::before {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      transparent 50%
+    );
+  }
+}
+
+/* =====================================================
+ * Tailwind Safelist - Ensure dynamic classes are compiled
+ * These classes are used dynamically and need to be forced
+ * ===================================================== */
+
+/* Pipeline Colors - used in PipelineFunnel component */
+.safelist-pipeline {
+  @apply bg-slate-300 bg-sky-300 bg-amber-200 bg-emerald-300;
+}
+
+/* Risk Level Progress Colors */
+.safelist-risk {
+  @apply bg-emerald-500 bg-amber-500 bg-rose-500;
+}
+
+/* Score Colors */
+.safelist-score {
+  @apply text-emerald-600 text-amber-600 text-rose-600;
+  @apply bg-emerald-50 bg-amber-50 bg-rose-50;
+  @apply bg-emerald-100 bg-amber-100 bg-rose-100;
+}
+
+/* Selection Colors - used in CandidateComparisonClient */
+.safelist-selection {
+  @apply border-indigo-300 bg-indigo-50/50;
+  @apply dark:bg-indigo-900/20 dark:border-indigo-700;
+  @apply hover:bg-muted/50;
+}
+
+/* Status Badge Colors */
+.safelist-status {
+  @apply bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300;
+  @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300;
+  @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300;
+  @apply bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300;
+}
+
+/* Judgment Badge Colors */
+.safelist-judgment {
+  @apply bg-emerald-100 text-emerald-700;
+  @apply bg-amber-100 text-amber-700;
+  @apply bg-rose-100 text-rose-700;
+}
+
+/* Note: Progress indicator colors (bg-emerald-500, bg-amber-500, bg-rose-500)
+ * are already covered by .safelist-risk above.
+ * The Progress component now uses indicatorClassName prop directly. */
