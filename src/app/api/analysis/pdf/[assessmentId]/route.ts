@@ -6,7 +6,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { generatePDF, type ReportData } from '@/lib/pdf/report-generator';
+import { calculateOverallScore } from '@/lib/analysis/judgment';
 import type { AssessmentStatus } from '@/types/database';
+
+// Vercel serverless function config for PDF generation
+export const maxDuration = 60; // 60 seconds timeout
+export const dynamic = 'force-dynamic';
 
 // Type for assessment with relations
 interface AssessmentWithAnalysis {
@@ -35,12 +40,6 @@ interface AssessmentWithAnalysis {
     analyzed_at: string;
     is_latest: boolean;
   }>;
-}
-
-function getOverallScore(scores: Record<string, number>): number {
-  const scorableDomains = ['GOV', 'CONFLICT', 'REL', 'COG', 'WORK'];
-  const total = scorableDomains.reduce((sum, domain) => sum + (scores[domain] || 0), 0);
-  return Math.round(total / scorableDomains.length);
 }
 
 export async function GET(
@@ -129,7 +128,7 @@ export async function GET(
       templateName: assessment.assessment_templates?.name || 'GFD-Gate',
       completedAt: assessment.completed_at || new Date().toISOString(),
       analyzedAt: targetAnalysis.analyzed_at,
-      overallScore: getOverallScore(targetAnalysis.scores),
+      overallScore: calculateOverallScore(targetAnalysis.scores),
       scores: targetAnalysis.scores,
       strengths: targetAnalysis.strengths,
       weaknesses: targetAnalysis.weaknesses,
