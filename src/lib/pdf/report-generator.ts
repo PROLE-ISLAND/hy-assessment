@@ -1,9 +1,11 @@
 // =====================================================
 // PDF Report Generator
 // Generates PDF reports from assessment analysis data
+// Supports serverless environments (Vercel) via @sparticuz/chromium
 // =====================================================
 
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import { DOMAIN_LABELS, DOMAIN_DESCRIPTIONS } from '@/lib/analysis';
 import type { Domain } from '@/lib/analysis';
 
@@ -458,9 +460,12 @@ function generateHTML(data: ReportData): string {
 export async function generatePDF(data: ReportData): Promise<Buffer> {
   const html = generateHTML(data);
 
+  // Configure chromium for serverless (Vercel) environment
   const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: { width: 1200, height: 800 },
+    executablePath: await chromium.executablePath(),
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
   try {

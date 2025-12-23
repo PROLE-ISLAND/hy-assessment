@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { calculateOverallScore } from '@/lib/analysis/judgment';
 import type { AIAnalysis } from '@/types/database';
 
 export async function GET(
@@ -40,21 +41,10 @@ export async function GET(
       );
     }
 
-    // Calculate overall score
-    const scores = analysis.scores || {};
-    const scoreValues = Object.values(scores).filter(
-      (v): v is number => typeof v === 'number'
-    );
-    const overallScore =
-      scoreValues.length > 0
-        ? Math.round(
-            scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length
-          )
-        : 0;
-
+    // Calculate overall score (5 domains, excluding VALID)
     return NextResponse.json({
       ...analysis,
-      overallScore,
+      overallScore: calculateOverallScore(analysis.scores || {}),
     });
   } catch (error) {
     console.error('Get version error:', error);

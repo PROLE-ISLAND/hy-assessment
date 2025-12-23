@@ -25,7 +25,7 @@ import {
   type JudgmentLevel,
   type RiskLevel,
 } from '@/lib/design-system';
-import { calculateJudgment, generateInterviewPoints, type DomainScores } from '@/lib/analysis/judgment';
+import { calculateJudgment, calculateOverallScore, generateInterviewPoints, type DomainScores } from '@/lib/analysis/judgment';
 
 // Analysis data type
 interface AnalysisData {
@@ -47,12 +47,6 @@ interface AnalysisResultsClientProps {
   assessmentId: string;
   initialAnalysis: AnalysisData | null;
   assessmentStatus: string;
-}
-
-function getOverallScore(scores: Record<string, number>): number {
-  const scorableDomains = ['GOV', 'CONFLICT', 'REL', 'COG', 'WORK'];
-  const total = scorableDomains.reduce((sum, domain) => sum + (scores[domain] || 0), 0);
-  return Math.round(total / scorableDomains.length);
 }
 
 function getRiskLevel(domain: Domain, score: number): RiskLevel {
@@ -137,7 +131,7 @@ export function AnalysisResultsClient({
     window.open(`/api/analysis/pdf/${assessmentId}?version=${version}`, '_blank');
   };
 
-  const overallScore = currentAnalysis ? getOverallScore(currentAnalysis.scores) : null;
+  const overallScore = currentAnalysis ? calculateOverallScore(currentAnalysis.scores) : null;
   const judgment = currentAnalysis
     ? calculateJudgment(currentAnalysis.scores as unknown as DomainScores)
     : null;

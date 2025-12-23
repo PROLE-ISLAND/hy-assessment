@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import type { AIAnalysis } from '@/types/database';
+import { calculateOverallScore } from '@/lib/analysis/judgment';
 
 // History item type (subset of AIAnalysis)
 interface AnalysisHistoryItem {
@@ -28,6 +28,17 @@ export async function GET(
 ) {
   try {
     const { assessmentId } = await params;
+
+    // Validate assessmentId format (UUID)
+    if (!assessmentId || !/^[0-9a-f-]{36}$/i.test(assessmentId)) {
+      console.warn(`[History API] Invalid assessmentId: ${assessmentId}`);
+      return NextResponse.json(
+        { error: 'Invalid assessment ID format' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`[History API] Fetching history for assessment: ${assessmentId}`);
     const supabase = createAdminClient();
 
     // Get all analysis versions for this assessment
@@ -49,48 +60,40 @@ export async function GET(
       .returns<AnalysisHistoryItem[]>();
 
     if (error) {
-      console.error('Fetch history error:', error);
+      console.error(`[History API] Database error for ${assessmentId}:`, error.message, error.code);
       return NextResponse.json(
-        { error: 'Failed to fetch analysis history' },
+        { error: 'Failed to fetch analysis history', details: error.message },
         { status: 500 }
       );
     }
 
+    // Return empty array if no history (not 404 - client expects array)
     if (!analyses || analyses.length === 0) {
-      return NextResponse.json(
-        { error: 'No analysis found for this assessment' },
-        { status: 404 }
-      );
+      console.log(`[History API] No analysis found for ${assessmentId}`);
+      return NextResponse.json({
+        assessmentId,
+        totalVersions: 0,
+        history: [],
+      });
     }
 
-    // Calculate overall score for each version
-    const historyWithOverallScore = analyses.map((analysis) => {
-      const scores = analysis.scores || {};
-      const scoreValues = Object.values(scores).filter(
-        (v): v is number => typeof v === 'number'
-      );
-      const overallScore =
-        scoreValues.length > 0
-          ? Math.round(
-              scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length
-            )
-          : 0;
+    // Calculate overall score for each version (5 domains, excluding VALID)
+    const historyWithOverallScore = analyses.map((analysis) => ({
+      ...analysis,
+      overallScore: calculateOverallScore(analysis.scores || {}),
+    }));
 
-      return {
-        ...analysis,
-        overallScore,
-      };
-    });
-
+    console.log(`[History API] Found ${analyses.length} versions for ${assessmentId}`);
     return NextResponse.json({
       assessmentId,
       totalVersions: analyses.length,
       history: historyWithOverallScore,
     });
   } catch (error) {
-    console.error('Get history error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[History API] Unexpected error:', errorMessage);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: errorMessage },
       { status: 500 }
     );
   }

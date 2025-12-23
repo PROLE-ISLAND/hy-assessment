@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, BarChart3 } from 'lucide-react';
 import { assessmentStatusConfig, getScoreTextClass } from '@/lib/design-system';
+import { calculateOverallScore } from '@/lib/analysis/judgment';
 import type { AssessmentStatus } from '@/types/database';
 
 // Type for the query result
@@ -63,13 +64,6 @@ function formatDate(dateString: string | null) {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function getOverallScore(scores: Record<string, number> | null): number | null {
-  if (!scores) return null;
-  const scorableDomains = ['GOV', 'CONFLICT', 'REL', 'COG', 'WORK'];
-  const total = scorableDomains.reduce((sum, domain) => sum + (scores[domain] || 0), 0);
-  return Math.round(total / scorableDomains.length);
 }
 
 export default async function AssessmentsListPage() {
@@ -187,7 +181,7 @@ export default async function AssessmentsListPage() {
                 {assessments.map((assessment) => {
                   const latestAnalysis = assessment.ai_analyses?.find(a => a.is_latest);
                   const overallScore = latestAnalysis
-                    ? getOverallScore(latestAnalysis.scores)
+                    ? calculateOverallScore(latestAnalysis.scores)
                     : null;
                   const hasAnalysis = !!latestAnalysis;
 
