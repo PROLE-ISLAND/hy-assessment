@@ -5,8 +5,12 @@
 // =====================================================
 
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import chromium from '@sparticuz/chromium-min';
 import { DOMAIN_LABELS, DOMAIN_DESCRIPTIONS } from '@/lib/analysis';
+
+// Remote chromium binary for Vercel serverless
+const CHROMIUM_REMOTE_URL =
+  'https://github.com/nicholaschiang/chromium/releases/download/v131.0.0/chromium-pack.tar';
 import type { Domain } from '@/lib/analysis';
 
 export interface ReportData {
@@ -464,7 +468,7 @@ export async function generatePDF(data: ReportData): Promise<Buffer> {
   const browser = await puppeteer.launch({
     args: chromium.args,
     defaultViewport: { width: 1200, height: 800 },
-    executablePath: await chromium.executablePath(),
+    executablePath: await chromium.executablePath(CHROMIUM_REMOTE_URL),
     headless: true,
   });
 
