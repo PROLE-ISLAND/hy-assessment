@@ -36,7 +36,7 @@ export type AIAnalysisOutput = LegacyAIAnalysisOutput;
 // Default Configuration (fallback when no DB prompt)
 // =====================================================
 
-const DEFAULT_MODEL = 'gpt-4.1';
+const DEFAULT_MODEL = process.env.OPENAI_DEFAULT_MODEL || 'gpt-5.2';
 const DEFAULT_PROMPT_VERSION = 'v2.0.0';
 const DEFAULT_MAX_TOKENS = 2000;
 const DEFAULT_TEMPERATURE = 0.3;
