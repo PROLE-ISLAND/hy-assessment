@@ -9,6 +9,8 @@ import { type ResponseData } from '@/lib/analysis';
 import {
   analyzeAssessment,
   analyzeAssessmentMock,
+  analyzeAssessmentFull,
+  analyzeAssessmentFullMock,
 } from '@/lib/analysis/ai-analyzer';
 import { sendAssessmentCompletion } from '@/lib/email';
 import type { AIAnalysis } from '@/types/database';
@@ -46,21 +48,30 @@ export const analyzeAssessmentFunction = inngest.createFunction(
       return { success: false, error: 'No responses found' };
     }
 
-    // Step 2: Run AI analysis
+    // Step 2: Run v2 AI analysis
     const analysisResult = await step.run('run-analysis', async () => {
       const input = {
         responses,
         candidatePosition,
+        organizationId,
       };
 
+      // Use v2 full analysis by default
       return USE_MOCK
-        ? await analyzeAssessmentMock(input)
-        : await analyzeAssessment(input);
+        ? await analyzeAssessmentFullMock(input)
+        : await analyzeAssessmentFull(input);
     });
 
     // Step 3: Save analysis to database
     const savedAnalysis = await step.run('save-analysis', async () => {
       const supabase = createAdminClient();
+
+      // Extract v2 fields (always available in full analysis)
+      const { internalReport, candidateReport: candidateReportData } = analysisResult;
+
+      // Build legacy fields from v2 for backward compatibility
+      const legacyStrengths = internalReport.strengths.map((s: { behavior: string }) => s.behavior);
+      const legacyWeaknesses = internalReport.watchouts.map((w: { risk: string }) => w.risk);
 
       const insertData: Omit<AIAnalysis, 'id' | 'created_at'> = {
         assessment_id: assessmentId,
@@ -70,16 +81,24 @@ export const analyzeAssessmentFunction = inngest.createFunction(
             ([key, score]) => [key, score.percentage]
           )
         ),
-        strengths: analysisResult.aiAnalysis.strengths,
-        weaknesses: analysisResult.aiAnalysis.weaknesses,
-        summary: analysisResult.aiAnalysis.summary,
-        recommendation: analysisResult.aiAnalysis.recommendation,
+        // Legacy fields (for backward compatibility)
+        strengths: legacyStrengths,
+        weaknesses: legacyWeaknesses,
+        summary: internalReport.summary,
+        recommendation: internalReport.recommendation,
         model_version: analysisResult.modelVersion,
         prompt_version: analysisResult.promptVersion,
-        tokens_used: analysisResult.tokensUsed,
+        tokens_used: analysisResult.totalTokensUsed,
         version: 1,
         is_latest: true,
         analyzed_at: new Date().toISOString(),
+        // v2 enhanced fields
+        enhanced_strengths: internalReport.strengths,
+        enhanced_watchouts: internalReport.watchouts,
+        risk_scenarios: internalReport.risk_scenarios,
+        interview_checks: internalReport.interview_checks,
+        candidate_report: candidateReportData,
+        report_version: 'v2',
       };
 
       const { data, error } = await supabase

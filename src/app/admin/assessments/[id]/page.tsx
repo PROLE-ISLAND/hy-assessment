@@ -21,7 +21,14 @@ import {
   judgmentConfig,
   type JudgmentLevel,
 } from '@/lib/design-system';
-import type { AssessmentStatus } from '@/types/database';
+import type {
+  AssessmentStatus,
+  EnhancedStrength,
+  EnhancedWatchout,
+  RiskScenario,
+  InterviewCheck,
+  CandidateReport,
+} from '@/types/database';
 
 // Type for assessment with relations
 interface AssessmentDetail {
@@ -55,6 +62,13 @@ interface AssessmentDetail {
     version: number;
     is_latest: boolean;
     analyzed_at: string;
+    // v2 enhanced fields
+    enhanced_strengths: EnhancedStrength[] | null;
+    enhanced_watchouts: EnhancedWatchout[] | null;
+    risk_scenarios: RiskScenario[] | null;
+    interview_checks: InterviewCheck[] | null;
+    candidate_report: CandidateReport | null;
+    report_version: 'v1' | 'v2';
   }>;
 }
 
@@ -128,7 +142,13 @@ export default async function AssessmentDetailPage({ params }: PageProps) {
         tokens_used,
         version,
         is_latest,
-        analyzed_at
+        analyzed_at,
+        enhanced_strengths,
+        enhanced_watchouts,
+        risk_scenarios,
+        interview_checks,
+        candidate_report,
+        report_version
       )
     `)
     .eq('id', id)

@@ -15,6 +15,8 @@ import { type ResponseData } from '@/lib/analysis';
 import {
   analyzeAssessment,
   analyzeAssessmentMock,
+  analyzeAssessmentFull,
+  analyzeAssessmentFullMock,
 } from '@/lib/analysis/ai-analyzer';
 import { sendAssessmentCompletion } from '@/lib/email';
 import type { AIAnalysis } from '@/types/database';
@@ -141,11 +143,20 @@ export async function POST(
         const analysisInput = {
           responses,
           candidatePosition,
+          organizationId: assessment.organization_id,
         };
 
+        // Use v2 full analysis by default
         const result = USE_MOCK
-          ? await analyzeAssessmentMock(analysisInput)
-          : await analyzeAssessment(analysisInput);
+          ? await analyzeAssessmentFullMock(analysisInput)
+          : await analyzeAssessmentFull(analysisInput);
+
+        // Extract v2 fields (always available in full analysis)
+        const { internalReport, candidateReport: candidateReportData } = result;
+
+        // Build legacy fields from v2 for backward compatibility
+        const legacyStrengths = internalReport.strengths.map((s) => s.behavior);
+        const legacyWeaknesses = internalReport.watchouts.map((w) => w.risk);
 
         // Save analysis to database
         const insertData: Omit<AIAnalysis, 'id' | 'created_at'> = {
@@ -156,16 +167,24 @@ export async function POST(
               ([key, score]) => [key, score.percentage]
             )
           ),
-          strengths: result.aiAnalysis.strengths,
-          weaknesses: result.aiAnalysis.weaknesses,
-          summary: result.aiAnalysis.summary,
-          recommendation: result.aiAnalysis.recommendation,
+          // Legacy fields (for backward compatibility)
+          strengths: legacyStrengths,
+          weaknesses: legacyWeaknesses,
+          summary: internalReport.summary,
+          recommendation: internalReport.recommendation,
           model_version: result.modelVersion,
           prompt_version: result.promptVersion,
-          tokens_used: result.tokensUsed,
+          tokens_used: result.totalTokensUsed,
           version: 1,
           is_latest: true,
           analyzed_at: new Date().toISOString(),
+          // v2 enhanced fields
+          enhanced_strengths: internalReport.strengths,
+          enhanced_watchouts: internalReport.watchouts,
+          risk_scenarios: internalReport.risk_scenarios,
+          interview_checks: internalReport.interview_checks,
+          candidate_report: candidateReportData,
+          report_version: 'v2',
         };
 
         const { data: savedAnalysis, error: saveError } = await supabase

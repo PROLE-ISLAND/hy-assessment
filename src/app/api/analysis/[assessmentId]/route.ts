@@ -9,6 +9,8 @@ import { type ResponseData } from '@/lib/analysis';
 import {
   analyzeAssessment,
   analyzeAssessmentMock,
+  analyzeAssessmentFull,
+  analyzeAssessmentFullMock,
 } from '@/lib/analysis/ai-analyzer';
 import type { Assessment, Candidate, Person, AIAnalysis } from '@/types/database';
 
@@ -91,15 +93,24 @@ export async function POST(
     // 5. Extract candidate position from joined data
     const candidatePosition = assessment.candidates?.position || '不明';
 
-    // 6. Run analysis (mock or real)
+    // 6. Run v2 analysis (mock or real)
     const analysisInput = {
       responses,
       candidatePosition,
+      organizationId: assessment.organization_id,
     };
 
+    // Use v2 full analysis by default
     const analysisResult = USE_MOCK
-      ? await analyzeAssessmentMock(analysisInput)
-      : await analyzeAssessment(analysisInput);
+      ? await analyzeAssessmentFullMock(analysisInput)
+      : await analyzeAssessmentFull(analysisInput);
+
+    // Extract v2 fields (always available in full analysis)
+    const { internalReport, candidateReport } = analysisResult;
+
+    // Build legacy fields from v2 for backward compatibility
+    const legacyStrengths = internalReport.strengths.map((s) => s.behavior);
+    const legacyWeaknesses = internalReport.watchouts.map((w) => w.risk);
 
     // 7. Save to database
     const insertData: Omit<AIAnalysis, 'id' | 'created_at'> = {
@@ -110,16 +121,24 @@ export async function POST(
           ([key, score]) => [key, score.percentage]
         )
       ),
-      strengths: analysisResult.aiAnalysis.strengths,
-      weaknesses: analysisResult.aiAnalysis.weaknesses,
-      summary: analysisResult.aiAnalysis.summary,
-      recommendation: analysisResult.aiAnalysis.recommendation,
+      // Legacy fields (for backward compatibility)
+      strengths: legacyStrengths,
+      weaknesses: legacyWeaknesses,
+      summary: internalReport.summary,
+      recommendation: internalReport.recommendation,
       model_version: analysisResult.modelVersion,
       prompt_version: analysisResult.promptVersion,
-      tokens_used: analysisResult.tokensUsed,
+      tokens_used: analysisResult.totalTokensUsed,
       version: 1,
       is_latest: true,
       analyzed_at: new Date().toISOString(),
+      // v2 enhanced fields
+      enhanced_strengths: internalReport.strengths,
+      enhanced_watchouts: internalReport.watchouts,
+      risk_scenarios: internalReport.risk_scenarios,
+      interview_checks: internalReport.interview_checks,
+      candidate_report: candidateReport,
+      report_version: 'v2',
     };
 
     const { data: savedAnalysis, error: saveError } = await supabase
@@ -149,14 +168,21 @@ export async function POST(
         VALID: analysisResult.scoringResult.domainScores.VALID.percentage,
       },
       overallScore: analysisResult.scoringResult.overallScore,
-      strengths: analysisResult.aiAnalysis.strengths,
-      weaknesses: analysisResult.aiAnalysis.weaknesses,
-      summary: analysisResult.aiAnalysis.summary,
-      recommendation: analysisResult.aiAnalysis.recommendation,
+      // v2 enhanced fields
+      strengths: internalReport.strengths,
+      watchouts: internalReport.watchouts,
+      risk_scenarios: internalReport.risk_scenarios,
+      interview_checks: internalReport.interview_checks,
+      summary: internalReport.summary,
+      recommendation: internalReport.recommendation,
+      candidateReport: candidateReport,
+      // Legacy fields for backward compatibility
+      weaknesses: legacyWeaknesses,
       validityFlags: analysisResult.scoringResult.validityFlags,
       modelVersion: analysisResult.modelVersion,
       promptVersion: analysisResult.promptVersion,
-      tokensUsed: analysisResult.tokensUsed,
+      tokensUsed: analysisResult.totalTokensUsed,
+      reportVersion: 'v2',
     });
   } catch (error) {
     console.error('Analysis error:', error);
@@ -252,7 +278,7 @@ export async function PUT(
 
     const newVersion = (latestVersion?.version || 0) + 1;
 
-    // Run analysis with optional prompt/model overrides
+    // Run v2 analysis with optional prompt/model overrides
     const analysisInput = {
       responses,
       candidatePosition: assessment.candidates?.position || '不明',
@@ -261,9 +287,17 @@ export async function PUT(
       modelOverride: reanalyzeOptions.model,
     };
 
+    // Use v2 full analysis by default
     const analysisResult = USE_MOCK
-      ? await analyzeAssessmentMock(analysisInput)
-      : await analyzeAssessment(analysisInput);
+      ? await analyzeAssessmentFullMock(analysisInput)
+      : await analyzeAssessmentFull(analysisInput);
+
+    // Extract v2 fields (always available in full analysis)
+    const { internalReport, candidateReport } = analysisResult;
+
+    // Build legacy fields from v2 for backward compatibility
+    const legacyStrengths = internalReport.strengths.map((s) => s.behavior);
+    const legacyWeaknesses = internalReport.watchouts.map((w) => w.risk);
 
     // Save new analysis
     const insertData: Omit<AIAnalysis, 'id' | 'created_at'> = {
@@ -274,16 +308,24 @@ export async function PUT(
           ([key, score]) => [key, score.percentage]
         )
       ),
-      strengths: analysisResult.aiAnalysis.strengths,
-      weaknesses: analysisResult.aiAnalysis.weaknesses,
-      summary: analysisResult.aiAnalysis.summary,
-      recommendation: analysisResult.aiAnalysis.recommendation,
+      // Legacy fields (for backward compatibility)
+      strengths: legacyStrengths,
+      weaknesses: legacyWeaknesses,
+      summary: internalReport.summary,
+      recommendation: internalReport.recommendation,
       model_version: analysisResult.modelVersion,
       prompt_version: analysisResult.promptVersion,
-      tokens_used: analysisResult.tokensUsed,
+      tokens_used: analysisResult.totalTokensUsed,
       version: newVersion,
       is_latest: true,
       analyzed_at: new Date().toISOString(),
+      // v2 enhanced fields
+      enhanced_strengths: internalReport.strengths,
+      enhanced_watchouts: internalReport.watchouts,
+      risk_scenarios: internalReport.risk_scenarios,
+      interview_checks: internalReport.interview_checks,
+      candidate_report: candidateReport,
+      report_version: 'v2',
     };
 
     const { data: savedAnalysis, error: saveError } = await supabase
@@ -313,13 +355,21 @@ export async function PUT(
         VALID: analysisResult.scoringResult.domainScores.VALID.percentage,
       },
       overallScore: analysisResult.scoringResult.overallScore,
-      strengths: analysisResult.aiAnalysis.strengths,
-      weaknesses: analysisResult.aiAnalysis.weaknesses,
-      summary: analysisResult.aiAnalysis.summary,
-      recommendation: analysisResult.aiAnalysis.recommendation,
+      // v2 enhanced fields
+      strengths: internalReport.strengths,
+      watchouts: internalReport.watchouts,
+      risk_scenarios: internalReport.risk_scenarios,
+      interview_checks: internalReport.interview_checks,
+      summary: internalReport.summary,
+      recommendation: internalReport.recommendation,
+      candidateReport: candidateReport,
+      // Legacy fields for backward compatibility
+      weaknesses: legacyWeaknesses,
       validityFlags: analysisResult.scoringResult.validityFlags,
       modelVersion: analysisResult.modelVersion,
       promptVersion: analysisResult.promptVersion,
+      tokensUsed: analysisResult.totalTokensUsed,
+      reportVersion: 'v2',
     });
   } catch (error) {
     console.error('Re-analysis error:', error);

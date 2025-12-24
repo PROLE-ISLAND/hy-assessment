@@ -33,6 +33,7 @@ const PROMPT_KEY_LABELS: Record<PromptKey, string> = {
   system: 'システムプロンプト',
   analysis_user: '分析ユーザープロンプト',
   judgment: '判定ルール',
+  candidate: '候補者版プロンプト',
 };
 
 // Expected AI analysis output structure

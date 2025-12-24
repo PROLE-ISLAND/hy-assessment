@@ -11,7 +11,7 @@ export type UserRole = 'admin' | 'recruiter' | 'viewer';
 export type AssessmentStatus = 'pending' | 'in_progress' | 'completed' | 'expired';
 export type AuditAction = 'view' | 'create' | 'update' | 'delete' | 'export';
 export type AuditEntityType = 'candidate' | 'assessment' | 'analysis' | 'template' | 'user';
-export type PromptKey = 'system' | 'analysis_user' | 'judgment';
+export type PromptKey = 'system' | 'analysis_user' | 'judgment' | 'candidate';
 
 // =====================================================
 // Base Types
@@ -93,6 +93,11 @@ export interface Assessment {
   expires_at: string;
   started_at: string | null;
   completed_at: string | null;
+  // Report sharing fields
+  report_token: string | null;
+  report_shared_at: string | null;
+  report_expires_at: string | null;
+  report_viewed_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -114,8 +119,17 @@ export interface AIAnalysis {
   organization_id: string;
   assessment_id: string;
   scores: Record<string, number>;
+  // Legacy fields (v1)
   strengths: string[];
   weaknesses: string[];
+  // Enhanced fields (v2)
+  enhanced_strengths: EnhancedStrength[] | null;
+  enhanced_watchouts: EnhancedWatchout[] | null;
+  risk_scenarios: RiskScenario[] | null;
+  interview_checks: InterviewCheck[] | null;
+  candidate_report: CandidateReport | null;
+  report_version: 'v1' | 'v2';
+  // Common fields
   summary: string | null;
   recommendation: string | null;
   model_version: string;
@@ -125,6 +139,48 @@ export interface AIAnalysis {
   is_latest: boolean;
   analyzed_at: string;
   created_at: string;
+}
+
+// Enhanced strength with evidence (v2)
+export interface EnhancedStrength {
+  title: string;
+  behavior: string;
+  evidence: string;
+}
+
+// Enhanced watchout with evidence (v2)
+export interface EnhancedWatchout {
+  title: string;
+  risk: string;
+  evidence: string;
+}
+
+// Risk scenario for accident prevention
+export interface RiskScenario {
+  condition: string;
+  symptom: string;
+  impact: string;
+  prevention: string;
+  risk_environment: string[];
+}
+
+// Interview check item
+export interface InterviewCheck {
+  question: string;
+  intent: string;
+  look_for: string;
+}
+
+// Candidate-facing report (disclosure-ready)
+export interface CandidateReport {
+  strengths: Array<{
+    title: string;
+    description: string;
+  }>;
+  leverage_tips: string[];
+  stress_tips: string[];
+  values_tags: string[];
+  note: string;
 }
 
 export interface AuditLog {

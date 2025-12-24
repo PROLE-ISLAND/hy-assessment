@@ -38,6 +38,7 @@ const PROMPT_KEY_LABELS: Record<PromptKey, string> = {
   system: 'システムプロンプト',
   analysis_user: '分析ユーザープロンプト',
   judgment: '判定ルール',
+  candidate: '候補者版プロンプト',
 };
 
 // Badge colors for prompt keys
@@ -45,6 +46,7 @@ const PROMPT_KEY_COLORS: Record<PromptKey, string> = {
   system: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   analysis_user: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
   judgment: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+  candidate: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
 };
 
 function formatDate(dateString: string) {

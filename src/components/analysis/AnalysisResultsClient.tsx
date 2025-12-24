@@ -3,6 +3,7 @@
 // =====================================================
 // Analysis Results Client Component
 // Handles tabs, history, and re-analyze functionality
+// Supports both v1 (legacy) and v2 (enhanced) reports
 // =====================================================
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,13 +11,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Download, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { RefreshCw, Download, CheckCircle, AlertTriangle, XCircle, Building2 } from 'lucide-react';
 import { VersionBadge } from './VersionBadge';
 import { AnalysisHistoryTable, type AnalysisHistoryItem } from './AnalysisHistoryTable';
 import { ReanalyzeDialog } from './ReanalyzeDialog';
 import { DomainRadarChart } from './DomainRadarChart';
 import { ScoreBarChart } from './ScoreBarChart';
 import { InterviewPoints } from './InterviewPoints';
+import { EnhancedStrengthsCard } from './EnhancedStrengthsCard';
+import { EnhancedWatchoutsCard } from './EnhancedWatchoutsCard';
+import { RiskScenariosCard } from './RiskScenariosCard';
+import { InterviewChecksCard } from './InterviewChecksCard';
+import { ShareReportSection } from './ShareReportSection';
 import { DOMAIN_LABELS, DOMAIN_DESCRIPTIONS, type Domain } from '@/lib/analysis';
 import {
   riskLevelConfig,
@@ -26,13 +32,29 @@ import {
   type RiskLevel,
 } from '@/lib/design-system';
 import { calculateJudgment, calculateOverallScore, generateInterviewPoints, type DomainScores } from '@/lib/analysis/judgment';
+import type {
+  EnhancedStrength,
+  EnhancedWatchout,
+  RiskScenario,
+  InterviewCheck,
+  CandidateReport,
+} from '@/types/database';
 
-// Analysis data type
+// Analysis data type (supports both v1 and v2)
 interface AnalysisData {
   id: string;
   scores: Record<string, number>;
+  // Legacy fields (v1)
   strengths: string[];
   weaknesses: string[];
+  // Enhanced fields (v2)
+  enhanced_strengths?: EnhancedStrength[] | null;
+  enhanced_watchouts?: EnhancedWatchout[] | null;
+  risk_scenarios?: RiskScenario[] | null;
+  interview_checks?: InterviewCheck[] | null;
+  candidate_report?: CandidateReport | null;
+  report_version?: 'v1' | 'v2';
+  // Common fields
   summary: string | null;
   recommendation: string | null;
   model_version: string;
@@ -139,6 +161,11 @@ export function AnalysisResultsClient({
     ? generateInterviewPoints(currentAnalysis.scores as unknown as DomainScores)
     : [];
 
+  // Check if enhanced (v2) analysis is available
+  const isEnhanced = currentAnalysis?.report_version === 'v2' ||
+    (currentAnalysis?.enhanced_strengths && currentAnalysis.enhanced_strengths.length > 0);
+  const hasCandidateReport = currentAnalysis?.candidate_report != null;
+
   if (!currentAnalysis) {
     return (
       <Card>
@@ -169,11 +196,14 @@ export function AnalysisResultsClient({
 
   return (
     <div className="space-y-6">
-      {/* Tabs for Results and History */}
+      {/* Tabs for Results, Candidate Report, and History */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between mb-4">
           <TabsList>
-            <TabsTrigger value="results">分析結果</TabsTrigger>
+            <TabsTrigger value="results" className="flex items-center gap-1.5">
+              <Building2 className="h-4 w-4" />
+              分析結果
+            </TabsTrigger>
             <TabsTrigger value="history">履歴</TabsTrigger>
           </TabsList>
 
@@ -275,49 +305,72 @@ export function AnalysisResultsClient({
             </CardContent>
           </Card>
 
-          {/* Strengths and Weaknesses */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  強み
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {currentAnalysis.strengths.map((strength, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                      <span>{strength}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+          {/* Strengths and Weaknesses (v1 legacy or v2 enhanced) */}
+          {isEnhanced && currentAnalysis.enhanced_strengths && currentAnalysis.enhanced_watchouts ? (
+            <>
+              {/* Enhanced version with evidence */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <EnhancedStrengthsCard strengths={currentAnalysis.enhanced_strengths} />
+                <EnhancedWatchoutsCard watchouts={currentAnalysis.enhanced_watchouts} />
+              </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                  注意点
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {currentAnalysis.weaknesses.map((weakness, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
-                      <span>{weakness}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
+              {/* Risk Scenarios (v2 only) */}
+              {currentAnalysis.risk_scenarios && currentAnalysis.risk_scenarios.length > 0 && (
+                <RiskScenariosCard scenarios={currentAnalysis.risk_scenarios} />
+              )}
 
-          {/* Interview Points */}
-          {interviewPoints.length > 0 && <InterviewPoints points={interviewPoints} />}
+              {/* Interview Checks (v2 only) */}
+              {currentAnalysis.interview_checks && currentAnalysis.interview_checks.length > 0 && (
+                <InterviewChecksCard checks={currentAnalysis.interview_checks} />
+              )}
+            </>
+          ) : (
+            <>
+              {/* Legacy v1 format */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      強み
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3">
+                      {currentAnalysis.strengths.map((strength, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                          <span>{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                      注意点
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3">
+                      {currentAnalysis.weaknesses.map((weakness, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
+                          <span>{weakness}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Interview Points (legacy) */}
+              {interviewPoints.length > 0 && <InterviewPoints points={interviewPoints} />}
+            </>
+          )}
 
           {/* Summary */}
           <Card>
@@ -397,6 +450,12 @@ export function AnalysisResultsClient({
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Share Report Section */}
+      <ShareReportSection
+        assessmentId={assessmentId}
+        hasCandidateReport={hasCandidateReport}
+      />
     </div>
   );
 }
