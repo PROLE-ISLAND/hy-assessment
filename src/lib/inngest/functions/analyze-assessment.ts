@@ -12,7 +12,8 @@ import {
   analyzeAssessmentFull,
   analyzeAssessmentFullMock,
 } from '@/lib/analysis/ai-analyzer';
-import { sendAssessmentCompletion } from '@/lib/email';
+import { sendAssessmentCompletion, sendReportLink } from '@/lib/email';
+import { nanoid } from 'nanoid';
 import type { AIAnalysis } from '@/types/database';
 
 // Use mock in development if OPENAI_API_KEY is not set
@@ -114,7 +115,65 @@ export const analyzeAssessmentFunction = inngest.createFunction(
       return data;
     });
 
-    // Step 4: Send notification email to admins
+    // Step 4: Generate report token and send candidate email
+    await step.run('send-candidate-report', async () => {
+      const supabase = createAdminClient();
+
+      // Get assessment with candidate info
+      const { data: assessment } = await supabase
+        .from('assessments')
+        .select(`
+          id,
+          candidates!inner (
+            persons!inner (
+              name,
+              email
+            )
+          )
+        `)
+        .eq('id', assessmentId)
+        .single<{
+          id: string;
+          candidates: {
+            persons: { name: string; email: string };
+          };
+        }>();
+
+      if (!assessment) return;
+
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const candidatePerson = assessment.candidates.persons;
+
+      // Generate report token (32 chars)
+      const reportToken = nanoid(32);
+      const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days
+
+      // Update assessment with report token
+      const { error: updateError } = await supabase
+        .from('assessments')
+        .update({
+          report_token: reportToken,
+          report_shared_at: new Date().toISOString(),
+          report_expires_at: expiresAt.toISOString(),
+        } as never)
+        .eq('id', assessmentId);
+
+      if (updateError) {
+        console.error('Failed to update report token:', updateError);
+        return;
+      }
+
+      // Send report link email to candidate
+      const reportUrl = `${baseUrl}/report/${reportToken}`;
+      await sendReportLink({
+        candidateName: candidatePerson.name,
+        candidateEmail: candidatePerson.email,
+        reportUrl,
+        expiresAt,
+      });
+    });
+
+    // Step 5: Send notification email to admins
     await step.run('notify-admins', async () => {
       const supabase = createAdminClient();
 
