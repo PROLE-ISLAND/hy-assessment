@@ -1,6 +1,6 @@
 # =====================================================
-# Dependabot Configuration
-# Auto-updates npm dependencies weekly
+# Dependabot 設定
+# 依存関係の自動更新（毎週月曜 9:00 JST）
 # =====================================================
 
 version: 2
@@ -15,19 +15,28 @@ updates:
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 10
     groups:
-      # Production dependencies - more careful updates
+      # SurveyJS関連（peer dependency があるため一括更新必須）
+      surveyjs:
+        patterns:
+          - "survey-*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Next.js関連
       nextjs:
         patterns:
           - "next*"
         update-types:
           - "minor"
           - "patch"
+      # Supabase関連
       supabase:
         patterns:
           - "@supabase/*"
         update-types:
           - "minor"
           - "patch"
+      # React関連
       react:
         patterns:
           - "react*"
@@ -35,6 +44,7 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      # UI コンポーネント
       ui:
         patterns:
           - "@radix-ui/*"
@@ -43,14 +53,15 @@ updates:
         update-types:
           - "minor"
           - "patch"
-      # Dev dependencies - can be more aggressive
-      dev-types:
+      # 型定義
+      types:
         patterns:
           - "@types/*"
         update-types:
           - "minor"
           - "patch"
-      dev-testing:
+      # テストツール
+      testing:
         patterns:
           - "vitest*"
           - "@vitest/*"
@@ -60,7 +71,8 @@ updates:
         update-types:
           - "minor"
           - "patch"
-      dev-linting:
+      # Lint/Format
+      linting:
         patterns:
           - "eslint*"
           - "@eslint/*"
@@ -83,7 +95,11 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
     labels:
       - "dependencies"
       - "ci"
       - "P3: Low"
+    commit-message:
+      prefix: "ci"

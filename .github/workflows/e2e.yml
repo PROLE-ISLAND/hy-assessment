@@ -1,10 +1,10 @@
 # =====================================================
-# E2E Test Workflow
-# Runs Playwright E2E tests
-# Triggered: on PR to main, manual, or schedule
+# E2Eテスト ワークフロー
+# Playwright E2Eテストを実行
+# トリガー: mainへのPR、手動実行、定期実行
 # =====================================================
 
-name: E2E Tests
+name: E2Eテスト
 
 on:
   pull_request:
@@ -31,16 +31,16 @@ jobs:
 
       - uses: ./.github/actions/setup-node
 
-      - name: Install Playwright browsers
+      - name: Playwrightブラウザインストール
         run: npx playwright install --with-deps chromium
 
-      - name: Build application
+      - name: アプリケーションビルド
         run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - name: Run E2E tests
+      - name: E2Eテスト実行
         run: npm run test:e2e
         env:
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
@@ -49,7 +49,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - name: Upload test results
+      - name: テスト結果アップロード
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -57,7 +57,7 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      - name: Upload test screenshots
+      - name: 失敗時スクリーンショットアップロード
         uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -65,15 +65,15 @@ jobs:
           path: test-results/
           retention-days: 7
 
-      - name: Analyze test failures
+      - name: テスト失敗分析
         if: failure()
         run: |
           if [ -f "test-results/results.json" ]; then
-            echo "## E2E Error Analysis" >> $GITHUB_STEP_SUMMARY
+            echo "## E2Eエラー分析" >> $GITHUB_STEP_SUMMARY
             npx tsx scripts/error-detector.ts --github test-results/results.json >> $GITHUB_STEP_SUMMARY || true
           fi
 
-      - name: Post E2E results to PR
+      - name: PRにE2E結果投稿
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
         with:
@@ -82,14 +82,14 @@ jobs:
             const status = '${{ job.status }}';
             const emoji = status === 'success' ? '✅' : '❌';
 
-            let body = `## E2E Test Results ${emoji}\n\n`;
-            body += `**Status**: ${status}\n\n`;
+            let body = `## E2Eテスト結果 ${emoji}\n\n`;
+            body += `**ステータス**: ${status}\n\n`;
 
             if (status !== 'success') {
-              body += `\n> View [Playwright Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.\n`;
+              body += `\n> 詳細は [Playwrightレポート](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) を確認してください。\n`;
             }
 
-            // Find existing comment
+            // 既存コメント検索
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,

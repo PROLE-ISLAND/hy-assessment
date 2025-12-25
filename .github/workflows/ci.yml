@@ -1,7 +1,6 @@
 # =====================================================
-# CI Workflow
-# Runs on PR and push to main/develop
-# Checks: lint, type-check, unit-test, build
+# CI ワークフロー
+# PR・プッシュ時に実行: lint, 型チェック, 単体テスト, ビルド
 # =====================================================
 
 name: CI
@@ -26,27 +25,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node
-      - name: Run ESLint
+      - name: ESLint実行
         run: npm run lint
 
   type-check:
-    name: Type Check
+    name: 型チェック
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node
-      - name: Run TypeScript type check
+      - name: TypeScript型チェック
         run: npx tsc --noEmit
 
   unit-test:
-    name: Unit Tests
+    name: 単体テスト
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node
-      - name: Run unit tests with coverage
+      - name: 単体テスト実行（カバレッジ付き）
         run: npm run test:coverage
-      - name: Upload coverage to Codecov
+      - name: カバレッジをCodecovにアップロード
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage/coverage-final.json
@@ -55,18 +54,18 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   build:
-    name: Build
+    name: ビルド
     runs-on: ubuntu-latest
     needs: [lint, type-check, unit-test]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node
-      - name: Build Next.js application
+      - name: Next.jsアプリケーションビルド
         run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      - name: Upload build artifacts
+      - name: ビルド成果物をアップロード
         uses: actions/upload-artifact@v4
         with:
           name: nextjs-build

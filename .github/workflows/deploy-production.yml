@@ -1,10 +1,10 @@
 # =====================================================
-# Production Deploy Workflow
-# Triggered on push to main (after CI passes)
-# Auto-deploys to Vercel production
+# 本番デプロイ ワークフロー
+# mainプッシュ時に実行（CI通過後）
+# Vercel本番環境に自動デプロイ
 # =====================================================
 
-name: Deploy Production
+name: 本番デプロイ
 
 on:
   push:
@@ -20,7 +20,7 @@ env:
 
 jobs:
   deploy:
-    name: Deploy to Vercel
+    name: Vercelへデプロイ
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -28,40 +28,40 @@ jobs:
 
       - uses: ./.github/actions/setup-node
 
-      - name: Install Vercel CLI
+      - name: Vercel CLIインストール
         run: npm install --global vercel@latest
 
-      - name: Pull Vercel Environment
+      - name: Vercel環境取得
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build Project
+      - name: プロジェクトビルド
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - name: Deploy to Vercel
+      - name: Vercelへデプロイ
         id: deploy
         run: |
           DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
 
-      - name: Comment deploy URL
+      - name: デプロイURL通知
         if: github.event_name == 'push'
         uses: actions/github-script@v7
         with:
           script: |
             const sha = context.sha.substring(0, 7);
             const url = '${{ steps.deploy.outputs.url }}';
-            const body = `## Production Deploy\n\nCommit \`${sha}\` deployed to production.\n\n**URL**: ${url}`;
+            const body = `## 本番デプロイ完了\n\nコミット \`${sha}\` を本番環境にデプロイしました。\n\n**URL**: ${url}`;
 
-            // Create a deployment status
+            // デプロイステータス作成
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.sha,
               state: 'success',
               target_url: url,
-              description: 'Production deployment successful',
-              context: 'Vercel Production'
+              description: '本番デプロイ成功',
+              context: 'Vercel本番'
             });
