@@ -49,7 +49,7 @@
     "react-dom": "19.2.3",
     "recharts": "^3.6.0",
     "resend": "^6.6.0",
-    "survey-core": "^2.5.1",
+    "survey-core": "^2.5.3",
     "survey-creator-core": "^2.5.1",
     "survey-creator-react": "^2.5.1",
     "survey-react-ui": "^2.5.1",
