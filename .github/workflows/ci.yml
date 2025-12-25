@@ -46,7 +46,7 @@ jobs:
       - name: 単体テスト実行（カバレッジ付き）
         run: npm run test:coverage
       - name: カバレッジをCodecovにアップロード
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ./coverage/coverage-final.json
           fail_ci_if_error: false
