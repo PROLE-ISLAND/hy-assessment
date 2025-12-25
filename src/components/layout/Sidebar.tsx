@@ -29,47 +29,54 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const mainNavItems: NavItem[] = [
+const mainNavItems: (NavItem & { testId: string })[] = [
   {
     href: '/admin',
     label: 'ダッシュボード',
     icon: LayoutDashboard,
+    testId: 'nav-dashboard',
   },
   {
     href: '/admin/candidates',
     label: '候補者',
     icon: Users,
+    testId: 'nav-candidates',
   },
   {
     href: '/admin/compare',
     label: '比較',
     icon: UserCheck,
+    testId: 'nav-compare',
   },
   {
     href: '/admin/reports',
     label: 'レポート',
     icon: BarChart3,
+    testId: 'nav-reports',
   },
 ];
 
-const settingsNavItems: NavItem[] = [
+const settingsNavItems: (NavItem & { testId: string })[] = [
   {
     href: '/admin/templates',
     label: 'テンプレート',
     icon: FileText,
+    testId: 'nav-templates',
   },
   {
     href: '/admin/prompts',
     label: 'プロンプト',
     icon: MessageSquareCode,
+    testId: 'nav-prompts',
   },
 ];
 
-const bottomNavItems: NavItem[] = [
+const bottomNavItems: (NavItem & { testId: string })[] = [
   {
     href: '/settings',
     label: '設定',
     icon: Settings,
+    testId: 'nav-settings',
   },
 ];
 
@@ -83,10 +90,11 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     return pathname.startsWith(href);
   };
 
-  const NavLink = ({ item }: { item: NavItem }) => (
+  const NavLink = ({ item }: { item: NavItem & { testId: string } }) => (
     <Link
       href={item.href}
       onClick={onNavigate}
+      data-testid={item.testId}
       className={cn(
         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
         isActive(item.href)

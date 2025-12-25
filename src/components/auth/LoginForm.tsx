@@ -70,7 +70,10 @@ export function LoginForm() {
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           {error && (
-            <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+            <div
+              className="rounded-md bg-destructive/15 p-3 text-sm text-destructive"
+              data-testid="login-error"
+            >
               {error}
             </div>
           )}
@@ -85,6 +88,7 @@ export function LoginForm() {
               required
               disabled={isLoading}
               autoComplete="email"
+              data-testid="login-email"
             />
           </div>
           <div className="space-y-2">
@@ -97,11 +101,12 @@ export function LoginForm() {
               required
               disabled={isLoading}
               autoComplete="current-password"
+              data-testid="login-password"
             />
           </div>
         </CardContent>
         <CardFooter className="pt-2">
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading} data-testid="login-submit">
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

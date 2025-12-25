@@ -143,7 +143,7 @@ export function CandidateListClient({ candidates, positions }: CandidateListClie
           <h1 className="text-2xl font-bold tracking-tight">候補者管理</h1>
           <p className="text-sm text-muted-foreground">候補者の登録・検査状況・分析結果を管理</p>
         </div>
-        <Button size="sm" asChild>
+        <Button size="sm" asChild data-testid="add-candidate-button">
           <Link href="/admin/candidates/new">
             <Plus className="mr-1 h-4 w-4" />
             候補者を追加
@@ -170,7 +170,7 @@ export function CandidateListClient({ candidates, positions }: CandidateListClie
           <CardContent className="py-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Button variant="outline" size="sm" className="h-7" onClick={handleSelectAll}>
+                <Button variant="outline" size="sm" className="h-7" onClick={handleSelectAll} data-testid="select-all-button">
                   {selectedIds.size === filteredCandidates.length ? '選択解除' : '全て選択'}
                 </Button>
                 <span className="text-sm text-muted-foreground">
@@ -179,7 +179,7 @@ export function CandidateListClient({ candidates, positions }: CandidateListClie
               </div>
               <div className="flex items-center gap-2">
                 {compareUrl && (
-                  <Button variant="outline" size="sm" className="h-7" asChild>
+                  <Button variant="outline" size="sm" className="h-7" asChild data-testid="compare-button">
                     <Link href={compareUrl}>
                       <UserCheck className="mr-1 h-4 w-4" />
                       比較する ({selectedCandidates.length}人)
@@ -297,14 +297,14 @@ export function CandidateListClient({ candidates, positions }: CandidateListClie
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="sm" className="h-7" asChild>
+                          <Button variant="ghost" size="sm" className="h-7" asChild data-testid={`candidate-detail-${candidate.id}`}>
                             <Link href={`/admin/candidates/${candidate.id}`}>
                               <FileText className="mr-1 h-3.5 w-3.5" />
                               詳細
                             </Link>
                           </Button>
                           {candidate.status === 'analyzed' && candidate.assessmentId && (
-                            <Button variant="ghost" size="sm" className="h-7" asChild>
+                            <Button variant="ghost" size="sm" className="h-7" asChild data-testid={`candidate-analysis-${candidate.id}`}>
                               <Link href={`/admin/assessments/${candidate.assessmentId}?from=candidate`}>
                                 <BarChart3 className="mr-1 h-3.5 w-3.5" />
                                 分析

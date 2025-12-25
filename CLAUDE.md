@@ -100,3 +100,93 @@ import {
 ### 関連ファイル
 - `src/lib/analysis/ai-analyzer.ts` - AI分析処理
 - `src/components/analysis/ReanalyzeDialog.tsx` - 再分析UI（モデル選択）
+
+---
+
+## CI/CD
+
+### GitHub Actions ワークフロー
+
+| ワークフロー | トリガー | 内容 |
+|-------------|---------|------|
+| `ci.yml` | PR / push to main,develop | lint, type-check, unit-test, build |
+| `deploy-production.yml` | push to main | Vercel本番デプロイ |
+| `quality-gate.yml` | CI完了後 | DoD判定・PRコメント投稿 |
+
+### 必須チェック (PRマージ前)
+
+```bash
+npm run lint           # ESLint
+npx tsc --noEmit       # TypeScript型チェック
+npm run test:run       # Vitest単体テスト
+npm run build          # Next.jsビルド
+```
+
+### DoD (Definition of Done) レベル
+
+| レベル | カバレッジ | 用途 |
+|-------|-----------|------|
+| Bronze | 80%以上 | プロトタイプ |
+| Silver | 85%以上 | 開発版（推奨） |
+| Gold | 95%以上 | 本番品質 |
+
+### 開発フロー
+
+```
+1. Issue作成 → DoD Level選択 → Label付与
+2. ブランチ作成: feature/issue-{番号}-{説明}
+3. Claude Code / Copilot で開発
+4. PR作成 → CI自動実行 → Quality Gate判定
+5. レビュー → 承認 → マージ → 自動デプロイ
+```
+
+### ブランチ命名規則
+
+```
+feature/issue-123-add-pdf-export
+bugfix/issue-456-fix-login-error
+hotfix/issue-789-critical-fix
+```
+
+### 必要なGitHub Secrets
+
+| Secret名 | 用途 |
+|----------|------|
+| `VERCEL_TOKEN` | Vercel APIトークン |
+| `VERCEL_ORG_ID` | Vercel Organization ID |
+| `VERCEL_PROJECT_ID` | Vercel Project ID |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key |
+| `CODECOV_TOKEN` | Codecovトークン（任意） |
+
+---
+
+## E2Eテスト
+
+### 実行方法
+
+```bash
+npm run test:e2e              # ヘッドレス実行
+npm run test:e2e:ui           # UI付き実行
+npx playwright test --headed  # ブラウザ表示で実行
+```
+
+### テストファイル
+
+```
+e2e/
+├── fixtures.ts          # 共通フィクスチャ・セレクタ
+├── 00-setup.spec.ts     # 認証セットアップ
+├── 01-auth.spec.ts      # 認証テスト
+├── 02-candidates.spec.ts # 候補者管理テスト
+└── 03-analysis.spec.ts  # 分析機能テスト
+```
+
+### data-testid 規則
+
+```
+data-testid="add-candidate-button"      # ボタン
+data-testid="candidate-name-input"      # 入力フィールド
+data-testid="candidate-row-{id}"        # 動的要素
+data-testid="candidate-detail-{id}"     # 詳細リンク
+```

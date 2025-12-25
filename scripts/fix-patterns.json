@@ -1,0 +1,222 @@
+{
+  "version": "1.0.0",
+  "description": "Auto-fix patterns for TypeScript, ESLint, and E2E errors",
+  "configuration": {
+    "maxFixAttempts": 5,
+    "confidenceThreshold": 0.8,
+    "backupBeforeFix": true,
+    "testAfterFix": true,
+    "rollbackOnFailure": true
+  },
+  "patterns": {
+    "typescript": [
+      {
+        "id": "TS2322",
+        "pattern": "TS2322: Type .* is not assignable to type",
+        "confidence": 0.85,
+        "strategy": "type_assertion",
+        "autoFix": true,
+        "description": "Type assignment error - may need type assertion or interface update"
+      },
+      {
+        "id": "TS2339",
+        "pattern": "TS2339: Property .* does not exist on type",
+        "confidence": 0.8,
+        "strategy": "add_property_or_assertion",
+        "autoFix": true,
+        "description": "Missing property - add to interface or use type assertion"
+      },
+      {
+        "id": "TS2345",
+        "pattern": "TS2345: Argument of type .* is not assignable to parameter",
+        "confidence": 0.75,
+        "strategy": "type_coercion",
+        "autoFix": true,
+        "description": "Function argument type mismatch"
+      },
+      {
+        "id": "TS2532",
+        "pattern": "TS2532: Object is possibly 'undefined'",
+        "confidence": 0.9,
+        "strategy": "optional_chaining",
+        "autoFix": true,
+        "description": "Add optional chaining or null check"
+      },
+      {
+        "id": "TS2531",
+        "pattern": "TS2531: Object is possibly 'null'",
+        "confidence": 0.9,
+        "strategy": "null_check",
+        "autoFix": true,
+        "description": "Add null check or non-null assertion"
+      },
+      {
+        "id": "TS7006",
+        "pattern": "TS7006: Parameter .* implicitly has an 'any' type",
+        "confidence": 0.7,
+        "strategy": "add_type_annotation",
+        "autoFix": false,
+        "suggestion": "Add explicit type annotation"
+      },
+      {
+        "id": "TS2307",
+        "pattern": "TS2307: Cannot find module",
+        "confidence": 0.6,
+        "strategy": "check_import_path",
+        "autoFix": false,
+        "suggestion": "Check import path or install missing package"
+      },
+      {
+        "id": "TS2769",
+        "pattern": "TS2769: No overload matches this call",
+        "confidence": 0.65,
+        "strategy": "check_function_signature",
+        "autoFix": false,
+        "suggestion": "Check function signature and argument types"
+      }
+    ],
+    "eslint": [
+      {
+        "id": "no-unused-vars",
+        "pattern": "no-unused-vars",
+        "confidence": 0.95,
+        "strategy": "prefix_underscore_or_remove",
+        "autoFix": true,
+        "description": "Unused variable - prefix with _ or remove"
+      },
+      {
+        "id": "prefer-const",
+        "pattern": "prefer-const",
+        "confidence": 1.0,
+        "strategy": "eslint_fix",
+        "autoFix": true,
+        "description": "Use const instead of let"
+      },
+      {
+        "id": "no-explicit-any",
+        "pattern": "@typescript-eslint/no-explicit-any",
+        "confidence": 0.7,
+        "strategy": "replace_with_unknown",
+        "autoFix": true,
+        "description": "Replace any with unknown or specific type"
+      },
+      {
+        "id": "react-hooks-exhaustive-deps",
+        "pattern": "react-hooks/exhaustive-deps",
+        "confidence": 0.6,
+        "strategy": "add_dependency",
+        "autoFix": false,
+        "suggestion": "Add missing dependency to useEffect/useCallback"
+      },
+      {
+        "id": "no-console",
+        "pattern": "no-console",
+        "confidence": 0.9,
+        "strategy": "remove_or_wrap",
+        "autoFix": true,
+        "description": "Remove console.log or wrap in development check"
+      },
+      {
+        "id": "import-order",
+        "pattern": "import/order",
+        "confidence": 1.0,
+        "strategy": "eslint_fix",
+        "autoFix": true,
+        "description": "Fix import order"
+      }
+    ],
+    "e2e": [
+      {
+        "id": "timeout-selector",
+        "pattern": "Timeout .* waiting for selector",
+        "confidence": 0.7,
+        "strategy": "increase_timeout_or_wait_for_visible",
+        "autoFix": false,
+        "suggestion": "Use deterministic-wait helper or increase timeout"
+      },
+      {
+        "id": "strict-mode-multiple",
+        "pattern": "strict mode violation: .* resolved to .* elements",
+        "confidence": 0.85,
+        "strategy": "add_nth_or_first",
+        "autoFix": true,
+        "description": "Add .first() or .nth(0) to selector"
+      },
+      {
+        "id": "element-not-visible",
+        "pattern": "Element is not visible",
+        "confidence": 0.6,
+        "strategy": "scroll_into_view_or_wait",
+        "autoFix": false,
+        "suggestion": "Add scrollIntoViewIfNeeded() before interaction"
+      },
+      {
+        "id": "element-detached",
+        "pattern": "Element is detached from the DOM",
+        "confidence": 0.65,
+        "strategy": "re_query_element",
+        "autoFix": false,
+        "suggestion": "Re-query element before interaction"
+      },
+      {
+        "id": "navigation-timeout",
+        "pattern": "Timeout .* waiting for navigation",
+        "confidence": 0.7,
+        "strategy": "wait_for_load_state",
+        "autoFix": false,
+        "suggestion": "Add waitForLoadState('networkidle') or increase navigation timeout"
+      },
+      {
+        "id": "assertion-timeout",
+        "pattern": "Timed out .* waiting for expect",
+        "confidence": 0.75,
+        "strategy": "increase_expect_timeout",
+        "autoFix": true,
+        "description": "Increase expect timeout or add explicit wait"
+      },
+      {
+        "id": "locator-not-found",
+        "pattern": "locator\\(.*\\) not found",
+        "confidence": 0.5,
+        "strategy": "verify_selector",
+        "autoFix": false,
+        "suggestion": "Verify selector exists in DOM, check data-testid"
+      }
+    ],
+    "build": [
+      {
+        "id": "module-not-found",
+        "pattern": "Module not found: Can't resolve",
+        "confidence": 0.8,
+        "strategy": "check_package_json",
+        "autoFix": false,
+        "suggestion": "Run npm install or check import path"
+      },
+      {
+        "id": "chunk-size-warning",
+        "pattern": "First Load JS shared by all",
+        "confidence": 0.5,
+        "strategy": "code_splitting",
+        "autoFix": false,
+        "suggestion": "Consider dynamic imports for large dependencies"
+      }
+    ]
+  },
+  "retryStrategies": {
+    "flaky": {
+      "maxRetries": 3,
+      "delayMs": 1000,
+      "backoffMultiplier": 1.5
+    },
+    "network": {
+      "maxRetries": 5,
+      "delayMs": 2000,
+      "backoffMultiplier": 2.0
+    },
+    "rateLimit": {
+      "maxRetries": 10,
+      "delayMs": 5000,
+      "backoffMultiplier": 1.2
+    }
+  }
+}

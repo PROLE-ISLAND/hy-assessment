@@ -149,7 +149,7 @@ export function CandidateComparisonClient({
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">職種:</span>
               <Select value={selectedPosition} onValueChange={setSelectedPosition}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-[200px]" data-testid="compare-position-filter">
                   <SelectValue placeholder="すべて" />
                 </SelectTrigger>
                 <SelectContent>
@@ -169,6 +169,7 @@ export function CandidateComparisonClient({
               variant="outline"
               size="sm"
               onClick={handleSelectAll}
+              data-testid="compare-select-all-button"
             >
               {selectedIds.size === filteredCandidates.length ? '選択解除' : '上位5人を選択'}
             </Button>
@@ -224,7 +225,7 @@ export function CandidateComparisonClient({
                       {getJudgmentIcon(candidate.judgment.level)}
                       <span className="ml-1">{candidate.judgment.label}</span>
                     </Badge>
-                    <Button variant="ghost" size="sm" asChild>
+                    <Button variant="ghost" size="sm" asChild data-testid={`compare-candidate-link-${candidate.id}`}>
                       <Link href={`/admin/candidates/${candidate.id}`}>
                         <ExternalLink className="h-4 w-4" />
                       </Link>

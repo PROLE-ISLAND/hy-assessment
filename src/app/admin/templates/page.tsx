@@ -209,7 +209,7 @@ export default async function TemplatesPage() {
                       </TableCell>
                       <TableCell>{formatDate(template.updated_at)}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" asChild>
+                        <Button variant="ghost" size="sm" asChild data-testid={`template-detail-${template.id}`}>
                           <Link href={`/admin/templates/${template.id}`}>
                             <Eye className="mr-2 h-4 w-4" />
                             詳細

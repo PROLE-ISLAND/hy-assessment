@@ -112,7 +112,7 @@ export default async function PromptsPage() {
             AI分析で使用するプロンプトの管理とバージョン確認
           </p>
         </div>
-        <Button asChild>
+        <Button asChild data-testid="prompt-create-button">
           <Link href="/admin/prompts/new">
             <Plus className="mr-2 h-4 w-4" />
             新規作成
@@ -247,14 +247,14 @@ export default async function PromptsPage() {
                       <TableCell>{formatDate(prompt.updated_at)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="sm" asChild>
+                          <Button variant="ghost" size="sm" asChild data-testid={`prompt-detail-${prompt.id}`}>
                             <Link href={`/admin/prompts/${prompt.id}`}>
                               <Eye className="mr-1 h-4 w-4" />
                               詳細
                             </Link>
                           </Button>
                           {prompt.is_default && (
-                            <Button variant="ghost" size="sm" asChild>
+                            <Button variant="ghost" size="sm" asChild data-testid={`prompt-copy-${prompt.id}`}>
                               <Link href={`/admin/prompts/new?copy=${prompt.id}`}>
                                 <Copy className="mr-1 h-4 w-4" />
                                 複製

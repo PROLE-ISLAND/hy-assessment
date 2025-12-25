@@ -1,0 +1,28 @@
+# =====================================================
+# CODEOWNERS
+# Default reviewers for code changes
+# =====================================================
+
+# Default owner for all files
+* @PROLE-ISLAND/developers
+
+# CI/CD configuration
+/.github/ @PROLE-ISLAND/devops
+
+# Database and auth
+/supabase/ @PROLE-ISLAND/backend
+/src/lib/supabase/ @PROLE-ISLAND/backend
+
+# Design system
+/src/lib/design-system/ @PROLE-ISLAND/frontend
+/src/components/ui/ @PROLE-ISLAND/frontend
+
+# API routes
+/src/app/api/ @PROLE-ISLAND/backend
+
+# E2E tests
+/e2e/ @PROLE-ISLAND/qa
+
+# Documentation
+*.md @PROLE-ISLAND/developers
+CLAUDE.md @PROLE-ISLAND/devops

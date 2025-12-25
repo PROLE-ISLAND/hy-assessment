@@ -162,6 +162,7 @@ export function CandidateForm({ organizationId }: CandidateFormProps) {
                 onChange={(e) => setName(e.target.value)}
                 required
                 disabled={isLoading}
+                data-testid="candidate-name"
               />
             </div>
 
@@ -177,6 +178,7 @@ export function CandidateForm({ organizationId }: CandidateFormProps) {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
+                data-testid="candidate-email"
               />
             </div>
           </div>
@@ -229,10 +231,11 @@ export function CandidateForm({ organizationId }: CandidateFormProps) {
             variant="outline"
             onClick={() => router.back()}
             disabled={isLoading}
+            data-testid="candidate-cancel"
           >
             キャンセル
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} data-testid="candidate-submit">
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
