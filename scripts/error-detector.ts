@@ -296,4 +296,5 @@ Options:
 
 main().catch(console.error);
 
-export { ErrorDetector, DetectedError, FixPattern };
+export { ErrorDetector };
+export type { DetectedError, FixPattern };

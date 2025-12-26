@@ -48,6 +48,7 @@ async function runAnalysis(assessmentId: string) {
   // Run mock analysis - pass responses and position
   const analysisResult = await analyzeAssessmentMock({
     responses: responseData,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     candidatePosition: (assessment as any).candidates?.position || 'Unknown',
   });
 
@@ -56,6 +57,7 @@ async function runAnalysis(assessmentId: string) {
   // Extract scores as Record<string, number> for DB storage
   const scoresForDb: Record<string, number> = {};
   for (const [key, value] of Object.entries(analysisResult.scoringResult.domainScores)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     scoresForDb[key] = (value as any).percentage;
   }
 
@@ -63,6 +65,7 @@ async function runAnalysis(assessmentId: string) {
   const { data: saved, error: sErr } = await supabase
     .from('ai_analyses')
     .insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       organization_id: (assessment as any).organization_id,
       assessment_id: assessmentId,
       scores: scoresForDb,

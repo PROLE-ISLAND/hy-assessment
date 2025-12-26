@@ -140,7 +140,7 @@ async function loadActivePrompt(options: LoadPromptOptions = {}): Promise<Prompt
     }
 
     // Try to find org-specific active prompt first, then system-wide
-    let query = adminSupabase
+    const query = adminSupabase
       .from('prompt_templates')
       .select('*')
       .eq('key', promptKey)

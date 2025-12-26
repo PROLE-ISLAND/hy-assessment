@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Quick test for OpenAI model availability
 const OpenAI = require('openai');
 const fs = require('fs');

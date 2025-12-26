@@ -3,7 +3,7 @@
 // Common test setup for HY Assessment
 // =====================================================
 
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
 
 // Get test credentials from environment variables
 const E2E_TEST_EMAIL = process.env.E2E_TEST_EMAIL || 'e2e-test@hy-assessment.local';
@@ -11,9 +11,9 @@ const E2E_TEST_PASSWORD = process.env.E2E_TEST_PASSWORD || 'E2ETestSecure123!';
 
 // Extend base test with authentication
 export const test = base.extend<{
-  authenticatedPage: ReturnType<typeof base['page']>;
+  authenticatedPage: Page;
 }>({
-  authenticatedPage: async ({ page }, use) => {
+  authenticatedPage: async ({ page }, use: (page: Page) => Promise<void>) => {
     // Login with test credentials
     await page.goto('/login');
 
@@ -30,6 +30,7 @@ export const test = base.extend<{
     // Wait for redirect to admin dashboard
     await page.waitForURL('/admin**', { timeout: 15000 });
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(page);
   },
 });
@@ -97,12 +98,12 @@ export const SELECTORS = {
 };
 
 // Helper functions
-export async function waitForToast(page: ReturnType<typeof base['page']>) {
+export async function waitForToast(page: Page) {
   return page.waitForSelector(SELECTORS.toast, { timeout: 5000 });
 }
 
 export async function clickAndWaitForNavigation(
-  page: ReturnType<typeof base['page']>,
+  page: Page,
   selector: string
 ) {
   await Promise.all([
@@ -113,7 +114,7 @@ export async function clickAndWaitForNavigation(
 
 // Navigate to new candidate form through direct navigation
 // With global-setup storage state, authentication should persist
-export async function navigateToNewCandidateForm(page: ReturnType<typeof base['page']>) {
+export async function navigateToNewCandidateForm(page: Page) {
   // Go to candidates list first
   await page.goto('/admin/candidates');
   await page.waitForURL(/\/admin\/candidates/, { timeout: 10000 });
@@ -133,7 +134,7 @@ export async function navigateToNewCandidateForm(page: ReturnType<typeof base['p
   await page.waitForSelector(SELECTORS.candidateName, { timeout: 10000 });
 }
 
-export async function login(page: ReturnType<typeof base['page']>, retries = 3) {
+export async function login(page: Page, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       await page.goto('/login');

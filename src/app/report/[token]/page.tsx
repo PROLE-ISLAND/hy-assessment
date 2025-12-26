@@ -5,6 +5,7 @@
 // =====================================================
 
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase/server';
 import { CandidateReportView } from '@/components/analysis/CandidateReportView';
 import type { CandidateReport } from '@/types/database';
@@ -78,12 +79,12 @@ export default async function CandidateReportPage({ params }: ReportPageProps) {
               このレポートへのリンクは有効期限が切れました。
               新しいリンクをリクエストするか、担当者にお問い合わせください。
             </p>
-            <a
+            <Link
               href="/report/resend"
               className="inline-flex items-center justify-center px-6 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
             >
               リンクを再送する
-            </a>
+            </Link>
           </div>
         </div>
       );
