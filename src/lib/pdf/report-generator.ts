@@ -465,6 +465,19 @@ function generateHTML(data: ReportData): string {
   `;
 }
 
+// Timeout constants for PDF generation
+const PDF_GENERATION_TIMEOUT = 30000; // 30 seconds total
+const CONTENT_LOAD_TIMEOUT = 25000; // 25 seconds for content loading
+
+/**
+ * Create a timeout promise that rejects after specified milliseconds
+ */
+function createTimeoutPromise<T>(ms: number, message: string): Promise<T> {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(message)), ms);
+  });
+}
+
 export async function generatePDF(data: ReportData): Promise<Buffer> {
   const html = generateHTML(data);
   let browser: Browser | undefined;
@@ -480,31 +493,51 @@ export async function generatePDF(data: ReportData): Promise<Buffer> {
     });
 
     page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
 
-    // Wait for Google Fonts to load
-    await page.evaluateHandle('document.fonts.ready');
+    // Set default timeouts to prevent hanging
+    page.setDefaultTimeout(PDF_GENERATION_TIMEOUT);
+    page.setDefaultNavigationTimeout(PDF_GENERATION_TIMEOUT);
 
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '10mm',
-        right: '10mm',
-        bottom: '10mm',
-        left: '10mm',
-      },
-    });
+    // Load content with timeout protection using Promise.race
+    await Promise.race([
+      page.setContent(html, { waitUntil: 'networkidle0' }),
+      createTimeoutPromise(CONTENT_LOAD_TIMEOUT, 'PDF content loading timeout'),
+    ]);
+
+    // Wait for Google Fonts to load with timeout
+    await Promise.race([
+      page.evaluateHandle('document.fonts.ready'),
+      createTimeoutPromise(5000, 'Font loading timeout'),
+    ]);
+
+    // Generate PDF with timeout protection
+    const pdfBuffer = await Promise.race([
+      page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '10mm',
+          right: '10mm',
+          bottom: '10mm',
+          left: '10mm',
+        },
+      }),
+      createTimeoutPromise<Uint8Array>(PDF_GENERATION_TIMEOUT, 'PDF generation timeout'),
+    ]);
 
     return Buffer.from(pdfBuffer);
+  } catch (error) {
+    // Log error details for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[PDF] Generation failed:', errorMessage);
+    throw error;
   } finally {
-    // Ensure page is closed first to release memory
+    // Ensure resources are always released, even on timeout
     if (page) {
       await page.close().catch((e: Error) =>
         console.error('[PDF] Failed to close page:', e.message)
       );
     }
-    // Then close browser
     if (browser) {
       await browser.close().catch((e: Error) =>
         console.error('[PDF] Failed to close browser:', e.message)
