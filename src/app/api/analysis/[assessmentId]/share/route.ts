@@ -11,6 +11,12 @@ import { nanoid } from 'nanoid';
 // Expiration period: 90 days
 const EXPIRATION_DAYS = 90;
 
+// Maximum retry attempts for token collision
+const MAX_TOKEN_RETRIES = 3;
+
+// PostgreSQL unique constraint violation error code
+const UNIQUE_VIOLATION_CODE = '23505';
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ assessmentId: string }> }
@@ -99,26 +105,55 @@ export async function POST(
     const existingValid = reportToken && expiresAt && new Date(expiresAt) > now;
 
     if (!existingValid) {
-      // Generate new token
-      reportToken = nanoid(32); // 32 character URL-safe token
-      const expiration = new Date();
-      expiration.setDate(expiration.getDate() + EXPIRATION_DAYS);
-      expiresAt = expiration.toISOString();
+      // Generate new token with retry logic for collision handling
+      let tokenGenerated = false;
+      let lastError: unknown = null;
 
-      // Update assessment with new token
-      const { error: updateError } = await adminSupabase
-        .from('assessments')
-        .update({
-          report_token: reportToken,
-          report_shared_at: now.toISOString(),
-          report_expires_at: expiresAt,
-        } as never)
-        .eq('id', assessmentId);
+      for (let attempt = 0; attempt < MAX_TOKEN_RETRIES; attempt++) {
+        reportToken = nanoid(32); // 32 character URL-safe token
+        const expiration = new Date();
+        expiration.setDate(expiration.getDate() + EXPIRATION_DAYS);
+        expiresAt = expiration.toISOString();
 
-      if (updateError) {
+        // Update assessment with new token
+        const { error: updateError } = await adminSupabase
+          .from('assessments')
+          .update({
+            report_token: reportToken,
+            report_shared_at: now.toISOString(),
+            report_expires_at: expiresAt,
+          } as never)
+          .eq('id', assessmentId);
+
+        if (!updateError) {
+          tokenGenerated = true;
+          break;
+        }
+
+        // Check if this is a unique constraint violation (token collision)
+        const isTokenCollision =
+          updateError.code === UNIQUE_VIOLATION_CODE ||
+          updateError.message?.includes('unique') ||
+          updateError.message?.includes('duplicate');
+
+        if (isTokenCollision) {
+          console.warn(`Token collision on attempt ${attempt + 1}, retrying...`);
+          lastError = updateError;
+          continue;
+        }
+
+        // For other errors, fail immediately
         console.error('Failed to update report token:', updateError);
         return NextResponse.json(
           { error: 'Failed to generate share link' },
+          { status: 500 }
+        );
+      }
+
+      if (!tokenGenerated) {
+        console.error('Failed to generate unique token after retries:', lastError);
+        return NextResponse.json(
+          { error: 'Failed to generate unique share link. Please try again.' },
           { status: 500 }
         );
       }
