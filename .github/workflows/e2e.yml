@@ -15,8 +15,8 @@ on:
     - cron: '0 0 * * *'
 
 concurrency:
-  group: e2e-${{ github.ref }}
-  cancel-in-progress: true
+  group: e2e-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
 
 env:
   NEXT_TELEMETRY_DISABLED: 1
