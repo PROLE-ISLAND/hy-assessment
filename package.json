@@ -22,7 +22,11 @@
     "issue:refactor": "tsx scripts/create-issue.ts refactor",
     "issue:docs": "tsx scripts/create-issue.ts docs",
     "issue:chore": "tsx scripts/create-issue.ts chore",
-    "plan:validate": "tsx scripts/validate-plan.ts"
+    "plan:validate": "tsx scripts/validate-plan.ts",
+    "test:load": "k6 run --env LOAD_PROFILE=load load-tests/scenarios/api-load.js",
+    "test:load:smoke": "k6 run --env LOAD_PROFILE=smoke load-tests/scenarios/api-load.js",
+    "test:load:stress": "k6 run --env LOAD_PROFILE=stress load-tests/scenarios/api-load.js",
+    "test:load:flow": "k6 run load-tests/scenarios/assessment-flow.js"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
