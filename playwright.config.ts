@@ -51,9 +51,11 @@ export default defineConfig({
 
   projects: [
     // Setup project - runs first to authenticate
+    // Needs longer timeout for Vercel Preview cold starts
     {
       name: 'setup',
       testMatch: /auth\.setup\.ts/,
+      timeout: 120000, // 2 minutes for cold start
     },
     // Auth tests - run without storageState (test login/logout/redirect)
     {

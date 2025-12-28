@@ -31,14 +31,16 @@ async function globalSetup(config: FullConfig) {
     // Submit
     await page.click('[data-testid="login-submit"]');
 
-    // Wait for redirect to admin dashboard
-    await page.waitForURL('**/admin**', { timeout: 15000 });
+    // Wait for redirect to admin dashboard (increased timeout for Vercel Preview)
+    await page.waitForURL('**/admin**', { timeout: 30000 });
+    console.log('[Global Setup] Redirected to:', page.url());
 
-    // Wait for page to fully load
-    await page.waitForSelector('h1', { timeout: 10000 });
+    // Wait for page to stabilize
+    await page.waitForLoadState('domcontentloaded', { timeout: 30000 });
+    await page.waitForLoadState('networkidle', { timeout: 60000 });
 
-    // Additional wait to ensure session cookies are set
-    await page.waitForTimeout(1000);
+    // Wait for any visible content
+    await page.waitForSelector('header, main, h1', { timeout: 30000 });
 
     console.log('[Global Setup] Authentication successful!');
 
