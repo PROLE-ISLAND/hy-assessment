@@ -229,14 +229,39 @@ hotfix/issue-789-critical-fix
 
 ### 必要なGitHub Secrets
 
-| Secret名 | 用途 |
-|----------|------|
-| `VERCEL_TOKEN` | Vercel APIトークン |
-| `VERCEL_ORG_ID` | Vercel Organization ID |
-| `VERCEL_PROJECT_ID` | Vercel Project ID |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key |
-| `CODECOV_TOKEN` | Codecovトークン（任意） |
+| Secret名 | 用途 | 取得方法 |
+|----------|------|----------|
+| `VERCEL_TOKEN` | Vercel APIトークン | Vercel → Settings → Tokens |
+| `VERCEL_ORG_ID` | Vercel Organization ID | Vercel → Settings → General |
+| `VERCEL_PROJECT_ID` | Vercel Project ID | Project → Settings → General |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase URL | Supabase → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key | Supabase → Settings → API |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | E2E Preview用 | 下記参照 |
+| `E2E_TEST_EMAIL` | E2Eテスト用メール | Supabaseで作成 |
+| `E2E_TEST_PASSWORD` | E2Eテスト用パスワード | Supabaseで作成 |
+| `CODECOV_TOKEN` | Codecovトークン（任意） | Codecov |
+
+### Vercel環境変数（Preview環境）
+
+Vercel Previewデプロイで必要な環境変数:
+
+```bash
+# Vercel CLIで設定
+vercel env add NEXT_PUBLIC_SUPABASE_URL preview
+vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY preview
+```
+
+### Vercel Automation Bypass Secret の設定
+
+E2E Preview workflowでVercel Deployment Protectionを回避するために必要:
+
+1. **Vercelダッシュボード** → Project → Settings → Deployment Protection
+2. **Protection Bypass for Automation** を有効化
+3. 生成されたシークレットをコピー
+4. **GitHub** → Repository → Settings → Secrets → New repository secret
+5. `VERCEL_AUTOMATION_BYPASS_SECRET` として追加
+
+参考: [Vercel Protection Bypass for Automation](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation)
 
 ---
 
