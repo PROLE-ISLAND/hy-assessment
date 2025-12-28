@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const securityHeaders = [
   // DNS Prefetch Control
@@ -44,6 +45,9 @@ const nextConfig: NextConfig = {
 
   // Remove X-Powered-By header for security
   poweredByHeader: false,
+
+  // Sentry: Enable source map generation for error tracking
+  productionBrowserSourceMaps: true,
 
   // Custom headers
   async headers() {
@@ -130,4 +134,46 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Sentry configuration options
+const sentryWebpackPluginOptions = {
+  // Organization and project names in Sentry
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  // Auth token for source map upload
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  // Suppresses source map uploading logs during build
+  silent: !process.env.CI,
+
+  // Upload source maps to Sentry
+  // Disabled in development
+  sourceMaps: {
+    disable: process.env.NODE_ENV !== 'production',
+  },
+
+  // Automatically tree-shake Sentry logger statements to reduce bundle size
+  disableLogger: true,
+
+  // Hides source maps from generated client bundles
+  hideSourceMaps: true,
+
+  // Automatically instrument React components
+  reactComponentAnnotation: {
+    enabled: true,
+  },
+
+  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers
+  tunnelRoute: '/monitoring',
+
+  // Prevents Sentry from running during build (security best practice)
+  automaticVercelMonitors: true,
+};
+
+// Only wrap with Sentry if DSN is configured
+const config =
+  process.env.NEXT_PUBLIC_SENTRY_DSN
+    ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
+    : nextConfig;
+
+export default config;

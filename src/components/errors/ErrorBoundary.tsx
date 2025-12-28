@@ -3,9 +3,11 @@
 // =====================================================
 // React Error Boundary
 // Catches and displays errors in client components
+// Integrated with Sentry for error tracking
 // =====================================================
 
 import { Component, type ReactNode } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,7 +43,17 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Log to console in development
     console.error('Error caught by boundary:', error, errorInfo);
+
+    // Send to Sentry for tracking
+    Sentry.withScope((scope) => {
+      scope.setExtra('componentStack', errorInfo.componentStack);
+      scope.setTag('errorBoundary', 'true');
+      Sentry.captureException(error);
+    });
+
+    // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
   }
 
