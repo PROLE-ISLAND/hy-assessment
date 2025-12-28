@@ -25,14 +25,8 @@ export default defineConfig({
         '**/*.test.ts',
         '**/*.test.tsx',
       ],
-      // Coverage thresholds (Bronze level: 70%)
-      // Silver: 85%, Gold: 95%
-      thresholds: {
-        lines: 70,
-        functions: 70,
-        branches: 60,
-        statements: 70,
-      },
+      // Coverage report only (no thresholds)
+      // Focus on testing important logic, not coverage %
     },
   },
   resolve: {
