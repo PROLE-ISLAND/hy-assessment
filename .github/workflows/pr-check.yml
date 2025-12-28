@@ -1,0 +1,92 @@
+# =====================================================
+# PR規約チェック
+# ブランチ命名規則・Issue紐付けを検証
+# =====================================================
+
+name: PR規約チェック
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  check-conventions:
+    name: 規約チェック
+    runs-on: ubuntu-latest
+    steps:
+      - name: ブランチ名チェック
+        id: branch-check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            const validPatterns = [
+              /^feature\/issue-\d+-/,
+              /^bugfix\/issue-\d+-/,
+              /^hotfix\/issue-\d+-/,
+              /^dependabot\//,
+              /^renovate\//,
+            ];
+
+            const isValid = validPatterns.some(p => p.test(branch));
+
+            if (!isValid) {
+              core.warning(`ブランチ名が規約に沿っていません: ${branch}`);
+              core.warning('推奨形式: feature/issue-{番号}-{説明}, bugfix/issue-{番号}-{説明}, hotfix/issue-{番号}-{説明}');
+              return { valid: false, branch };
+            }
+
+            console.log(`✅ ブランチ名OK: ${branch}`);
+            return { valid: true, branch };
+
+      - name: Issue紐付けチェック
+        id: issue-check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const title = context.payload.pull_request.title || '';
+
+            // closes #, fixes #, resolves # などをチェック
+            const linkPatterns = [
+              /closes?\s+#\d+/i,
+              /fixes?\s+#\d+/i,
+              /resolves?\s+#\d+/i,
+              /関連\s*#\d+/,
+            ];
+
+            const hasLink = linkPatterns.some(p => p.test(body) || p.test(title));
+
+            if (!hasLink) {
+              core.warning('PRがIssueに紐付いていません');
+              core.warning('PR本文に "closes #番号" を追加してください');
+              return { linked: false };
+            }
+
+            console.log('✅ Issue紐付けOK');
+            return { linked: true };
+
+      - name: 結果サマリー
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branchResult = ${{ steps.branch-check.outputs.result }};
+            const issueResult = ${{ steps.issue-check.outputs.result }};
+
+            let summary = '## PR規約チェック結果\n\n';
+            summary += '| チェック項目 | 結果 |\n';
+            summary += '|-------------|------|\n';
+            summary += `| ブランチ命名規則 | ${branchResult.valid ? '✅ OK' : '⚠️ 要確認'} |\n`;
+            summary += `| Issue紐付け | ${issueResult.linked ? '✅ OK' : '⚠️ 要確認'} |\n`;
+
+            if (!branchResult.valid || !issueResult.linked) {
+              summary += '\n### 推奨事項\n';
+              if (!branchResult.valid) {
+                summary += `- ブランチ名を \`feature/issue-{番号}-{説明}\` 形式に変更\n`;
+              }
+              if (!issueResult.linked) {
+                summary += '- PR本文に `closes #番号` を追加してIssueと紐付け\n';
+              }
+            }
+
+            await core.summary.addRaw(summary).write();
