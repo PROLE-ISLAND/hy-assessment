@@ -19,6 +19,7 @@ import { DOMAIN_LABELS } from '@/lib/analysis';
 import { POSITIONS } from '@/lib/constants/positions';
 import { getScoreTextClass, getProgressColor } from '@/lib/design-system';
 import { ReportsDateFilter } from '@/components/dashboard/reports-date-filter';
+import { ExportButtons } from '@/components/reports/ExportButtons';
 
 // Type for analysis data
 interface AnalysisWithCandidate {
@@ -174,11 +175,14 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">レポート</h1>
-        <p className="text-muted-foreground">
-          検査結果の分析とインサイト
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">レポート</h1>
+          <p className="text-muted-foreground">
+            検査結果の分析とインサイト
+          </p>
+        </div>
+        {!isEmpty && <ExportButtons />}
       </div>
 
       {/* Date Filter */}
