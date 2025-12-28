@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: ブランチ名チェック
         id: branch-check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const branch = context.payload.pull_request.head.ref;
@@ -41,7 +41,7 @@ jobs:
 
       - name: Issue紐付けチェック
         id: issue-check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const body = context.payload.pull_request.body || '';
@@ -67,7 +67,7 @@ jobs:
             return { linked: true };
 
       - name: 結果サマリー
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const branchResult = ${{ steps.branch-check.outputs.result }};

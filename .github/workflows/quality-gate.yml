@@ -27,7 +27,7 @@ jobs:
 
       - name: PR番号取得
         id: pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const pulls = await github.rest.pulls.list({
@@ -44,7 +44,7 @@ jobs:
       - name: カバレッジレポート取得
         id: coverage
         if: steps.pr.outputs.result != 'null'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             // CIワークフローのartifactsを取得
@@ -82,7 +82,7 @@ jobs:
       - name: DoD Level判定
         id: dod
         if: steps.pr.outputs.result != 'null'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const prNumber = ${{ steps.pr.outputs.result }};
@@ -158,7 +158,7 @@ jobs:
 
       - name: PRにレポート投稿
         if: steps.pr.outputs.result != 'null'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -193,7 +193,7 @@ jobs:
 
       - name: コミットステータス更新
         if: steps.pr.outputs.result != 'null'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const state = '${{ steps.report.outputs.gate }}' === 'pass' ? 'success' : 'failure';
