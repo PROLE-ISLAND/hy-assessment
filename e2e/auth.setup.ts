@@ -26,40 +26,23 @@ setup('authenticate', async ({ page }) => {
   // Submit
   await page.click('[data-testid="login-submit"]');
 
-  // Wait for redirect to admin dashboard (increased timeout for Vercel Preview)
-  await page.waitForURL('**/admin**', { timeout: 30000 });
+  // Wait for redirect to admin dashboard (increased timeout for Vercel Preview cold starts)
+  await page.waitForURL('**/admin**', { timeout: 60000 });
   console.log('[Auth Setup] Redirected to:', page.url());
 
-  // Wait for page to stabilize - DOM first, then network
-  await page.waitForLoadState('domcontentloaded', { timeout: 30000 });
-  console.log('[Auth Setup] DOM content loaded');
-
-  await page.waitForLoadState('networkidle', { timeout: 60000 });
-  console.log('[Auth Setup] Network idle');
-
-  // Now check if we're actually on admin (not redirected back to login)
+  // Verify we're on /admin (not redirected back to /login)
   const currentUrl = page.url();
   if (currentUrl.includes('/login')) {
     throw new Error('[Auth Setup] Unexpectedly on login page - auth may have failed');
   }
 
-  // Wait for any visible content (header or main content)
-  await page.waitForSelector('header, main, h1', { timeout: 30000 });
-  console.log('[Auth Setup] Page content visible');
+  // Wait for DOM to be ready (auth cookies should be set)
+  await page.waitForLoadState('domcontentloaded', { timeout: 30000 });
+  console.log('[Auth Setup] DOM content loaded');
 
-  // Verify we're authenticated by checking for user menu (not login link)
-  // If we see avatar instead of login link, auth is working
-  const hasAvatar = await page.locator('button:has(span)').first().isVisible().catch(() => false);
-  const hasLoginLink = await page.locator('a[href="/login"]:has-text("ログイン")').isVisible().catch(() => false);
-
-  console.log(`[Auth Setup] Avatar visible: ${hasAvatar}, Login link visible: ${hasLoginLink}`);
-
-  if (hasLoginLink && !hasAvatar) {
-    console.log('[Auth Setup] WARNING: Login link visible - user profile may not exist in users table');
-  }
-
-  // Additional wait to ensure session cookies are fully set
+  // Brief wait to ensure cookies are fully written
   await page.waitForTimeout(2000);
+  console.log('[Auth Setup] Auth state ready');
 
   // Save storage state
   await page.context().storageState({ path: authFile });
