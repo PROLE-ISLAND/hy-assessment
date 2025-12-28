@@ -467,17 +467,19 @@ function generateHTML(data: ReportData): string {
 
 export async function generatePDF(data: ReportData): Promise<Buffer> {
   const html = generateHTML(data);
-
-  // Configure chromium for serverless (Vercel) environment
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: { width: 1200, height: 800 },
-    executablePath: await chromium.executablePath(CHROMIUM_REMOTE_URL),
-    headless: true,
-  });
+  let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
+  let page: Awaited<ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>['newPage']>> | undefined;
 
   try {
-    const page = await browser.newPage();
+    // Configure chromium for serverless (Vercel) environment
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: { width: 1200, height: 800 },
+      executablePath: await chromium.executablePath(CHROMIUM_REMOTE_URL),
+      headless: true,
+    });
+
+    page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
 
     // Wait for Google Fonts to load
@@ -496,6 +498,17 @@ export async function generatePDF(data: ReportData): Promise<Buffer> {
 
     return Buffer.from(pdfBuffer);
   } finally {
-    await browser.close();
+    // Ensure page is closed first to release memory
+    if (page) {
+      await page.close().catch((e: Error) =>
+        console.error('[PDF] Failed to close page:', e.message)
+      );
+    }
+    // Then close browser
+    if (browser) {
+      await browser.close().catch((e: Error) =>
+        console.error('[PDF] Failed to close browser:', e.message)
+      );
+    }
   }
 }
