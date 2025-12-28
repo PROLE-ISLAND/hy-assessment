@@ -146,12 +146,19 @@ export function AssessmentForm({
 
       setIsSaving(true);
       saveTimeoutRef.current = setTimeout(async () => {
-        await saveResponse(
-          options.name,
-          options.value,
-          sender.currentPageNo
-        );
-        setIsSaving(false);
+        try {
+          await saveResponse(
+            options.name,
+            options.value,
+            sender.currentPageNo
+          );
+        } catch (err) {
+          // saveResponse handles its own errors, but catch any unexpected errors
+          console.error('Unexpected auto-save error:', err);
+          setError('自動保存中に予期しないエラーが発生しました。');
+        } finally {
+          setIsSaving(false);
+        }
       }, 500);
     };
 
