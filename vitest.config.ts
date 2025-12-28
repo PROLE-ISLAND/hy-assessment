@@ -17,9 +17,22 @@ export default defineConfig({
     exclude: ['node_modules', 'e2e'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      include: ['src/lib/**/*.ts'],
-      exclude: ['src/lib/supabase/**'],
+      reporter: ['text', 'json', 'html', 'lcov'],
+      include: ['src/lib/**/*.ts', 'src/components/**/*.tsx'],
+      exclude: [
+        'src/lib/supabase/**',
+        '**/*.d.ts',
+        '**/*.test.ts',
+        '**/*.test.tsx',
+      ],
+      // Coverage thresholds (Bronze level: 70%)
+      // Silver: 85%, Gold: 95%
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 60,
+        statements: 70,
+      },
     },
   },
   resolve: {
