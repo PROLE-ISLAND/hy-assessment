@@ -34,11 +34,11 @@ async function globalSetup(config: FullConfig) {
     // Wait for redirect to admin dashboard
     await page.waitForURL('**/admin**', { timeout: 15000 });
 
-    // Wait for page to fully load
-    await page.waitForSelector('h1', { timeout: 10000 });
+    // Wait for header to load (faster than waiting for h1 in main content)
+    await page.waitForSelector('header', { timeout: 10000 });
 
-    // Additional wait to ensure session cookies are set
-    await page.waitForTimeout(1000);
+    // Wait for network to settle and session cookies to be set
+    await page.waitForLoadState('networkidle', { timeout: 30000 });
 
     console.log('[Global Setup] Authentication successful!');
 

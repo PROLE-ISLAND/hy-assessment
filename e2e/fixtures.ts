@@ -119,8 +119,9 @@ export async function navigateToNewCandidateForm(page: Page) {
   await page.goto('/admin/candidates');
   await page.waitForURL(/\/admin\/candidates/, { timeout: 10000 });
 
-  // Wait for page to fully load
-  await page.waitForSelector('h1', { timeout: 10000 });
+  // Wait for page to fully load (header appears faster than main content)
+  await page.waitForSelector('header', { timeout: 10000 });
+  await page.waitForLoadState('networkidle', { timeout: 30000 });
 
   // Wait for the Add Candidate button to appear
   const addButton = page.locator(SELECTORS.addCandidateButton);
@@ -144,11 +145,11 @@ export async function login(page: Page, retries = 3) {
       await page.click(SELECTORS.loginSubmit);
       await page.waitForURL('/admin**', { timeout: 15000 });
 
-      // Wait for dashboard content to fully load (session established)
-      await page.waitForSelector('h1', { timeout: 10000 });
+      // Wait for header to load (faster than waiting for h1 in main content)
+      await page.waitForSelector('header', { timeout: 10000 });
 
-      // Small delay to ensure auth cookies are fully set
-      await page.waitForTimeout(500);
+      // Wait for network to settle (session established)
+      await page.waitForLoadState('networkidle', { timeout: 30000 });
 
       return; // Success
     } catch (error) {

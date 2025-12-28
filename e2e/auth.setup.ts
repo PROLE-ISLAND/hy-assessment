@@ -29,8 +29,12 @@ setup('authenticate', async ({ page }) => {
   // Wait for redirect to admin dashboard
   await page.waitForURL('**/admin**', { timeout: 15000 });
 
-  // Wait for page to fully load - verify auth worked
-  await page.waitForSelector('h1', { timeout: 10000 });
+  // Wait for header to load (faster than waiting for h1 in main content)
+  // Header is a client component that renders immediately after layout loads
+  await page.waitForSelector('header', { timeout: 10000 });
+
+  // Wait for network to settle and page content to load
+  await page.waitForLoadState('networkidle', { timeout: 30000 });
 
   // Verify we're authenticated by checking for user menu (not login link)
   // If we see avatar instead of login link, auth is working
