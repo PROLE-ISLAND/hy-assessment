@@ -5,6 +5,10 @@
 
 import { defineConfig, devices } from '@playwright/test';
 
+// Check if we should skip the local webServer (when using external URL like Vercel Preview)
+const skipWebServer = process.env.SKIP_WEB_SERVER === 'true' ||
+  (process.env.BASE_URL && !process.env.BASE_URL.includes('localhost'));
+
 export default defineConfig({
   testDir: './e2e',
   // Run tests in files sequentially, but files can run in parallel with limited workers
@@ -62,8 +66,8 @@ export default defineConfig({
     },
   ],
 
-  // Run dev server before tests
-  webServer: {
+  // Run dev server before tests (skip when using external URL)
+  webServer: skipWebServer ? undefined : {
     command: process.env.CI ? 'npm run start' : 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
