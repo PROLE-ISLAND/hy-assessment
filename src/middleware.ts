@@ -14,7 +14,7 @@ const publicRoutes = [
   '/login',
   '/auth/callback',
   '/assessment', // Public assessment pages (accessed via token)
-  '/report', // Public candidate report pages (accessed via token)
+  '/report',     // Public candidate report pages (accessed via token)
   '/api/health', // Health check endpoint for monitoring
 ];
 
