@@ -1,8 +1,9 @@
 // =====================================================
 // Reports & Analytics Page
-// Domain-wise and position-wise analysis
+// Domain-wise and position-wise analysis with date filtering
 // =====================================================
 
+import { Suspense } from 'react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import {
   Card,
@@ -13,20 +14,30 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { BarChart3, Target, Users, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { BarChart3, Target, Users, TrendingUp, TrendingDown, Minus, Calendar } from 'lucide-react';
 import { DOMAIN_LABELS } from '@/lib/analysis';
 import { POSITIONS } from '@/lib/constants/positions';
 import { getScoreTextClass, getProgressColor } from '@/lib/design-system';
+import { ReportsDateFilter } from '@/components/dashboard/reports-date-filter';
 
 // Type for analysis data
 interface AnalysisWithCandidate {
   scores: Record<string, number>;
+  created_at: string;
   assessments: {
     candidates: {
       position: string;
       desired_positions: string[] | null;
     };
   };
+}
+
+// Props type for searchParams
+interface PageProps {
+  searchParams: Promise<{
+    from?: string;
+    to?: string;
+  }>;
 }
 
 // Helper to calculate average
@@ -43,9 +54,14 @@ function getTrendIcon(current: number, baseline: number) {
   return <Minus className="h-4 w-4 text-gray-400" />;
 }
 
-export default async function ReportsPage() {
+export default async function ReportsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
   const supabase = await createClient();
   const adminSupabase = createAdminClient();
+
+  // Parse date filter from URL
+  const fromDate = params.from ? new Date(params.from) : null;
+  const toDate = params.to ? new Date(params.to) : null;
 
   // Get current user and organization
   const { data: { user } } = await supabase.auth.getUser();
@@ -60,11 +76,12 @@ export default async function ReportsPage() {
     organizationId = dbUser?.organization_id || null;
   }
 
-  // Get all latest analyses with candidate info
-  const { data: analyses } = await adminSupabase
+  // Build query with date filter
+  let query = adminSupabase
     .from('ai_analyses')
     .select(`
       scores,
+      created_at,
       assessments!inner(
         candidates!inner(
           position,
@@ -73,8 +90,20 @@ export default async function ReportsPage() {
       )
     `)
     .eq('organization_id', organizationId || '')
-    .eq('is_latest', true)
-    .returns<AnalysisWithCandidate[]>();
+    .eq('is_latest', true);
+
+  // Apply date filter
+  if (fromDate) {
+    query = query.gte('created_at', fromDate.toISOString());
+  }
+  if (toDate) {
+    // Add 1 day to include the end date fully
+    const endDate = new Date(toDate);
+    endDate.setDate(endDate.getDate() + 1);
+    query = query.lt('created_at', endDate.toISOString());
+  }
+
+  const { data: analyses } = await query.returns<AnalysisWithCandidate[]>();
 
   // Calculate domain averages
   const domains = ['GOV', 'CONFLICT', 'REL', 'COG', 'WORK', 'VALID'] as const;
@@ -135,6 +164,13 @@ export default async function ReportsPage() {
 
   const isEmpty = totalAnalyses === 0;
 
+  // Format filter description
+  const filterDescription = fromDate
+    ? toDate
+      ? `${fromDate.toLocaleDateString('ja-JP')} - ${toDate.toLocaleDateString('ja-JP')}`
+      : `${fromDate.toLocaleDateString('ja-JP')} 以降`
+    : '全期間';
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -145,13 +181,33 @@ export default async function ReportsPage() {
         </p>
       </div>
 
+      {/* Date Filter */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Calendar className="h-4 w-4" />
+            期間フィルター
+          </CardTitle>
+          <CardDescription>
+            分析対象の期間を選択してください
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<div className="h-10 w-full animate-pulse bg-muted rounded" />}>
+            <ReportsDateFilter />
+          </Suspense>
+        </CardContent>
+      </Card>
+
       {isEmpty ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BarChart3 className="h-12 w-12 text-muted-foreground/50" />
             <h3 className="mt-4 text-lg font-semibold">分析データがありません</h3>
             <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">
-              検査が完了してAI分析が実行されると、ここにレポートが表示されます。
+              {fromDate
+                ? `選択された期間（${filterDescription}）に該当するデータがありません。期間を変更するか、「全期間」を選択してください。`
+                : '検査が完了してAI分析が実行されると、ここにレポートが表示されます。'}
             </p>
           </CardContent>
         </Card>
@@ -165,7 +221,9 @@ export default async function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{totalAnalyses}</div>
-                <p className="text-xs text-muted-foreground">件のAI分析</p>
+                <p className="text-xs text-muted-foreground">
+                  件のAI分析（{filterDescription}）
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -310,32 +368,32 @@ export default async function ReportsPage() {
 
                 return (
                   <>
-                    <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                      <TrendingUp className="h-5 w-5 text-green-600 mt-0.5" />
+                    <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                      <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
                       <div>
-                        <div className="font-medium text-green-900">強みの傾向</div>
-                        <p className="text-sm text-green-700">
+                        <div className="font-medium text-green-900 dark:text-green-100">強みの傾向</div>
+                        <p className="text-sm text-green-700 dark:text-green-300">
                           候補者全体で「{DOMAIN_LABELS[best]}」のスコアが最も高く（{domainStats[best].avg}%）、
                           組織への適合が期待できます。
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
-                      <TrendingDown className="h-5 w-5 text-yellow-600 mt-0.5" />
+                    <div className="flex items-start gap-3 p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
+                      <TrendingDown className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                       <div>
-                        <div className="font-medium text-yellow-900">改善の余地</div>
-                        <p className="text-sm text-yellow-700">
+                        <div className="font-medium text-yellow-900 dark:text-yellow-100">改善の余地</div>
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300">
                           「{DOMAIN_LABELS[worst]}」のスコアが相対的に低め（{domainStats[worst].avg}%）。
                           面接での確認ポイントとして活用できます。
                         </p>
                       </div>
                     </div>
                     {domainStats['COG'].avg > 50 && (
-                      <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
-                        <Target className="h-5 w-5 text-orange-600 mt-0.5" />
+                      <div className="flex items-start gap-3 p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
+                        <Target className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
                         <div>
-                          <div className="font-medium text-orange-900">認知スタイルの傾向</div>
-                          <p className="text-sm text-orange-700">
+                          <div className="font-medium text-orange-900 dark:text-orange-100">認知スタイルの傾向</div>
+                          <p className="text-sm text-orange-700 dark:text-orange-300">
                             COGスコアが平均{domainStats['COG'].avg}%と高めの傾向があります。
                             被害者意識や感情的思考の傾向に注意が必要な候補者が含まれる可能性があります。
                           </p>
