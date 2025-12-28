@@ -6,7 +6,7 @@
 // Supports both v1 (legacy) and v2 (enhanced) reports
 // =====================================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,6 +94,18 @@ export function AnalysisResultsClient({
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [activeTab, setActiveTab] = useState('results');
 
+  // AbortController for cancelling in-flight version requests (race condition prevention)
+  const versionAbortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup: cancel in-flight requests on unmount
+  useEffect(() => {
+    return () => {
+      if (versionAbortControllerRef.current) {
+        versionAbortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   // Fetch history when tab changes
   const fetchHistory = useCallback(async () => {
     if (loadingHistory) return;
@@ -117,20 +129,44 @@ export function AnalysisResultsClient({
     }
   }, [activeTab, history.length, currentAnalysis, fetchHistory]);
 
-  // Fetch specific version
-  const fetchVersion = async (version: number) => {
+  // Fetch specific version with race condition prevention
+  const fetchVersion = useCallback(async (version: number) => {
+    // Cancel any in-flight request to prevent race condition
+    if (versionAbortControllerRef.current) {
+      versionAbortControllerRef.current.abort();
+    }
+
+    // Create new AbortController for this request
+    const abortController = new AbortController();
+    versionAbortControllerRef.current = abortController;
+
     try {
-      const response = await fetch(`/api/analysis/${assessmentId}/version/${version}`);
+      const response = await fetch(`/api/analysis/${assessmentId}/version/${version}`, {
+        signal: abortController.signal,
+      });
+
+      // Check if request was aborted before processing response
+      if (abortController.signal.aborted) {
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
-        setCurrentAnalysis(data);
-        setSelectedVersion(version);
-        setActiveTab('results');
+        // Double-check abort status before updating state
+        if (!abortController.signal.aborted) {
+          setCurrentAnalysis(data);
+          setSelectedVersion(version);
+          setActiveTab('results');
+        }
       }
     } catch (error) {
+      // Ignore AbortError (expected when request is cancelled)
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
       console.error('Failed to fetch version:', error);
     }
-  };
+  }, [assessmentId]);
 
   // Handle re-analyze complete
   const handleReanalyzeComplete = useCallback(
