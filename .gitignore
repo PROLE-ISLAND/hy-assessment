@@ -42,3 +42,5 @@ next-env.d.ts
 
 # Playwright auth state
 e2e/.auth/
+e2e-results.json/
+e2e-output.log
