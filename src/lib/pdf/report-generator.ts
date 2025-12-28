@@ -4,7 +4,7 @@
 // Supports serverless environments (Vercel) via @sparticuz/chromium
 // =====================================================
 
-import puppeteer from 'puppeteer-core';
+import puppeteer, { type Browser, type Page } from 'puppeteer-core';
 import chromium from '@sparticuz/chromium-min';
 import { DOMAIN_LABELS, DOMAIN_DESCRIPTIONS } from '@/lib/analysis';
 
@@ -467,8 +467,8 @@ function generateHTML(data: ReportData): string {
 
 export async function generatePDF(data: ReportData): Promise<Buffer> {
   const html = generateHTML(data);
-  let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
-  let page: Awaited<ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>['newPage']>> | undefined;
+  let browser: Browser | undefined;
+  let page: Page | undefined;
 
   try {
     // Configure chromium for serverless (Vercel) environment
