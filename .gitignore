@@ -44,3 +44,9 @@ next-env.d.ts
 e2e/.auth/
 e2e-results.json/
 e2e-output.log
+# Test artifacts
+test-results/
+playwright-report/
+e2e-results.json/
+e2e-output.log
+*.zip
