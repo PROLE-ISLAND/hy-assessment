@@ -7,6 +7,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { nanoid } from 'nanoid';
+import { checkRateLimit, applyRateLimitHeaders, type RateLimitResult } from '@/lib/rate-limit';
+
+// Rate limit config: 10 requests per minute per user
+const SHARE_RATE_LIMIT = {
+  limit: 10,
+  windowSeconds: 60,
+};
 
 // Expiration period: 90 days
 const EXPIRATION_DAYS = 90;
@@ -29,7 +36,24 @@ export async function POST(
       );
     }
 
-    // 2. Get user's organization
+    // 2. Check rate limit (10 requests per minute per user)
+    const rateLimitResult: RateLimitResult = checkRateLimit(user.id, SHARE_RATE_LIMIT);
+    if (!rateLimitResult.success) {
+      const headers = new Headers();
+      applyRateLimitHeaders(headers, rateLimitResult);
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            ...Object.fromEntries(headers.entries()),
+          },
+        }
+      );
+    }
+
+    // 3. Get user's organization
     const { data: dbUser } = await adminSupabase
       .from('users')
       .select('organization_id, role')
@@ -43,7 +67,7 @@ export async function POST(
       );
     }
 
-    // 3. Verify assessment belongs to user's organization and has analysis
+    // 4. Verify assessment belongs to user's organization and has analysis
     const { data: assessment, error: assessmentError } = await adminSupabase
       .from('assessments')
       .select(`
@@ -81,7 +105,7 @@ export async function POST(
       );
     }
 
-    // 4. Check if there's a candidate report
+    // 5. Check if there's a candidate report
     const latestAnalysis = assessment.ai_analyses?.find(a => a.is_latest);
     if (!latestAnalysis?.candidate_report) {
       return NextResponse.json(
@@ -90,7 +114,7 @@ export async function POST(
       );
     }
 
-    // 5. Generate token (or return existing if still valid)
+    // 6. Generate token (or return existing if still valid)
     let reportToken = assessment.report_token;
     let expiresAt = assessment.report_expires_at;
     const now = new Date();
@@ -124,7 +148,7 @@ export async function POST(
       }
     }
 
-    // 6. Build share URL
+    // 7. Build share URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const shareUrl = `${baseUrl}/report/${reportToken}`;
 
