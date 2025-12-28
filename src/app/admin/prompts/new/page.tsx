@@ -3,7 +3,7 @@
 // Create a new prompt or copy from existing
 // =====================================================
 
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { PromptEditForm } from '@/components/prompts/PromptEditForm';
 import type { PromptTemplate, PromptKey } from '@/types/database';
 

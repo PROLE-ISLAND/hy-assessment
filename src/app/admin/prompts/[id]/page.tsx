@@ -15,14 +15,12 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
   ArrowLeft,
   Edit,
   CheckCircle,
   XCircle,
   Copy,
-  Trash2,
   Play,
 } from 'lucide-react';
 import type { PromptTemplate, PromptKey } from '@/types/database';

@@ -5,7 +5,7 @@
 
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, FileText, Calendar, Hash, Users, Edit, Copy, History } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, Hash, Users, Edit, History } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,16 +53,6 @@ interface TemplateVersion {
   version: string;
   is_active: boolean;
   created_at: string;
-}
-
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('ja-JP', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function formatDateShort(dateString: string) {
