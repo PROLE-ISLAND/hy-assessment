@@ -144,6 +144,36 @@ npm run build          # Next.jsビルド
 
 ## Issue駆動開発（Claude Code向け）
 
+### Issue作成（テンプレート準拠）
+
+**重要**: Issue作成時は必ず専用スクリプトを使用し、テンプレートに準拠すること。
+
+```bash
+# バグ報告
+npm run issue:bug
+
+# 機能要望
+npm run issue:feature
+```
+
+**必須項目（バグ報告）:**
+- 優先度（P0-P3）
+- DoD Level（Bronze/Silver/Gold）
+- バグの説明
+- 再現手順（ステップ形式）
+- 影響するファイル
+- テスト方法・検証手順
+- 受け入れ条件
+
+**必須項目（機能要望）:**
+- 優先度（P1-P3）
+- DoD Level（Bronze/Silver/Gold）
+- 背景・なぜ必要か
+- 機能の説明
+- 要件（チェックリスト形式）
+- テスト方法
+- 受け入れ条件
+
 ### 開発開始時の必須手順
 
 **Step 1: 対応可能なIssue確認**

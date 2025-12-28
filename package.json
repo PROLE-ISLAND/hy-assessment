@@ -16,7 +16,9 @@
     "seed": "tsx scripts/seed.ts",
     "diagram": "./scripts/generate-diagrams.sh",
     "diagram:view": "for f in docs/diagrams/png/*.png; do imgcat \"$f\"; done",
-    "prepare": "husky"
+    "prepare": "husky",
+    "issue:bug": "tsx scripts/create-issue.ts bug",
+    "issue:feature": "tsx scripts/create-issue.ts feature"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
