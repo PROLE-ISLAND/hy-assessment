@@ -9,7 +9,7 @@ on:
   workflow_run:
     workflows: [CI]
     types: [completed]
-    branches: [main, develop]
+    # Note: This runs for all branches - the job condition filters to PRs only
 
 permissions:
   pull-requests: write
