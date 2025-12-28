@@ -6,7 +6,7 @@
 // Uses design system for consistent glassmorphism styling
 // =====================================================
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Card,
@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Users, ExternalLink } from 'lucide-react';
+import { Users, ExternalLink, Trash2 } from 'lucide-react';
 import {
   Radar,
   RadarChart,
@@ -67,6 +67,44 @@ interface CandidateComparisonClientProps {
 
 const RADAR_DOMAINS = ['GOV', 'CONFLICT', 'REL', 'COG', 'WORK'] as const;
 
+// localStorage key for persisting selection
+const STORAGE_KEY = 'hy-assessment-compare-selection';
+
+// Load selection from localStorage (safe for SSR)
+function loadSelectionFromStorage(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return new Set();
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return new Set();
+    if (!parsed.every(item => typeof item === 'string')) return new Set();
+    return new Set(parsed);
+  } catch {
+    return new Set();
+  }
+}
+
+// Save selection to localStorage
+function saveSelectionToStorage(ids: Set<string>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+// Clear selection from localStorage
+function clearSelectionFromStorage(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 function getJudgmentIcon(level: string) {
   const config = judgmentConfig[level as JudgmentLevel];
   if (!config) return null;
@@ -84,7 +122,19 @@ export function CandidateComparisonClient({
   positions,
 }: CandidateComparisonClientProps) {
   const [selectedPosition, setSelectedPosition] = useState<string>('all');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Initialize from localStorage with lazy initialization
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    const stored = loadSelectionFromStorage();
+    // Filter to only include IDs that exist in current candidates
+    return new Set([...stored].filter(id => candidates.some(c => c.id === id)));
+  });
+
+  // Save to localStorage whenever selection changes
+  useEffect(() => {
+    saveSelectionToStorage(selectedIds);
+  }, [selectedIds]);
 
   // Filter candidates by position
   const filteredCandidates = useMemo(() => {
@@ -132,6 +182,12 @@ export function CandidateComparisonClient({
     }
   };
 
+  // Clear all selections and remove from localStorage
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    clearSelectionFromStorage();
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -173,6 +229,18 @@ export function CandidateComparisonClient({
             >
               {selectedIds.size === filteredCandidates.length ? '選択解除' : '上位5人を選択'}
             </Button>
+            {selectedIds.size > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearSelection}
+                className="text-muted-foreground hover:text-destructive"
+                data-testid="compare-clear-button"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                クリア
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
