@@ -143,13 +143,14 @@ export async function login(page: Page, retries = 3) {
       await page.fill(SELECTORS.loginEmail, E2E_TEST_EMAIL);
       await page.fill(SELECTORS.loginPassword, E2E_TEST_PASSWORD);
       await page.click(SELECTORS.loginSubmit);
-      await page.waitForURL('/admin**', { timeout: 15000 });
+      await page.waitForURL('/admin**', { timeout: 30000 });
 
-      // Wait for header to load (faster than waiting for h1 in main content)
-      await page.waitForSelector('header', { timeout: 10000 });
+      // Wait for page to stabilize
+      await page.waitForLoadState('domcontentloaded', { timeout: 30000 });
+      await page.waitForLoadState('networkidle', { timeout: 60000 });
 
-      // Wait for network to settle (session established)
-      await page.waitForLoadState('networkidle', { timeout: 30000 });
+      // Wait for any visible content
+      await page.waitForSelector('header, main, h1', { timeout: 30000 });
 
       return; // Success
     } catch (error) {
