@@ -10,7 +10,7 @@ import { calculateOverallScore } from '@/lib/analysis/judgment';
 import type { AssessmentStatus } from '@/types/database';
 
 // Vercel serverless function config for PDF generation
-export const maxDuration = 60; // 60 seconds timeout
+export const maxDuration = 90; // 90 seconds timeout for large reports
 export const dynamic = 'force-dynamic';
 
 // Type for assessment with relations
