@@ -1,0 +1,32 @@
+# =============================================================================
+# Git Worktree Runner Configuration
+# https://github.com/coderabbitai/git-worktree-runner
+# =============================================================================
+
+[gtr.ai]
+# Default AI tool for `git gtr ai` command
+default = claude
+
+[gtr.editor]
+# Default editor for `git gtr editor` command
+default = cursor
+
+[gtr.worktrees]
+# Worktree directory (relative to parent of repo)
+# dir = ../worktrees
+# Prefix for worktree directories
+prefix = hy-
+
+[gtr.hook]
+# Run after creating a worktree
+postCreate = npm install
+
+[gtr.copy]
+# Files to copy to new worktrees (glob patterns)
+include = **/.env.local
+include = **/.env
+# Files to exclude from copying
+exclude = **/node_modules/**
+exclude = **/.next/**
+exclude = **/playwright-report/**
+exclude = **/test-results/**
