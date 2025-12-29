@@ -1,0 +1,28 @@
+name: 自動承認
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    # 安全なPRタイプのみ自動承認
+    if: |
+      github.actor == 'ryu1aida1126' &&
+      (
+        startsWith(github.head_ref, 'chore/') ||
+        startsWith(github.head_ref, 'deps/') ||
+        startsWith(github.head_ref, 'docs/') ||
+        startsWith(github.head_ref, 'fix/sync') ||
+        startsWith(github.head_ref, 'ci/')
+      )
+    steps:
+      - name: 自動承認
+        uses: hmarr/auto-approve-action@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          review-message: "🤖 安全なPRタイプのため自動承認"

@@ -13,7 +13,13 @@
 ### コード・コメントは英語
 - 変数名、関数名は英語
 - コメントは英語（必要に応じて日本語補足可）
-- コミットメッセージは英語
+- コミットメッセージは英語（Conventional Commits形式）
+
+### PRは日本語
+- PRタイトル・本文は日本語で記述
+- `.github/PULL_REQUEST_TEMPLATE.md` に従う
+- ブランチ名: `{type}/issue-{番号}-{説明}` または `{type}/{説明}`
+  - 自動承認対象: `chore/`, `deps/`, `docs/`, `ci/`, `fix/sync`
 
 ## 技術スタック
 - Next.js 15+ (App Router)
