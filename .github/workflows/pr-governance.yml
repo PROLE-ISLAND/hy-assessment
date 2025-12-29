@@ -1,0 +1,310 @@
+# =====================================================
+# PR Governance
+# Why必須チェック・自動ラベリング・変更サマリー
+# =====================================================
+
+name: 🛡️ PR Governance
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  pr-quality-gate:
+    name: 📋 PR Quality Gate
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout
+      uses: actions/checkout@v4
+
+    - name: 🔍 Check PR Description Quality
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prBody = context.payload.pull_request.body || '';
+          const prTitle = context.payload.pull_request.title || '';
+          const issues = [];
+          const warnings = [];
+
+          // === WHY セクションチェック ===
+          // ヘッダー後に絵文字や「必須」があってもマッチ、改行1つでもOK
+          const whySection = prBody.match(/## 2\.?\s*変更理由（Why）[^\n]*\n+([\s\S]*?)(?=\n## |\n---|\Z)/);
+          const whyContent = whySection ? whySection[1].trim() : '';
+
+          // コメント行を除去して実際の内容をチェック
+          const whyClean = whyContent.replace(/<!--[\s\S]*?-->/g, '').trim();
+
+          if (!whyClean || whyClean.length < 10) {
+            issues.push('❌ **変更理由（Why）が未記入です**\n   → なぜこの変更が必要なのか記載してください');
+          }
+
+          // === 目的セクションチェック ===
+          // ヘッダー後に絵文字があってもマッチ、改行1つでもOK
+          const whatSection = prBody.match(/## 1\.?\s*目的（What）[^\n]*\n+([\s\S]*?)(?=\n## |\Z)/);
+          const whatContent = whatSection ? whatSection[1].replace(/<!--[\s\S]*?-->/g, '').trim() : '';
+
+          if (!whatContent || whatContent.length < 5) {
+            warnings.push('⚠️ **目的（What）が未記入です**');
+          }
+
+          // === リスク評価チェック ===
+          const riskFilled = prBody.match(/\|[^|]+\|(Low|Med|High)\|/i);
+          if (!riskFilled) {
+            warnings.push('⚠️ **リスク評価テーブルが未記入です**');
+          }
+
+          // === 関連Issueチェック ===
+          const hasIssueRef = prBody.match(/#\d+/) || prBody.match(/Closes|Fixes|Relates/i);
+          if (!hasIssueRef) {
+            warnings.push('⚠️ **関連Issueの記載がありません**');
+          }
+
+          // === チェックリスト確認 ===
+          const whyChecked = prBody.includes('[x] **Why（変更理由）を記載した**');
+          if (!whyChecked && whyClean.length >= 10) {
+            warnings.push('⚠️ **チェックリストの「Why記載」にチェックを入れてください**');
+          }
+
+          // === 結果出力 ===
+          let comment = '## 🛡️ PR Governance Check\n\n';
+
+          if (issues.length > 0) {
+            comment += '### ❌ 必須項目の不備\n\n';
+            comment += issues.join('\n\n') + '\n\n';
+            comment += '> **このPRはレビュー対象外です。上記を修正してください。**\n\n';
+          }
+
+          if (warnings.length > 0) {
+            comment += '### ⚠️ 推奨事項\n\n';
+            comment += warnings.join('\n') + '\n\n';
+          }
+
+          if (issues.length === 0 && warnings.length === 0) {
+            comment += '### ✅ All checks passed!\n\n';
+            comment += 'PR descriptionが適切に記載されています。レビュー可能です。';
+          } else if (issues.length === 0) {
+            comment += '### ✅ 必須項目OK\n\n';
+            comment += 'レビュー可能ですが、上記の推奨事項の対応を検討してください。';
+          }
+
+          // 既存コメントを更新または新規作成
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const botComment = comments.find(c =>
+            c.user.type === 'Bot' && c.body.includes('PR Governance Check')
+          );
+
+          if (botComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: comment
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+          }
+
+          // 必須項目不備があれば失敗
+          if (issues.length > 0) {
+            core.setFailed('PR description is incomplete. Please fill in the required sections.');
+          }
+
+  auto-labeler:
+    name: 🏷️ Auto Label
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🏷️ Add Labels Based on Files
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: files } = await github.rest.pulls.listFiles({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+          });
+
+          const labels = new Set();
+
+          for (const file of files) {
+            const path = file.filename;
+
+            // フロントエンド
+            if (path.startsWith('src/components/') || path.includes('.tsx') || path.includes('.jsx')) {
+              labels.add('frontend');
+            }
+
+            // バックエンド/API
+            if (path.startsWith('src/app/api/') || path.startsWith('api/')) {
+              labels.add('backend');
+            }
+
+            // データベース
+            if (path.includes('supabase') || path.includes('migration') || path.includes('schema')) {
+              labels.add('database');
+            }
+
+            // インフラ/CI
+            if (path.startsWith('.github/') || path.includes('docker') || path.includes('vercel')) {
+              labels.add('infrastructure');
+            }
+
+            // ドキュメント
+            if (path.endsWith('.md') || path.startsWith('docs/')) {
+              labels.add('documentation');
+            }
+
+            // 設定ファイル
+            if (path.includes('config') || path.endsWith('.yml') || path.endsWith('.yaml') || path.endsWith('.json')) {
+              labels.add('config');
+            }
+
+            // テスト
+            if (path.includes('test') || path.includes('spec') || path.startsWith('e2e/')) {
+              labels.add('tests');
+            }
+
+            // UI/デザイン
+            if (path.includes('design-system') || path.includes('.css')) {
+              labels.add('ui');
+            }
+
+            // AI分析
+            if (path.includes('analysis') || path.includes('ai-')) {
+              labels.add('ai');
+            }
+          }
+
+          // サイズラベル
+          const totalChanges = files.reduce((sum, f) => sum + f.changes, 0);
+          if (totalChanges > 500) {
+            labels.add('size/large');
+          } else if (totalChanges > 100) {
+            labels.add('size/medium');
+          } else {
+            labels.add('size/small');
+          }
+
+          if (labels.size > 0) {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: Array.from(labels)
+            });
+          }
+
+  file-change-summary:
+    name: 📊 Change Summary
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 📊 Generate Change Summary
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: files } = await github.rest.pulls.listFiles({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+          });
+
+          // ディレクトリ別の変更集計
+          const dirChanges = {};
+          let totalAdditions = 0;
+          let totalDeletions = 0;
+
+          for (const file of files) {
+            const dir = file.filename.split('/').slice(0, 2).join('/') || file.filename;
+            if (!dirChanges[dir]) {
+              dirChanges[dir] = { files: 0, additions: 0, deletions: 0 };
+            }
+            dirChanges[dir].files++;
+            dirChanges[dir].additions += file.additions;
+            dirChanges[dir].deletions += file.deletions;
+            totalAdditions += file.additions;
+            totalDeletions += file.deletions;
+          }
+
+          // サマリー生成
+          let summary = '## 📊 変更サマリー\n\n';
+          summary += `**合計**: ${files.length}ファイル (+${totalAdditions} -${totalDeletions})\n\n`;
+          summary += '| ディレクトリ | ファイル数 | 追加 | 削除 |\n';
+          summary += '|-------------|-----------|------|------|\n';
+
+          for (const [dir, stats] of Object.entries(dirChanges).sort((a, b) => b[1].files - a[1].files)) {
+            summary += `| \`${dir}\` | ${stats.files} | +${stats.additions} | -${stats.deletions} |\n`;
+          }
+
+          // レビュー観点を追加
+          summary += '\n### 🔍 レビュー観点\n\n';
+
+          if (Object.keys(dirChanges).some(d => d.includes('api'))) {
+            summary += '- [ ] API変更: 破壊的変更がないか確認\n';
+          }
+          if (Object.keys(dirChanges).some(d => d.includes('supabase') || d.includes('migration'))) {
+            summary += '- [ ] DB変更: マイグレーションの安全性を確認\n';
+          }
+          if (Object.keys(dirChanges).some(d => d.includes('config'))) {
+            summary += '- [ ] 設定変更: 環境依存・セキュリティを確認\n';
+          }
+          if (Object.keys(dirChanges).some(d => d.includes('analysis'))) {
+            summary += '- [ ] AI分析: プロンプト・レスポンス形式の整合性を確認\n';
+          }
+          if (totalAdditions + totalDeletions > 300) {
+            summary += '- [ ] 大規模変更: 段階的レビューを推奨\n';
+          }
+
+          console.log(summary);
+
+          // PRにコメントを追加（重複回避）
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const existingSummary = comments.find(c =>
+            c.user.type === 'Bot' && c.body.includes('変更サマリー')
+          );
+
+          if (existingSummary) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingSummary.id,
+              body: summary
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: summary
+            });
+          }
