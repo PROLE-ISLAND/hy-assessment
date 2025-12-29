@@ -65,8 +65,12 @@ describe('parseEnhancedAnalysisResponse', () => {
       summary: 'summary',
       recommendation: 'recommendation',
     };
-    // Schema rejects more than max items
-    expect(() => parseEnhancedAnalysisResponse(JSON.stringify(manyItems))).toThrow();
+    // Implementation truncates arrays to max counts instead of rejecting
+    const result = parseEnhancedAnalysisResponse(JSON.stringify(manyItems));
+    expect(result.strengths).toHaveLength(5);
+    expect(result.watchouts).toHaveLength(5);
+    expect(result.risk_scenarios).toHaveLength(4);
+    expect(result.interview_checks).toHaveLength(6);
   });
 });
 
