@@ -140,7 +140,7 @@ async function setupE2EUser() {
 
   console.log('\n✅ E2E test user setup complete!');
   console.log(`   Email: ${E2E_TEST_EMAIL}`);
-  console.log(`   Password: ${E2E_TEST_PASSWORD}`);
+  console.log('   Password: [REDACTED] (configured via E2E_TEST_PASSWORD env var)');
   console.log(`   Organization: e2e-test-org (${org.id})`);
 }
 
