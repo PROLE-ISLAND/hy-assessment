@@ -49,6 +49,8 @@ describe('generatePDF', () => {
   // Create fresh mocks for each test
   function createMocks() {
     const mockPage = {
+      setDefaultTimeout: vi.fn(),
+      setDefaultNavigationTimeout: vi.fn(),
       setContent: vi.fn().mockResolvedValue(undefined),
       evaluateHandle: vi.fn().mockResolvedValue(undefined),
       pdf: vi.fn().mockResolvedValue(Buffer.from('fake-pdf')),
