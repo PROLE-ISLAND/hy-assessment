@@ -45,7 +45,7 @@ const PROMPT_KEY_LABELS: Record<PromptKey, string> = {
 // Badge colors for prompt keys using design system
 const PROMPT_KEY_COLORS: Record<PromptKey, string> = {
   system: stateColors.info.combined,
-  analysis_user: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  analysis_user: stateColors.accent.combined,
   judgment: stateColors.warning.combined,
   candidate: stateColors.success.combined,
 };

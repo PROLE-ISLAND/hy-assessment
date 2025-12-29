@@ -376,7 +376,7 @@ export function AnalysisResultsClient({
                     <ul className="space-y-3">
                       {currentAnalysis.strengths.map((strength, index) => (
                         <li key={index} className="flex items-start gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 bg-emerald-500`} />
+                          <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ backgroundColor: stateColors.success.hex }} />
                           <span>{strength}</span>
                         </li>
                       ))}
@@ -395,7 +395,7 @@ export function AnalysisResultsClient({
                     <ul className="space-y-3">
                       {currentAnalysis.weaknesses.map((weakness, index) => (
                         <li key={index} className="flex items-start gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 bg-amber-500`} />
+                          <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ backgroundColor: stateColors.warning.hex }} />
                           <span>{weakness}</span>
                         </li>
                       ))}

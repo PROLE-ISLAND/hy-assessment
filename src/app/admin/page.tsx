@@ -45,8 +45,8 @@ const statCardColors = {
     iconBg: stateColors.warning.light.bg,
   },
   purple: {
-    gradient: 'from-purple-50 to-white border-purple-100 text-purple-600',
-    iconBg: 'bg-purple-100',
+    gradient: `from-purple-50 to-white border-purple-100 ${stateColors.accent.light.text}`,
+    iconBg: stateColors.accent.light.bg,
   },
 } as const;
 

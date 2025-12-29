@@ -52,11 +52,11 @@ export function InterviewChecksCard({ checks }: InterviewChecksCardProps) {
                     <p className={`text-sm ${stateColors.info.light.text} ${stateColors.info.dark.text}`}>{check.intent}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-2 bg-purple-50 dark:bg-purple-950/20 rounded-lg p-3">
-                  <Eye className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+                <div className={`flex items-start gap-2 rounded-lg p-3 ${stateColors.accent.light.bg} ${stateColors.accent.dark.bg}`}>
+                  <Eye className={`h-4 w-4 flex-shrink-0 mt-0.5 ${stateColors.accent.light.text} ${stateColors.accent.dark.text}`} />
                   <div>
-                    <div className="text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">回答で見るべきポイント</div>
-                    <p className="text-sm text-purple-800 dark:text-purple-200">{check.look_for}</p>
+                    <div className={`text-xs font-medium mb-1 ${stateColors.accent.light.text} ${stateColors.accent.dark.text}`}>回答で見るべきポイント</div>
+                    <p className={`text-sm ${stateColors.accent.light.text} ${stateColors.accent.dark.text}`}>{check.look_for}</p>
                   </div>
                 </div>
               </div>

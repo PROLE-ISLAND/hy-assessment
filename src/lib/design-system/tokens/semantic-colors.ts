@@ -128,6 +128,23 @@ export const stateColors = {
     },
     combined: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
   },
+  accent: {
+    hex: '#8b5cf6',
+    tailwind: 'purple',
+    light: {
+      bg: 'bg-purple-50',
+      text: 'text-purple-700',
+      border: 'border-purple-200',
+      full: 'bg-purple-50 text-purple-700 border-purple-200',
+    },
+    dark: {
+      bg: 'dark:bg-purple-900/20',
+      text: 'dark:text-purple-300',
+      border: 'dark:border-purple-800',
+      full: 'dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
+    },
+    combined: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
+  },
 } as const;
 
 export type StateKey = keyof typeof stateColors;

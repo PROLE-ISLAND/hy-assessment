@@ -372,32 +372,32 @@ export default async function ReportsPage({ searchParams }: PageProps) {
 
                 return (
                   <>
-                    <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                      <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
+                    <div className={`flex items-start gap-3 p-3 rounded-lg ${stateColors.success.light.bg} ${stateColors.success.dark.bg}`}>
+                      <TrendingUp className={`h-5 w-5 mt-0.5 ${stateColors.success.light.text} ${stateColors.success.dark.text}`} />
                       <div>
-                        <div className="font-medium text-green-900 dark:text-green-100">強みの傾向</div>
-                        <p className="text-sm text-green-700 dark:text-green-300">
+                        <div className={`font-medium ${stateColors.success.light.text} ${stateColors.success.dark.text}`}>強みの傾向</div>
+                        <p className={`text-sm ${stateColors.success.light.text} ${stateColors.success.dark.text} opacity-80`}>
                           候補者全体で「{DOMAIN_LABELS[best]}」のスコアが最も高く（{domainStats[best].avg}%）、
                           組織への適合が期待できます。
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3 p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
-                      <TrendingDown className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                    <div className={`flex items-start gap-3 p-3 rounded-lg ${stateColors.warning.light.bg} ${stateColors.warning.dark.bg}`}>
+                      <TrendingDown className={`h-5 w-5 mt-0.5 ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`} />
                       <div>
-                        <div className="font-medium text-yellow-900 dark:text-yellow-100">改善の余地</div>
-                        <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                        <div className={`font-medium ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`}>改善の余地</div>
+                        <p className={`text-sm ${stateColors.warning.light.text} ${stateColors.warning.dark.text} opacity-80`}>
                           「{DOMAIN_LABELS[worst]}」のスコアが相対的に低め（{domainStats[worst].avg}%）。
                           面接での確認ポイントとして活用できます。
                         </p>
                       </div>
                     </div>
                     {domainStats['COG'].avg > 50 && (
-                      <div className="flex items-start gap-3 p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
-                        <Target className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
+                      <div className={`flex items-start gap-3 p-3 rounded-lg ${stateColors.warning.light.bg} ${stateColors.warning.dark.bg}`}>
+                        <Target className={`h-5 w-5 mt-0.5 ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`} />
                         <div>
-                          <div className="font-medium text-orange-900 dark:text-orange-100">認知スタイルの傾向</div>
-                          <p className="text-sm text-orange-700 dark:text-orange-300">
+                          <div className={`font-medium ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`}>認知スタイルの傾向</div>
+                          <p className={`text-sm ${stateColors.warning.light.text} ${stateColors.warning.dark.text} opacity-80`}>
                             COGスコアが平均{domainStats['COG'].avg}%と高めの傾向があります。
                             被害者意識や感情的思考の傾向に注意が必要な候補者が含まれる可能性があります。
                           </p>

@@ -85,7 +85,7 @@ export function CandidateReportView({ report }: CandidateReportViewProps) {
           <ul className="space-y-3">
             {report.stress_tips.map((tip, index) => (
               <li key={index} className="flex items-start gap-3">
-                <div className="w-1.5 h-1.5 bg-rose-500 rounded-full mt-2 flex-shrink-0" />
+                <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ backgroundColor: stateColors.error.hex }} />
                 <span className="text-sm">{tip}</span>
               </li>
             ))}
