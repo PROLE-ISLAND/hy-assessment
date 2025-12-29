@@ -123,7 +123,7 @@ async function createTestAssessment() {
   const token = randomUUID().slice(0, 8) + '-demo';
   const expiresAt = new Date(timestamp + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const { data: assessment, error: assessError } = await supabase
+  const { error: assessError } = await supabase
     .from('assessments')
     .insert({
       organization_id: org.id,

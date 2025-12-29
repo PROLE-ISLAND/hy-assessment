@@ -27,7 +27,6 @@ import {
   candidateStatusConfig,
   judgmentConfig,
   getScoreTextClass,
-  type JudgmentLevel,
 } from '@/lib/design-system';
 
 interface CandidateListClientProps {

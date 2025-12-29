@@ -22,13 +22,12 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Check, User, Lock, Mail } from 'lucide-react';
 
 interface ProfileFormProps {
-  userId: string;
   initialName: string;
   email: string;
   role: string;
 }
 
-export function ProfileForm({ userId, initialName, email, role }: ProfileFormProps) {
+export function ProfileForm({ initialName, email, role }: ProfileFormProps) {
   const router = useRouter();
 
   // Profile state

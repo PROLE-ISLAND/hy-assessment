@@ -7,7 +7,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Shield, Activity, Lightbulb } from 'lucide-react';
+import { AlertTriangle, Shield, Activity } from 'lucide-react';
 import type { RiskScenario } from '@/types/database';
 
 interface RiskScenariosCardProps {

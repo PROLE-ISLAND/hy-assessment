@@ -15,9 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { VersionBadge } from './VersionBadge';
-import { Eye, Download, FileText } from 'lucide-react';
+import { Eye, Download } from 'lucide-react';
 import { getScoreTextClass } from '@/lib/design-system';
 
 // Type for history item from API

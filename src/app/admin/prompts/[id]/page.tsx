@@ -5,7 +5,7 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import {
   Card,
   CardContent,
@@ -50,22 +50,7 @@ interface PromptDetailPageProps {
 
 export default async function PromptDetailPage({ params }: PromptDetailPageProps) {
   const { id } = await params;
-  const supabase = await createClient();
   const adminSupabase = createAdminClient();
-
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Get user's organization
-  let organizationId: string | null = null;
-  if (user) {
-    const { data: dbUser } = await adminSupabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single<{ organization_id: string }>();
-    organizationId = dbUser?.organization_id || null;
-  }
 
   // Get prompt
   const { data: prompt } = await adminSupabase
@@ -79,8 +64,7 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
     notFound();
   }
 
-  // Check if user can edit (org-specific prompts only)
-  const canEdit = prompt.organization_id !== null && prompt.organization_id === organizationId;
+  // Check if this is a system prompt (org-specific prompts can be edited)
   const isSystemPrompt = prompt.organization_id === null;
 
   return (

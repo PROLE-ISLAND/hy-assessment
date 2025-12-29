@@ -49,14 +49,14 @@ test.describe('Assessment Form Behavior', () => {
     // Progress should be saved (check network request or UI indicator)
   });
 
-  test.skip('prevents submission without all answers', async ({ page }) => {
+  test.skip('prevents submission without all answers', async () => {
     // Requires valid assessment token
     // SurveyJS should enforce required fields
   });
 });
 
 test.describe('Assessment Completion', () => {
-  test.skip('redirects to completion page after submit', async ({ page }) => {
+  test.skip('redirects to completion page after submit', async () => {
     // Requires completing full assessment
     // Would need to fill all 52 questions
   });

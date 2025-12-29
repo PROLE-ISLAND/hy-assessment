@@ -35,7 +35,6 @@ interface DomainRadarChartProps {
 export function DomainRadarChart({
   scores,
   size = 'md',
-  showLabels = true,
   withGlassContainer = false,
 }: DomainRadarChartProps) {
   const config = chartSizeConfig[size];

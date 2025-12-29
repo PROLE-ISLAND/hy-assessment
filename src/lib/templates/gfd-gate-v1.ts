@@ -257,9 +257,8 @@ export const SJT_METADATA = SJT_QUESTIONS.map(q => ({
 // =====================================================
 // Shuffle array (Fisher-Yates) for randomization
 // =====================================================
-function shuffleArray<T>(array: T[], seed?: number): T[] {
+function shuffleArray<T>(array: T[]): T[] {
   const result = [...array];
-  // For reproducibility in tests, use seed if provided
   // In production, this provides random order per assessment
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

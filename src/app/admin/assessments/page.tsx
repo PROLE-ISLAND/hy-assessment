@@ -85,7 +85,7 @@ export default async function AssessmentsListPage() {
   }
 
   // Get assessments with relations (using admin client + org filter)
-  const { data: assessments, error } = await adminSupabase
+  const { data: assessments } = await adminSupabase
     .from('assessments')
     .select(`
       id,

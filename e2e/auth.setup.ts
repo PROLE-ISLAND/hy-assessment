@@ -3,7 +3,7 @@
 // Authenticate and save storage state
 // =====================================================
 
-import { test as setup, expect } from '@playwright/test';
+import { test as setup } from '@playwright/test';
 
 const E2E_TEST_EMAIL = process.env.E2E_TEST_EMAIL || 'e2e-test@hy-assessment.local';
 const E2E_TEST_PASSWORD = process.env.E2E_TEST_PASSWORD || 'E2ETestSecure123!';

@@ -7,8 +7,6 @@ import { inngest } from '../client';
 import { createAdminClient } from '@/lib/supabase/server';
 import { type ResponseData } from '@/lib/analysis';
 import {
-  analyzeAssessment,
-  analyzeAssessmentMock,
   analyzeAssessmentFull,
   analyzeAssessmentFullMock,
 } from '@/lib/analysis/ai-analyzer';

@@ -24,7 +24,8 @@ function ask(question: string): Promise<string> {
   });
 }
 
-function askMultiline(prompt: string): Promise<string[]> {
+// Reserved for future use
+function _askMultiline(prompt: string): Promise<string[]> {
   return new Promise((resolve) => {
     console.log(prompt);
     const lines: string[] = [];

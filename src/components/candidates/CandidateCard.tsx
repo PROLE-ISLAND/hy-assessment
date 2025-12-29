@@ -57,13 +57,6 @@ const statusIcons = {
   analyzed: CheckCircle,
 } as const;
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('ja-JP', {
-    month: '2-digit',
-    day: '2-digit',
-  });
-}
-
 function getRemainingDays(expiresAt: string): number {
   const now = new Date();
   const expires = new Date(expiresAt);

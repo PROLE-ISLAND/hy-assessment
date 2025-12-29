@@ -5,20 +5,18 @@
 // Handles candidate info form → assessment flow
 // =====================================================
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CandidateInfoForm } from './CandidateInfoForm';
 import { AssessmentForm } from './AssessmentForm';
 
 interface AssessmentPageClientProps {
   token: string;
-  assessmentId: string;
   questions: Record<string, unknown>;
 }
 
 export function AssessmentPageClient({
   token,
-  assessmentId,
   questions,
 }: AssessmentPageClientProps) {
   const router = useRouter();
@@ -33,7 +31,6 @@ export function AssessmentPageClient({
   if (showAssessment) {
     return (
       <AssessmentForm
-        assessmentId={assessmentId}
         token={token}
         questions={questions}
         initialData={{}}

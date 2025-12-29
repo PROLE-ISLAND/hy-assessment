@@ -129,7 +129,7 @@ describe('generatePDF', () => {
   });
 
   it('handles browser.close() error gracefully', async () => {
-    const { mockPage, mockBrowser } = createMocks();
+    const { mockBrowser } = createMocks();
     mockBrowser.close.mockRejectedValue(new Error('Browser close failed'));
     (puppeteer.launch as Mock).mockResolvedValue(mockBrowser);
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

@@ -182,7 +182,7 @@ test.describe('Assessment State Transitions', () => {
 
 test.describe('Security Considerations', () => {
   test('no sensitive data exposed in 404 response', async ({ page }) => {
-    const response = await page.goto('/assessment/security-test-token');
+    await page.goto('/assessment/security-test-token');
 
     // Get response body
     const body = await page.content();

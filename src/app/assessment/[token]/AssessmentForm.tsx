@@ -22,7 +22,6 @@ surveyLocalization.locales['ja'] = {
 };
 
 interface AssessmentFormProps {
-  assessmentId: string;
   token: string;
   questions: SurveyJSDefinition;
   initialData: Record<string, unknown>;
@@ -30,7 +29,6 @@ interface AssessmentFormProps {
 }
 
 export function AssessmentForm({
-  assessmentId,
   token,
   questions,
   initialData,

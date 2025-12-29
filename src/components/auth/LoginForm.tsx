@@ -50,7 +50,7 @@ export function LoginForm() {
 
       router.push(redirectTo);
       router.refresh();
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
