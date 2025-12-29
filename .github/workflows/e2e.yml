@@ -1,22 +1,39 @@
 # =====================================================
 # E2Eテスト ワークフロー
 # Playwright E2Eテストを実行
-# トリガー: mainへのPR、手動実行、定期実行
+# トリガー: PR（スモークテスト）、mainへのpush、手動実行、定期実行
 # =====================================================
 
 name: E2Eテスト
 
 on:
+  pull_request:
+    branches: [main]
+    # 重いテストなのでコア変更時のみ実行
+    paths:
+      - 'src/**'
+      - 'e2e/**'
+      - 'package*.json'
+      - 'playwright.config.ts'
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'テストモード'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - smoke
   schedule:
     # Run daily at 9:00 JST (0:00 UTC)
     - cron: '0 0 * * *'
 
 concurrency:
-  group: e2e-${{ github.run_id }}
-  cancel-in-progress: false
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   NEXT_TELEMETRY_DISABLED: 1
@@ -44,7 +61,15 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: E2Eテスト実行
-        run: npm run test:e2e
+        run: |
+          # PRの場合はスモークテスト（認証とヘルスチェックのみ）
+          if [[ "${{ github.event_name }}" == "pull_request" ]] || [[ "${{ inputs.test_mode }}" == "smoke" ]]; then
+            echo "🔥 Running smoke tests only"
+            npx playwright test --grep "@smoke" --reporter=list
+          else
+            echo "🔬 Running full E2E tests"
+            npm run test:e2e
+          fi
         env:
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
           E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}

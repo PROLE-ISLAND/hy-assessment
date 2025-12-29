@@ -1,3 +1,9 @@
+# =====================================================
+# 自動承認 ワークフロー
+# 安全なPRタイプ（chore, deps, docs, ci）の自動承認
+# Dependabot / Renovate PRも対応
+# =====================================================
+
 name: 自動承認
 
 on:
@@ -13,13 +19,19 @@ jobs:
     # 安全なPRタイプのみ自動承認
     # 必須シークレット: APPROVE_PAT (repo, write:discussion スコープのPAT)
     if: |
-      github.actor == 'ryu1aida1126' &&
+      (
+        github.actor == 'ryu1aida1126' ||
+        github.actor == 'dependabot[bot]' ||
+        github.actor == 'renovate[bot]'
+      ) &&
       (
         startsWith(github.head_ref, 'chore/') ||
         startsWith(github.head_ref, 'deps/') ||
         startsWith(github.head_ref, 'docs/') ||
         startsWith(github.head_ref, 'fix/sync') ||
-        startsWith(github.head_ref, 'ci/')
+        startsWith(github.head_ref, 'ci/') ||
+        startsWith(github.head_ref, 'dependabot/') ||
+        startsWith(github.head_ref, 'renovate/')
       )
     steps:
       - name: 自動承認

@@ -1,6 +1,7 @@
 # =====================================================
 # PR Governance
-# Why必須チェック・自動ラベリング・変更サマリー
+# Why必須チェック・ブランチ規約・自動ラベリング・変更サマリー
+# pr-check.yml の機能を統合済み
 # =====================================================
 
 name: 🛡️ PR Governance
@@ -20,16 +21,35 @@ jobs:
 
     steps:
     - name: 📥 Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: 🔍 Check PR Description Quality
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         script: |
           const prBody = context.payload.pull_request.body || '';
           const prTitle = context.payload.pull_request.title || '';
+          const branchName = context.payload.pull_request.head.ref;
           const issues = [];
           const warnings = [];
+
+          // === ブランチ命名規則チェック ===
+          const validBranchPatterns = [
+            /^feature\/issue-\d+-/,
+            /^bugfix\/issue-\d+-/,
+            /^hotfix\/issue-\d+-/,
+            /^chore\//,
+            /^fix\//,
+            /^docs\//,
+            /^ci\//,
+            /^deps\//,
+            /^dependabot\//,
+            /^renovate\//,
+          ];
+          const isValidBranch = validBranchPatterns.some(p => p.test(branchName));
+          if (!isValidBranch) {
+            warnings.push(`⚠️ **ブランチ名が規約外です**: \`${branchName}\`\n   → 推奨: \`feature/issue-{番号}-{説明}\` 形式`);
+          }
 
           // === WHY セクションチェック ===
           // ヘッダー後に絵文字や「必須」があってもマッチ、改行1つでもOK
@@ -130,12 +150,12 @@ jobs:
 
     steps:
     - name: 📥 Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
     - name: 🏷️ Add Labels Based on Files
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         script: |
           const { data: files } = await github.rest.pulls.listFiles({
@@ -220,12 +240,12 @@ jobs:
 
     steps:
     - name: 📥 Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
     - name: 📊 Generate Change Summary
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         script: |
           const { data: files } = await github.rest.pulls.listFiles({
