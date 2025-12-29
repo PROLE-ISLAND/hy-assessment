@@ -49,8 +49,9 @@ export function DomainRadarChart({
   }));
 
   const chart = (
-    <ResponsiveContainer width="100%" height={config.height}>
-      <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
+    <div role="img" aria-label="6ドメインスコアのレーダーチャート">
+      <ResponsiveContainer width="100%" height={config.height}>
+        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
         {/* Glassmorphism gradient definition */}
         <defs>
           <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
@@ -103,6 +104,7 @@ export function DomainRadarChart({
         />
       </RadarChart>
     </ResponsiveContainer>
+    </div>
   );
 
   if (withGlassContainer) {
