@@ -32,6 +32,7 @@ import {
   Bot,
 } from 'lucide-react';
 import type { PromptTemplate, PromptKey } from '@/types/database';
+import { stateColors } from '@/lib/design-system';
 
 // Labels for prompt keys
 const PROMPT_KEY_LABELS: Record<PromptKey, string> = {
@@ -41,12 +42,12 @@ const PROMPT_KEY_LABELS: Record<PromptKey, string> = {
   candidate: '候補者版プロンプト',
 };
 
-// Badge colors for prompt keys
+// Badge colors for prompt keys using design system
 const PROMPT_KEY_COLORS: Record<PromptKey, string> = {
-  system: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  analysis_user: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-  judgment: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
-  candidate: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  system: stateColors.info.combined,
+  analysis_user: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  judgment: stateColors.warning.combined,
+  candidate: stateColors.success.combined,
 };
 
 function formatDate(dateString: string) {
@@ -224,12 +225,12 @@ export default async function PromptsPage() {
                       </TableCell>
                       <TableCell>
                         {prompt.is_active ? (
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" variant="secondary">
+                          <Badge className={stateColors.success.combined} variant="secondary">
                             <CheckCircle className="mr-1 h-3 w-3" />
                             有効
                           </Badge>
                         ) : (
-                          <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200" variant="secondary">
+                          <Badge className={stateColors.neutral.combined} variant="secondary">
                             <XCircle className="mr-1 h-3 w-3" />
                             無効
                           </Badge>

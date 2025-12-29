@@ -24,7 +24,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, BarChart3 } from 'lucide-react';
-import { assessmentStatusConfig, getScoreTextClass } from '@/lib/design-system';
+import { assessmentStatusConfig, getScoreTextClass, stateColors } from '@/lib/design-system';
 import { calculateOverallScore } from '@/lib/analysis/judgment';
 import type { AssessmentStatus } from '@/types/database';
 
@@ -197,11 +197,11 @@ export default async function AssessmentsListPage() {
                       <TableCell>
                         {assessment.status === 'completed' ? (
                           hasAnalysis ? (
-                            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" variant="secondary">
+                            <Badge className={stateColors.success.combined} variant="secondary">
                               分析完了
                             </Badge>
                           ) : (
-                            <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" variant="secondary">
+                            <Badge className={stateColors.warning.combined} variant="secondary">
                               分析待ち
                             </Badge>
                           )

@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Check, User, Lock, Mail } from 'lucide-react';
+import { stateColors } from '@/lib/design-system';
 
 interface ProfileFormProps {
   initialName: string;
@@ -174,7 +175,7 @@ export function ProfileForm({ initialName, email, role }: ProfileFormProps) {
             )}
 
             {nameSuccess && (
-              <Alert className="border-green-500 bg-green-50 text-green-700">
+              <Alert className={`border ${stateColors.success.light.border} ${stateColors.success.light.bg} ${stateColors.success.light.text} ${stateColors.success.dark.bg} ${stateColors.success.dark.text}`}>
                 <Check className="h-4 w-4" />
                 <AlertDescription>名前を更新しました</AlertDescription>
               </Alert>
@@ -250,7 +251,7 @@ export function ProfileForm({ initialName, email, role }: ProfileFormProps) {
             )}
 
             {passwordSuccess && (
-              <Alert className="border-green-500 bg-green-50 text-green-700">
+              <Alert className={`border ${stateColors.success.light.border} ${stateColors.success.light.bg} ${stateColors.success.light.text} ${stateColors.success.dark.bg} ${stateColors.success.dark.text}`}>
                 <Check className="h-4 w-4" />
                 <AlertDescription>パスワードを変更しました</AlertDescription>
               </Alert>

@@ -17,7 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { BarChart3, Target, Users, TrendingUp, TrendingDown, Minus, Calendar } from 'lucide-react';
 import { DOMAIN_LABELS } from '@/lib/analysis';
 import { POSITIONS } from '@/lib/constants/positions';
-import { getScoreTextClass, getProgressColor } from '@/lib/design-system';
+import { getScoreTextClass, getProgressColor, stateColors } from '@/lib/design-system';
 import { ReportsDateFilter } from '@/components/dashboard/reports-date-filter';
 import { ExportButtons } from '@/components/reports/ExportButtons';
 
@@ -50,9 +50,9 @@ function average(numbers: number[]): number {
 // Helper to get trend icon
 function getTrendIcon(current: number, baseline: number) {
   const diff = current - baseline;
-  if (diff > 5) return <TrendingUp className="h-4 w-4 text-green-500" />;
-  if (diff < -5) return <TrendingDown className="h-4 w-4 text-red-500" />;
-  return <Minus className="h-4 w-4 text-gray-400" />;
+  if (diff > 5) return <TrendingUp className={`h-4 w-4 ${stateColors.success.light.text}`} />;
+  if (diff < -5) return <TrendingDown className={`h-4 w-4 ${stateColors.error.light.text}`} />;
+  return <Minus className="h-4 w-4 text-muted-foreground" />;
 }
 
 export default async function ReportsPage({ searchParams }: PageProps) {
