@@ -32,7 +32,8 @@ jobs:
           const warnings = [];
 
           // === WHY セクションチェック ===
-          const whySection = prBody.match(/## 2\. 変更理由（Why）.*?\n\n([\s\S]*?)(?=\n## |\n---|\Z)/);
+          // ヘッダー後に絵文字や「必須」があってもマッチ、改行1つでもOK
+          const whySection = prBody.match(/## 2\.?\s*変更理由（Why）[^\n]*\n+([\s\S]*?)(?=\n## |\n---|\Z)/);
           const whyContent = whySection ? whySection[1].trim() : '';
 
           // コメント行を除去して実際の内容をチェック
@@ -43,7 +44,8 @@ jobs:
           }
 
           // === 目的セクションチェック ===
-          const whatSection = prBody.match(/## 1\. 目的（What）.*?\n\n([\s\S]*?)(?=\n## |\Z)/);
+          // ヘッダー後に絵文字があってもマッチ、改行1つでもOK
+          const whatSection = prBody.match(/## 1\.?\s*目的（What）[^\n]*\n+([\s\S]*?)(?=\n## |\Z)/);
           const whatContent = whatSection ? whatSection[1].replace(/<!--[\s\S]*?-->/g, '').trim() : '';
 
           if (!whatContent || whatContent.length < 5) {
