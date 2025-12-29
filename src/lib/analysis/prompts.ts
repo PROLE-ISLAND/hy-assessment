@@ -188,29 +188,76 @@ export type AIAnalysisOutput = LegacyAIAnalysisOutput;
 /**
  * Parse enhanced AI analysis response (v2)
  * Uses Zod schema for type-safe validation
+ * Falls back to v1 (legacy) format and converts to v2 if needed
  */
 export function parseEnhancedAnalysisResponse(response: string): EnhancedAIAnalysisOutput {
   try {
     const jsonStr = extractJSON(response);
     const parsed: unknown = JSON.parse(jsonStr);
 
-    const result = enhancedAIAnalysisOutputSchema.safeParse(parsed);
-    if (!result.success) {
-      throw new Error(`Schema validation failed: ${formatValidationErrors(result.error)}`);
+    // Try v2 (enhanced) format first
+    const v2Result = enhancedAIAnalysisOutputSchema.safeParse(parsed);
+    if (v2Result.success) {
+      // Enforce max counts as per original logic
+      return {
+        strengths: v2Result.data.strengths.slice(0, 5),
+        watchouts: v2Result.data.watchouts.slice(0, 5),
+        risk_scenarios: v2Result.data.risk_scenarios.slice(0, 4),
+        interview_checks: v2Result.data.interview_checks.slice(0, 6),
+        summary: v2Result.data.summary,
+        recommendation: v2Result.data.recommendation,
+      };
     }
 
-    // Enforce max counts as per original logic
-    return {
-      strengths: result.data.strengths.slice(0, 5),
-      watchouts: result.data.watchouts.slice(0, 5),
-      risk_scenarios: result.data.risk_scenarios.slice(0, 4),
-      interview_checks: result.data.interview_checks.slice(0, 6),
-      summary: result.data.summary,
-      recommendation: result.data.recommendation,
-    };
+    // If v2 failed, try v1 (legacy) format and convert
+    const v1Result = legacyAIAnalysisOutputSchema.safeParse(parsed);
+    if (v1Result.success) {
+      console.log('[AI Parser] Fallback: Converting v1 format to v2');
+      return convertLegacyToEnhanced(v1Result.data);
+    }
+
+    // Both failed - throw with v2 error details (more informative)
+    throw new Error(`Schema validation failed: ${formatValidationErrors(v2Result.error)}`);
   } catch (error) {
     throw new Error(`Failed to parse enhanced AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+/**
+ * Convert legacy (v1) AI analysis output to enhanced (v2) format
+ * This enables backward compatibility with older prompts
+ */
+function convertLegacyToEnhanced(legacy: LegacyAIAnalysisOutput): EnhancedAIAnalysisOutput {
+  return {
+    // Convert string[] to EnhancedStrength[]
+    strengths: legacy.strengths.map((s, i) => ({
+      title: `強み${i + 1}`,
+      behavior: s,
+      evidence: '検査結果に基づく行動傾向',
+    })),
+    // Convert string[] (weaknesses) to EnhancedWatchout[]
+    watchouts: legacy.weaknesses.map((w, i) => ({
+      title: `注意点${i + 1}`,
+      risk: w,
+      evidence: '検査結果に基づく行動傾向',
+    })),
+    // Generate placeholder risk scenarios from weaknesses
+    risk_scenarios: legacy.weaknesses.slice(0, 2).map((w) => ({
+      condition: '業務負荷が高い状況',
+      symptom: w,
+      impact: '業務効率や対人関係への影響の可能性',
+      prevention: '定期的なフォローアップと適切なサポート体制の構築',
+      risk_environment: ['高ストレス環境', '締切が厳しい状況'],
+    })),
+    // Generate placeholder interview checks from weaknesses
+    interview_checks: legacy.weaknesses.slice(0, 3).map((w) => ({
+      question: `過去に${w.includes('傾向') ? w.replace(/傾向.*$/, '') : w}が課題となった経験はありますか？どう対処しましたか？`,
+      intent: `${w}に関する自己認識と対処能力の確認`,
+      look_for: '具体的なエピソードと改善への取り組み姿勢',
+    })),
+    summary: legacy.summary,
+    recommendation: legacy.recommendation,
+  };
 }
 
 /**
