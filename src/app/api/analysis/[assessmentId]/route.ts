@@ -266,12 +266,25 @@ export async function PUT(
       );
     }
 
-    // Get responses
+    // Get responses - with enhanced debugging
+    console.log('[Re-analysis] Fetching responses for assessment:', {
+      assessmentId,
+      assessmentOrganizationId: assessment.organization_id,
+    });
+
     const { data: responses, error: responsesError } = await supabase
       .from('responses')
       .select('question_id, answer')
       .eq('assessment_id', assessmentId)
       .returns<ResponseData[]>();
+
+    // Log detailed response info for debugging
+    console.log('[Re-analysis] Responses query result:', {
+      assessmentId,
+      hasError: !!responsesError,
+      responseCount: responses?.length ?? 0,
+      firstResponseId: responses?.[0]?.question_id ?? 'none',
+    });
 
     // Handle query errors separately from empty results
     if (responsesError) {
@@ -288,9 +301,44 @@ export async function PUT(
     }
 
     if (!responses || responses.length === 0) {
-      console.warn('No responses found for re-analysis:', { assessmentId });
+      // Enhanced debugging: check if any responses exist for this org
+      const { count: totalOrgResponses } = await supabase
+        .from('responses')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', assessment.organization_id);
+
+      // Also check if there are responses for any assessment in this org
+      const { data: sampleResponses } = await supabase
+        .from('responses')
+        .select('assessment_id')
+        .eq('organization_id', assessment.organization_id)
+        .limit(5)
+        .returns<Array<{ assessment_id: string }>>();
+
+      const existingAssessmentIds = sampleResponses?.map(r => r.assessment_id) ?? [];
+
+      console.warn('No responses found for re-analysis:', {
+        assessmentId,
+        organizationId: assessment.organization_id,
+        totalOrgResponses,
+        sampleAssessmentIdsWithResponses: existingAssessmentIds,
+        requestedIdMatches: existingAssessmentIds.includes(assessmentId),
+      });
+
+      // Return more specific error to help debugging
+      const debugInfo = process.env.NODE_ENV === 'development' ? {
+        debug: {
+          assessmentId,
+          totalOrgResponses,
+          assessmentIdsWithResponses: existingAssessmentIds.slice(0, 3),
+        }
+      } : {};
+
       return NextResponse.json(
-        { error: '回答データがありません。検査が正常に完了していない可能性があります。' },
+        {
+          error: '回答データがありません。検査が正常に完了していない可能性があります。',
+          ...debugInfo,
+        },
         { status: 400 }
       );
     }
@@ -409,13 +457,64 @@ export async function PUT(
 }
 
 // GET endpoint to retrieve existing analysis
+// Add ?debug=true query param for debugging response availability
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ assessmentId: string }> }
 ) {
   try {
     const { assessmentId } = await params;
+    const { searchParams } = new URL(request.url);
+    const debugMode = searchParams.get('debug') === 'true';
     const supabase = createAdminClient();
+
+    // In debug mode, return detailed info about responses and assessment
+    if (debugMode) {
+      // Get assessment info
+      const { data: assessment, error: assessmentError } = await supabase
+        .from('assessments')
+        .select('id, status, organization_id, completed_at')
+        .eq('id', assessmentId)
+        .is('deleted_at', null)
+        .single<{ id: string; status: string; organization_id: string; completed_at: string | null }>();
+
+      // Get responses count
+      const { count: responsesCount, error: responsesError } = await supabase
+        .from('responses')
+        .select('*', { count: 'exact', head: true })
+        .eq('assessment_id', assessmentId);
+
+      // Get analysis count
+      const { count: analysesCount } = await supabase
+        .from('ai_analyses')
+        .select('*', { count: 'exact', head: true })
+        .eq('assessment_id', assessmentId);
+
+      // Get sample response IDs (if any)
+      const { data: sampleResponses } = await supabase
+        .from('responses')
+        .select('question_id')
+        .eq('assessment_id', assessmentId)
+        .limit(5)
+        .returns<Array<{ question_id: string }>>();
+
+      return NextResponse.json({
+        debug: true,
+        assessmentId,
+        assessment: assessment ? {
+          id: assessment.id,
+          status: assessment.status,
+          organization_id: assessment.organization_id,
+          completed_at: assessment.completed_at,
+        } : null,
+        assessmentFound: !!assessment,
+        assessmentError: assessmentError?.message ?? null,
+        responsesCount,
+        responsesError: responsesError?.message ?? null,
+        analysesCount,
+        sampleQuestionIds: sampleResponses?.map(r => r.question_id) ?? [],
+      });
+    }
 
     const { data: analysis, error } = await supabase
       .from('ai_analyses')
