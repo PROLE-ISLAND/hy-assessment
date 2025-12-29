@@ -51,6 +51,7 @@ export function ActionRequiredSection({
 }: ActionRequiredSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
+  const [analysisErrors, setAnalysisErrors] = useState<Record<string, string>>({});
 
   const totalCount = expiringItems.length + needsAnalysisItems.length;
 
@@ -59,6 +60,12 @@ export function ActionRequiredSection({
   }
 
   const handleRunAnalysis = async (assessmentId: string) => {
+    // Clear any previous error for this assessment
+    setAnalysisErrors(prev => {
+      const next = { ...prev };
+      delete next[assessmentId];
+      return next;
+    });
     setAnalyzingIds(prev => new Set(prev).add(assessmentId));
 
     try {
@@ -69,9 +76,31 @@ export function ActionRequiredSection({
       if (response.ok) {
         // Refresh the page to update the list
         window.location.reload();
+      } else {
+        // Handle specific error cases
+        const data = await response.json().catch(() => ({}));
+
+        if (response.status === 409) {
+          // Already analyzed - refresh to update UI
+          window.location.reload();
+        } else if (response.status === 400 && data.error?.includes('No responses')) {
+          setAnalysisErrors(prev => ({
+            ...prev,
+            [assessmentId]: '回答データがありません。検査が正常に完了していない可能性があります。'
+          }));
+        } else {
+          setAnalysisErrors(prev => ({
+            ...prev,
+            [assessmentId]: data.error || '分析に失敗しました。'
+          }));
+        }
       }
     } catch (error) {
       console.error('Analysis failed:', error);
+      setAnalysisErrors(prev => ({
+        ...prev,
+        [assessmentId]: 'ネットワークエラーが発生しました。'
+      }));
     } finally {
       setAnalyzingIds(prev => {
         const next = new Set(prev);
@@ -160,38 +189,45 @@ export function ActionRequiredSection({
                 {needsAnalysisItems.map((item) => (
                   <div
                     key={item.assessmentId}
-                    className={`flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border ${stateColors.info.light.border}`}
+                    className={`p-3 bg-white dark:bg-gray-900 rounded-lg border ${stateColors.info.light.border}`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="font-medium">{item.candidateName}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatCompletedDate(item.completedAt)}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="font-medium">{item.candidateName}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {formatCompletedDate(item.completedAt)}
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/admin/assessments/${item.assessmentId}`}>
+                            詳細
+                            <ExternalLink className="ml-1 h-3 w-3" />
+                          </Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleRunAnalysis(item.assessmentId)}
+                          disabled={analyzingIds.has(item.assessmentId)}
+                        >
+                          {analyzingIds.has(item.assessmentId) ? (
+                            <>
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              分析中...
+                            </>
+                          ) : (
+                            '分析実行'
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/assessments/${item.assessmentId}`}>
-                          詳細
-                          <ExternalLink className="ml-1 h-3 w-3" />
-                        </Link>
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleRunAnalysis(item.assessmentId)}
-                        disabled={analyzingIds.has(item.assessmentId)}
-                      >
-                        {analyzingIds.has(item.assessmentId) ? (
-                          <>
-                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                            分析中...
-                          </>
-                        ) : (
-                          '分析実行'
-                        )}
-                      </Button>
-                    </div>
+                    {analysisErrors[item.assessmentId] && (
+                      <div className="mt-2 p-2 text-sm text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400 rounded">
+                        {analysisErrors[item.assessmentId]}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
