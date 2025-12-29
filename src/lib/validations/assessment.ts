@@ -85,6 +85,34 @@ export const assessmentProgressSchema = z.object({
 export type AssessmentProgressInput = z.infer<typeof assessmentProgressSchema>;
 
 // =====================================================
+// Update Progress Request Schema (API)
+// =====================================================
+
+export const updateProgressSchema = z
+  .object({
+    currentPage: z.number().int().min(0),
+    totalPages: z.number().int().min(1),
+  })
+  .refine(
+    (data) => data.currentPage < data.totalPages,
+    { message: 'currentPageはtotalPages未満である必要があります', path: ['currentPage'] }
+  );
+
+export type UpdateProgressInput = z.infer<typeof updateProgressSchema>;
+
+// =====================================================
+// Save Response Request Schema (API)
+// =====================================================
+
+export const saveResponseSchema = z.object({
+  questionId: z.string().min(1, 'questionIdは必須です'),
+  answer: z.unknown(),
+  pageNumber: z.number().int().min(0),
+});
+
+export type SaveResponseInput = z.infer<typeof saveResponseSchema>;
+
+// =====================================================
 // Complete Assessment Schema
 // =====================================================
 
