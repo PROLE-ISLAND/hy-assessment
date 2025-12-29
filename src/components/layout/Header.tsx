@@ -79,7 +79,7 @@ export function Header({ user }: HeaderProps) {
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full" aria-label="ユーザーメニューを開く">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                 </Avatar>

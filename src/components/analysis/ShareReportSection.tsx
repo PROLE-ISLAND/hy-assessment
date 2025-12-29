@@ -178,6 +178,7 @@ export function ShareReportSection({ assessmentId, hasCandidateReport }: ShareRe
                   size="icon"
                   onClick={handleCopy}
                   title="コピー"
+                  aria-label="URLをコピー"
                 >
                   {copied ? (
                     <Check className="h-4 w-4 text-green-600" />
@@ -190,6 +191,7 @@ export function ShareReportSection({ assessmentId, hasCandidateReport }: ShareRe
                   size="icon"
                   onClick={() => window.open(status.shareUrl!, '_blank')}
                   title="プレビュー"
+                  aria-label="レポートをプレビュー"
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Button>
