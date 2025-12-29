@@ -1,0 +1,47 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    ["@semantic-release/commit-analyzer", {
+      "preset": "conventionalcommits",
+      "releaseRules": [
+        { "type": "feat", "release": "minor" },
+        { "type": "fix", "release": "patch" },
+        { "type": "perf", "release": "patch" },
+        { "type": "refactor", "release": "patch" },
+        { "type": "docs", "release": false },
+        { "type": "style", "release": false },
+        { "type": "chore", "release": false },
+        { "type": "test", "release": false },
+        { "type": "ci", "release": false },
+        { "breaking": true, "release": "major" }
+      ]
+    }],
+    ["@semantic-release/release-notes-generator", {
+      "preset": "conventionalcommits",
+      "presetConfig": {
+        "types": [
+          { "type": "feat", "section": "新機能", "hidden": false },
+          { "type": "fix", "section": "バグ修正", "hidden": false },
+          { "type": "perf", "section": "パフォーマンス改善", "hidden": false },
+          { "type": "refactor", "section": "リファクタリング", "hidden": false },
+          { "type": "docs", "section": "ドキュメント", "hidden": true },
+          { "type": "style", "section": "スタイル", "hidden": true },
+          { "type": "chore", "section": "その他", "hidden": true },
+          { "type": "test", "section": "テスト", "hidden": true },
+          { "type": "ci", "section": "CI/CD", "hidden": true }
+        ]
+      }
+    }],
+    ["@semantic-release/changelog", {
+      "changelogFile": "CHANGELOG.md"
+    }],
+    ["@semantic-release/npm", {
+      "npmPublish": false
+    }],
+    ["@semantic-release/git", {
+      "assets": ["package.json", "CHANGELOG.md"],
+      "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+    }],
+    "@semantic-release/github"
+  ]
+}
