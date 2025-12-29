@@ -69,19 +69,19 @@ export default async function CandidateReportPage({ params }: ReportPageProps) {
     const expiresAt = new Date(assessment.report_expires_at);
     if (now > expiresAt) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center bg-muted">
           <div className="max-w-md mx-auto text-center p-8">
             <div className="text-6xl mb-4">&#x23F3;</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-foreground mb-2">
               リンクの有効期限が切れています
             </h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               このレポートへのリンクは有効期限が切れました。
               新しいリンクをリクエストするか、担当者にお問い合わせください。
             </p>
             <Link
               href="/report/resend"
-              className="inline-flex items-center justify-center px-6 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
+              className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
             >
               リンクを再送する
             </Link>
@@ -97,13 +97,13 @@ export default async function CandidateReportPage({ params }: ReportPageProps) {
 
   if (!candidateReport) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted">
         <div className="max-w-md mx-auto text-center p-8">
           <div className="text-6xl mb-4">&#x1F50D;</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
             レポートが見つかりません
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             レポートの準備ができていないか、まだ分析が完了していません。
             しばらくしてから再度お試しください。
           </p>
@@ -123,14 +123,14 @@ export default async function CandidateReportPage({ params }: ReportPageProps) {
   const candidateName = assessment.candidates?.persons?.name || 'あなた';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-muted">
       <div className="mx-auto max-w-3xl px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
             適性検査レポート
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-muted-foreground">
             {candidateName} さんの結果
           </p>
         </div>
@@ -139,7 +139,7 @@ export default async function CandidateReportPage({ params }: ReportPageProps) {
         <CandidateReportView report={candidateReport} />
 
         {/* Footer */}
-        <div className="mt-8 text-center text-sm text-gray-500">
+        <div className="mt-8 text-center text-sm text-muted-foreground/80">
           <p>
             このレポートは、あなたの検査結果に基づいて生成されたフィードバックです。
           </p>

@@ -10,6 +10,7 @@ import { Model } from 'survey-core';
 import { Survey } from 'survey-react-ui';
 import 'survey-core/survey-core.min.css';
 import type { SurveyJSDefinition, AssessmentProgress } from '@/types/database';
+import { stateColors } from '@/lib/design-system';
 
 // Japanese localization
 import { surveyLocalization } from 'survey-core';
@@ -205,50 +206,50 @@ export function AssessmentForm({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-4">
+      <div className="bg-background rounded-lg shadow-sm p-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">
+          <h1 className="text-xl font-semibold text-foreground">
             {questions.title || '適性検査'}
           </h1>
           <div className="flex items-center gap-2 text-sm">
             {isSaving ? (
-              <span className="text-gray-500">
-                <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-1" />
+              <span className="text-muted-foreground">
+                <span className="inline-block w-2 h-2 bg-amber-500 rounded-full animate-pulse mr-1" />
                 保存中...
               </span>
             ) : lastSaved ? (
-              <span className="text-green-600">
-                <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1" />
+              <span className={stateColors.success.light.text}>
+                <span className="inline-block w-2 h-2 bg-emerald-500 rounded-full mr-1" />
                 保存済み
               </span>
             ) : null}
           </div>
         </div>
         {questions.description && (
-          <p className="mt-2 text-sm text-gray-600">{questions.description}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{questions.description}</p>
         )}
       </div>
 
       {/* Error message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className={`rounded-lg p-4 border ${stateColors.error.combined}`}>
+          <p className="text-sm">{error}</p>
         </div>
       )}
 
       {/* Survey - render only on client to avoid hydration mismatch */}
-      <div className="bg-white rounded-lg shadow-sm">
+      <div className="bg-background rounded-lg shadow-sm">
         {isClient && surveyModel.current ? (
           <Survey model={surveyModel.current} />
         ) : (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-8 text-center text-muted-foreground">
             読み込み中...
           </div>
         )}
       </div>
 
       {/* Footer */}
-      <div className="text-center text-sm text-gray-500">
+      <div className="text-center text-sm text-muted-foreground">
         <p>回答は自動的に保存されます。途中でブラウザを閉じても続きから再開できます。</p>
       </div>
     </div>

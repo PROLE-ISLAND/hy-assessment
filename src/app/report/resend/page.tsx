@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { stateColors } from '@/lib/design-system';
 
 export default function ReportResendPage() {
   const [email, setEmail] = useState('');
@@ -54,11 +55,11 @@ export default function ReportResendPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-            <Mail className="h-6 w-6 text-blue-600" />
+          <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4 ${stateColors.info.light.bg} ${stateColors.info.dark.bg}`}>
+            <Mail className={`h-6 w-6 ${stateColors.info.light.text} ${stateColors.info.dark.text}`} />
           </div>
           <CardTitle className="text-2xl">レポートリンクの再送</CardTitle>
           <CardDescription>
@@ -83,18 +84,18 @@ export default function ReportResendPage() {
             </div>
 
             {status === 'success' && (
-              <div className="flex items-start gap-3 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-green-800 dark:text-green-200">
+              <div className={`flex items-start gap-3 p-4 rounded-lg border ${stateColors.success.combined}`}>
+                <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <p className="text-sm">
                   {message}
                 </p>
               </div>
             )}
 
             {status === 'error' && (
-              <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
-                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-800 dark:text-red-200">
+              <div className={`flex items-start gap-3 p-4 rounded-lg border ${stateColors.error.combined}`}>
+                <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <p className="text-sm">
                   {message}
                 </p>
               </div>
@@ -112,7 +113,7 @@ export default function ReportResendPage() {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t text-center">
+          <div className="mt-6 pt-6 border-t border-border text-center">
             <p className="text-sm text-muted-foreground">
               メールが届かない場合は、迷惑メールフォルダをご確認ください。
             </p>
