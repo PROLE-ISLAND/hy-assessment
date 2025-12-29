@@ -40,8 +40,8 @@ setup('authenticate', async ({ page }) => {
   await page.waitForLoadState('domcontentloaded', { timeout: 30000 });
   console.log('[Auth Setup] DOM content loaded');
 
-  // Brief wait to ensure cookies are fully written
-  await page.waitForTimeout(2000);
+  // Wait for network to settle to ensure cookies are fully written
+  await page.waitForLoadState('networkidle', { timeout: 30000 });
   console.log('[Auth Setup] Auth state ready');
 
   // Save storage state

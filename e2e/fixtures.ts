@@ -155,8 +155,8 @@ export async function login(page: Page, retries = 3) {
       return; // Success
     } catch (error) {
       if (attempt < retries) {
-        // Wait before retrying (exponential backoff)
-        await page.waitForTimeout(2000 * attempt);
+        // Wait before retrying (exponential backoff using Promise)
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
         continue;
       }
       throw error;

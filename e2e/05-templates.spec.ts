@@ -4,6 +4,7 @@
 // =====================================================
 
 import { test, expect, SELECTORS, login } from './fixtures';
+import { waitForPageReady } from './helpers/deterministic-wait';
 
 test.describe('Templates Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -19,7 +20,7 @@ test.describe('Templates Management', () => {
 
     test('should display templates list', async ({ page }) => {
       await page.goto('/admin/templates');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const hasTemplates = await page.locator('tbody tr, [data-testid="template-card"]').count();
       const hasEmptyState = await page.getByText('テンプレートがありません').isVisible().catch(() => false);
@@ -29,7 +30,7 @@ test.describe('Templates Management', () => {
 
     test('should have "Detail" button for each template', async ({ page }) => {
       await page.goto('/admin/templates');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const templateRows = await page.locator(SELECTORS.tableRow).count();
       if (templateRows > 0) {
@@ -40,7 +41,7 @@ test.describe('Templates Management', () => {
 
     test('should navigate to template detail', async ({ page }) => {
       await page.goto('/admin/templates');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const templateRows = await page.locator(SELECTORS.tableRow).count();
       if (templateRows > 0) {
@@ -56,7 +57,7 @@ test.describe('Templates Management', () => {
 
     test.beforeEach(async ({ page }) => {
       await page.goto('/admin/templates');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const templateRows = await page.locator(SELECTORS.tableRow).count();
       if (templateRows > 0) {
@@ -76,7 +77,7 @@ test.describe('Templates Management', () => {
       }
 
       await page.goto(templateUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const templateInfo = page.locator('h1, h2, .template-name');
       if (await templateInfo.count() > 0) {
@@ -91,7 +92,7 @@ test.describe('Templates Management', () => {
       }
 
       await page.goto(templateUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const toggle = page.locator('[role="switch"], input[type="checkbox"][role="switch"]');
       if (await toggle.isVisible()) {
@@ -106,18 +107,20 @@ test.describe('Templates Management', () => {
       }
 
       await page.goto(templateUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const versionButton = page.locator('button:has-text("新バージョン")');
       if (await versionButton.isVisible()) {
         await versionButton.click();
-        await page.waitForTimeout(500);
+
+        // Wait for dialog to appear instead of arbitrary timeout
+        const dialog = page.locator(SELECTORS.dialog);
+        await dialog.waitFor({ state: 'visible', timeout: 5000 });
 
         const cancelButton = page.locator('[role="dialog"] button:has-text("キャンセル")');
         await expect(cancelButton).toBeVisible();
 
         await cancelButton.click();
-        const dialog = page.locator(SELECTORS.dialog);
         await expect(dialog).not.toBeVisible({ timeout: 3000 });
       }
     });

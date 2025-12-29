@@ -4,6 +4,7 @@
 // =====================================================
 
 import { test, expect, SELECTORS, login } from './fixtures';
+import { waitForPageReady } from './helpers/deterministic-wait';
 
 test.describe('Navigation', () => {
   test.beforeEach(async ({ page }) => {
@@ -14,7 +15,7 @@ test.describe('Navigation', () => {
   test.describe('Sidebar Navigation', () => {
     test('should display sidebar with main navigation', async ({ page }) => {
       await page.goto('/admin');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       // Look for nav links with data-testid
       await expect(page.locator(SELECTORS.navDashboard)).toBeVisible();
@@ -109,7 +110,7 @@ test.describe('Navigation', () => {
   test.describe('Active State Indication', () => {
     test('should highlight current page in navigation', async ({ page }) => {
       await page.goto('/admin/candidates');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       // Check that candidates link has active styling
       const candidatesLink = page.locator(SELECTORS.navCandidates);
@@ -125,7 +126,7 @@ test.describe('Navigation', () => {
 
     test('should handle mobile viewport', async ({ page }) => {
       await page.goto('/admin');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       // On mobile, sidebar might be hidden or in a sheet
       // Just verify page loads without errors

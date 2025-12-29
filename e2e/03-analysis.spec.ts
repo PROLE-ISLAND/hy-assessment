@@ -4,6 +4,7 @@
 // =====================================================
 
 import { test, expect, SELECTORS, login } from './fixtures';
+import { waitForPageReady } from './helpers/deterministic-wait';
 
 test.describe('Analysis Results', () => {
   test.beforeEach(async ({ page }) => {
@@ -19,7 +20,7 @@ test.describe('Analysis Results', () => {
 
     test('should display assessment list or empty state', async ({ page }) => {
       await page.goto('/admin/assessments');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const hasAssessments = await page.locator(SELECTORS.tableRow).count();
       const hasEmptyState = await page.getByText('分析結果がありません').isVisible().catch(() => false);
@@ -29,7 +30,7 @@ test.describe('Analysis Results', () => {
 
     test('should have Detail button for each assessment', async ({ page }) => {
       await page.goto('/admin/assessments');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const assessmentRows = await page.locator(SELECTORS.tableRow).count();
       if (assessmentRows > 0) {
@@ -45,7 +46,7 @@ test.describe('Analysis Results', () => {
     test.beforeEach(async ({ page }) => {
       // Navigate to first assessment with analysis
       await page.goto('/admin/assessments');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const assessmentRows = await page.locator(SELECTORS.tableRow).count();
       if (assessmentRows > 0) {
@@ -65,7 +66,7 @@ test.describe('Analysis Results', () => {
       }
 
       await page.goto(assessmentUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       // Check for main tabs (when analysis exists)
       const analysisTab = page.locator('[role="tab"]:has-text("分析結果")');
@@ -92,15 +93,14 @@ test.describe('Analysis Results', () => {
       }
 
       await page.goto(assessmentUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const historyTab = page.locator('[role="tab"]:has-text("履歴")');
       if (await historyTab.isVisible()) {
         await historyTab.click();
-        await page.waitForTimeout(500);
 
         const historyPanel = page.locator('[role="tabpanel"]');
-        await expect(historyPanel).toBeVisible();
+        await expect(historyPanel).toBeVisible({ timeout: 5000 });
       }
     });
 
@@ -111,7 +111,7 @@ test.describe('Analysis Results', () => {
       }
 
       await page.goto(assessmentUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const pdfButton = page.locator('button:has-text("PDF"), a:has-text("PDF")');
       if (await pdfButton.isVisible()) {
@@ -126,7 +126,7 @@ test.describe('Analysis Results', () => {
       }
 
       await page.goto(assessmentUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const reanalyzeButton = page.locator('button:has-text("再分析")');
       if (await reanalyzeButton.isVisible()) {
@@ -141,7 +141,7 @@ test.describe('Analysis Results', () => {
       }
 
       await page.goto(assessmentUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const reanalyzeButton = page.locator('button:has-text("再分析")');
       if (await reanalyzeButton.isVisible()) {
@@ -159,19 +159,20 @@ test.describe('Analysis Results', () => {
       }
 
       await page.goto(assessmentUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const reanalyzeButton = page.locator('button:has-text("再分析")');
       if (await reanalyzeButton.isVisible()) {
         await reanalyzeButton.click();
-        await page.waitForTimeout(500);
+
+        // Wait for dialog to appear instead of arbitrary timeout
+        const dialog = page.locator(SELECTORS.dialog);
+        await dialog.waitFor({ state: 'visible', timeout: 5000 });
 
         const cancelButton = page.locator('[role="dialog"] button:has-text("キャンセル")');
         await expect(cancelButton).toBeVisible();
 
         await cancelButton.click();
-
-        const dialog = page.locator(SELECTORS.dialog);
         await expect(dialog).not.toBeVisible({ timeout: 3000 });
       }
     });
@@ -183,7 +184,7 @@ test.describe('Analysis Results', () => {
       }
 
       await page.goto(assessmentUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const charts = page.locator('.recharts-wrapper, svg.recharts-surface');
       if (await charts.count() > 0) {

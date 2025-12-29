@@ -4,6 +4,7 @@
 // =====================================================
 
 import { test, expect, SELECTORS, navigateToNewCandidateForm } from './fixtures';
+import { waitForPageReady } from './helpers/deterministic-wait';
 
 test.describe('Candidates Management', () => {
   // Authentication is handled by the setup project via storageState
@@ -36,7 +37,7 @@ test.describe('Candidates Management', () => {
       await page.goto('/admin/candidates');
 
       // Wait for content to load
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       // Either shows candidates or empty state
       const hasCandidates = await page.locator(SELECTORS.tableRow).count();
@@ -47,7 +48,7 @@ test.describe('Candidates Management', () => {
 
     test('should have selection checkboxes when candidates exist', async ({ page }) => {
       await page.goto('/admin/candidates');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const candidateRows = await page.locator(SELECTORS.tableRow).count();
       if (candidateRows > 0) {
@@ -58,7 +59,7 @@ test.describe('Candidates Management', () => {
 
     test('should show selection controls when candidates selected', async ({ page }) => {
       await page.goto('/admin/candidates');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const candidateRows = await page.locator(SELECTORS.tableRow).count();
       if (candidateRows > 0) {
@@ -72,7 +73,7 @@ test.describe('Candidates Management', () => {
 
     test('should have "Detail" button for each candidate row', async ({ page }) => {
       await page.goto('/admin/candidates');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const candidateRows = await page.locator(SELECTORS.tableRow).count();
       if (candidateRows > 0) {
@@ -84,7 +85,7 @@ test.describe('Candidates Management', () => {
 
     test('should navigate to candidate detail when clicking Detail button', async ({ page }) => {
       await page.goto('/admin/candidates');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const candidateRows = await page.locator(SELECTORS.tableRow).count();
       if (candidateRows > 0) {
@@ -129,7 +130,7 @@ test.describe('Candidates Management', () => {
       await page.click(SELECTORS.candidateSubmit);
 
       // Should show validation errors or remain on form
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
       await expect(page).toHaveURL(/\/admin\/candidates\/new/);
     });
 
@@ -164,7 +165,7 @@ test.describe('Candidates Management', () => {
   test.describe('Candidate Detail Page', () => {
     test('should display candidate information', async ({ page }) => {
       await page.goto('/admin/candidates');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const candidateRows = await page.locator(SELECTORS.tableRow).count();
       if (candidateRows > 0) {

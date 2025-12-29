@@ -141,8 +141,8 @@ export async function safeFill(
   // Fill the value
   await locator.fill(value);
 
-  // Wait for any debounced validation
-  await page.waitForTimeout(100);
+  // Wait for input event to be processed (blur triggers validation)
+  await locator.blur();
 }
 
 /**

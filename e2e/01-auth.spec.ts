@@ -38,7 +38,8 @@ test.describe('Authentication Flow', () => {
       await page.click(SELECTORS.loginSubmit);
 
       // Should show error message or remain on login page
-      await page.waitForTimeout(3000);
+      // Wait for either error to appear or stay on login page
+      await page.waitForLoadState('networkidle', { timeout: 10000 });
       const url = page.url();
       const hasError = url.includes('/login') ||
         await page.locator(SELECTORS.loginError).isVisible().catch(() => false) ||
