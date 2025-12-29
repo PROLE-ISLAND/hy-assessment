@@ -11,6 +11,7 @@ jobs:
   auto-approve:
     runs-on: ubuntu-latest
     # 安全なPRタイプのみ自動承認
+    # 必須シークレット: APPROVE_PAT (repo, write:discussion スコープのPAT)
     if: |
       github.actor == 'ryu1aida1126' &&
       (
@@ -24,5 +25,7 @@ jobs:
       - name: 自動承認
         uses: hmarr/auto-approve-action@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # PATが必要（組織設定でGITHUB_TOKENによる承認が禁止されているため）
+          # Settings → Secrets → APPROVE_PAT を設定すること
+          github-token: ${{ secrets.APPROVE_PAT || secrets.GITHUB_TOKEN }}
           review-message: "🤖 安全なPRタイプのため自動承認"
