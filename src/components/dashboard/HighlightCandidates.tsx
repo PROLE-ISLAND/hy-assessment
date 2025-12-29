@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Star, AlertTriangle, ExternalLink, Users } from 'lucide-react';
 import { stateColors } from '@/lib/design-system';
 
 interface HighPerformer {
@@ -40,7 +40,25 @@ export function HighlightCandidates({
   const hasData = highPerformers.length > 0 || needsAttention.length > 0;
 
   if (!hasData) {
-    return null;
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Star className="h-5 w-5 text-yellow-500" />
+            注目候補者
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-8">
+          <Users className="h-10 w-10 text-muted-foreground/50" />
+          <p className="mt-3 text-sm text-muted-foreground text-center">
+            注目候補者はまだいません
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground/70 text-center">
+            候補者の検査が完了すると、ここに表示されます
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
