@@ -15,6 +15,20 @@ import type {
 import { DOMAIN_LABELS } from './types';
 
 // =====================================================
+// Utility Functions
+// =====================================================
+
+/**
+ * Parse answer value to number (handles both number and string)
+ * Returns NaN if not a valid number
+ */
+function parseAnswerAsNumber(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') return Number(value);
+  return NaN;
+}
+
+// =====================================================
 // Score Calculation
 // =====================================================
 
@@ -69,8 +83,8 @@ function calculateDomainScores(
     let answeredCount = 0;
 
     for (const item of items) {
-      const answer = responseMap.get(item.id);
-      if (typeof answer === 'number' && answer >= 1 && answer <= 5) {
+      const answer = parseAnswerAsNumber(responseMap.get(item.id));
+      if (!Number.isNaN(answer) && answer >= 1 && answer <= 5) {
         // Apply reverse scoring if needed
         const score = item.reverseKeyed ? 6 - answer : answer;
         rawScore += score;
@@ -155,8 +169,8 @@ function checkValidity(
   // 1. Check Instructed Response Items (IMC)
   // L43: should be 4 (やや同意)
   // L46: should be 2 (やや反対)
-  const imcL43 = responseMap.get('L43');
-  const imcL46 = responseMap.get('L46');
+  const imcL43 = parseAnswerAsNumber(responseMap.get('L43'));
+  const imcL46 = parseAnswerAsNumber(responseMap.get('L46'));
 
   if (imcL43 !== 4) {
     details.push('注意チェック項目L43の回答が不正確');
@@ -171,8 +185,8 @@ function checkValidity(
   // If all are 5 (strongly agree), suspicious
   const sdItems = ['L42', 'L44', 'L45'];
   const sdScores = sdItems
-    .map((id) => responseMap.get(id))
-    .filter((v) => typeof v === 'number') as number[];
+    .map((id) => parseAnswerAsNumber(responseMap.get(id)))
+    .filter((v) => !Number.isNaN(v));
   const socialDesirabilityFlag =
     sdScores.length === 3 && sdScores.every((s) => s === 5);
 
@@ -184,8 +198,11 @@ function checkValidity(
   // 3. Check for extreme response patterns
   const likertResponses: number[] = [];
   for (const [key, value] of responseMap.entries()) {
-    if (key.startsWith('L') && typeof value === 'number') {
-      likertResponses.push(value);
+    if (key.startsWith('L')) {
+      const numValue = parseAnswerAsNumber(value);
+      if (!Number.isNaN(numValue)) {
+        likertResponses.push(numValue);
+      }
     }
   }
 
@@ -223,8 +240,8 @@ function checkInconsistency(responseMap: Map<string, unknown>): boolean {
   const constructGroups = new Map<string, { normal: number[]; reversed: number[] }>();
 
   for (const item of ITEM_METADATA) {
-    const answer = responseMap.get(item.id);
-    if (typeof answer !== 'number') continue;
+    const answer = parseAnswerAsNumber(responseMap.get(item.id));
+    if (Number.isNaN(answer)) continue;
 
     if (!constructGroups.has(item.construct)) {
       constructGroups.set(item.construct, { normal: [], reversed: [] });
