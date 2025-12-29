@@ -8,6 +8,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Lightbulb, Sparkles, Heart, AlertCircle } from 'lucide-react';
+import { stateColors } from '@/lib/design-system';
 import type { CandidateReport } from '@/types/database';
 
 interface CandidateReportViewProps {
@@ -21,7 +22,7 @@ export function CandidateReportView({ report }: CandidateReportViewProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-blue-600" />
+            <Sparkles className={`h-5 w-5 ${stateColors.info.light.text} ${stateColors.info.dark.text}`} />
             あなたの強み
           </CardTitle>
           <CardDescription>
@@ -31,8 +32,8 @@ export function CandidateReportView({ report }: CandidateReportViewProps) {
         <CardContent>
           <div className="space-y-4">
             {report.strengths.map((strength, index) => (
-              <div key={index} className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/20">
-                <div className="font-semibold text-blue-700 dark:text-blue-400 mb-1">
+              <div key={index} className={`border rounded-lg p-4 ${stateColors.info.light.bg}/50 ${stateColors.info.dark.bg}`}>
+                <div className={`font-semibold mb-1 ${stateColors.info.light.text} ${stateColors.info.dark.text}`}>
                   {strength.title}
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -48,7 +49,7 @@ export function CandidateReportView({ report }: CandidateReportViewProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-yellow-600" />
+            <Lightbulb className={`h-5 w-5 ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`} />
             活かし方のヒント
           </CardTitle>
           <CardDescription>
@@ -59,7 +60,7 @@ export function CandidateReportView({ report }: CandidateReportViewProps) {
           <ul className="space-y-3">
             {report.leverage_tips.map((tip, index) => (
               <li key={index} className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-700 dark:text-yellow-400 text-sm font-medium">
+                <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${stateColors.warning.light.bg} ${stateColors.warning.dark.bg} ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`}>
                   {index + 1}
                 </div>
                 <span className="text-sm">{tip}</span>
@@ -73,7 +74,7 @@ export function CandidateReportView({ report }: CandidateReportViewProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Heart className="h-5 w-5 text-rose-600" />
+            <Heart className={`h-5 w-5 ${stateColors.error.light.text} ${stateColors.error.dark.text}`} />
             負荷が高い時の工夫
           </CardTitle>
           <CardDescription>
@@ -112,11 +113,11 @@ export function CandidateReportView({ report }: CandidateReportViewProps) {
       </Card>
 
       {/* Note */}
-      <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+      <Card className={`${stateColors.warning.light.border} ${stateColors.warning.dark.border} ${stateColors.warning.light.bg}/50 ${stateColors.warning.dark.bg}`}>
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800 dark:text-amber-200">
+            <AlertCircle className={`h-5 w-5 flex-shrink-0 mt-0.5 ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`} />
+            <p className={`text-sm ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`}>
               {report.note}
             </p>
           </div>

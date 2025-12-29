@@ -8,6 +8,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Target, Eye } from 'lucide-react';
+import { stateColors } from '@/lib/design-system';
 import type { InterviewCheck } from '@/types/database';
 
 interface InterviewChecksCardProps {
@@ -21,7 +22,7 @@ export function InterviewChecksCard({ checks }: InterviewChecksCardProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-blue-600" />
+          <MessageSquare className={`h-5 w-5 ${stateColors.info.light.text} ${stateColors.info.dark.text}`} />
           面接確認項目
         </CardTitle>
         <CardDescription>
@@ -44,15 +45,15 @@ export function InterviewChecksCard({ checks }: InterviewChecksCardProps) {
 
               {/* Intent & Look For */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-10">
-                <div className="flex items-start gap-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3">
-                  <Target className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className={`flex items-start gap-2 rounded-lg p-3 ${stateColors.info.light.bg} ${stateColors.info.dark.bg}`}>
+                  <Target className={`h-4 w-4 flex-shrink-0 mt-0.5 ${stateColors.info.light.text} ${stateColors.info.dark.text}`} />
                   <div>
-                    <div className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">確認意図</div>
-                    <p className="text-sm text-blue-800 dark:text-blue-200">{check.intent}</p>
+                    <div className={`text-xs font-medium mb-1 ${stateColors.info.light.text} ${stateColors.info.dark.text}`}>確認意図</div>
+                    <p className={`text-sm ${stateColors.info.light.text} ${stateColors.info.dark.text}`}>{check.intent}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2 bg-purple-50 dark:bg-purple-950/20 rounded-lg p-3">
-                  <Eye className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                  <Eye className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
                   <div>
                     <div className="text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">回答で見るべきポイント</div>
                     <p className="text-sm text-purple-800 dark:text-purple-200">{check.look_for}</p>

@@ -7,6 +7,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
+import { stateColors } from '@/lib/design-system';
 import type { EnhancedWatchout } from '@/types/database';
 
 interface EnhancedWatchoutsCardProps {
@@ -20,7 +21,7 @@ export function EnhancedWatchoutsCard({ watchouts }: EnhancedWatchoutsCardProps)
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-yellow-600" />
+          <AlertTriangle className={`h-5 w-5 ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`} />
           注意点
         </CardTitle>
       </CardHeader>
@@ -28,7 +29,7 @@ export function EnhancedWatchoutsCard({ watchouts }: EnhancedWatchoutsCardProps)
         <div className="space-y-4">
           {watchouts.map((watchout, index) => (
             <div key={index} className="border rounded-lg p-4 space-y-2">
-              <div className="font-semibold text-yellow-700 dark:text-yellow-400">
+              <div className={`font-semibold ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`}>
                 {watchout.title}
               </div>
               <p className="text-sm">

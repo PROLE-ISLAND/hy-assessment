@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, HelpCircle, MessageSquare } from 'lucide-react';
+import { stateColors } from '@/lib/design-system';
 import type { InterviewPoint } from '@/lib/analysis/judgment';
 
 interface InterviewPointsProps {
@@ -41,7 +42,7 @@ export function InterviewPoints({ points }: InterviewPointsProps) {
         {/* Strengths */}
         {strengths.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 text-sm font-medium text-green-600 mb-3">
+            <div className={`flex items-center gap-2 text-sm font-medium mb-3 ${stateColors.success.light.text} ${stateColors.success.dark.text}`}>
               <CheckCircle className="h-4 w-4" />
               強み
             </div>
@@ -49,12 +50,12 @@ export function InterviewPoints({ points }: InterviewPointsProps) {
               {strengths.map((point, idx) => (
                 <div
                   key={idx}
-                  className="flex items-start gap-3 p-3 bg-green-50 rounded-lg"
+                  className={`flex items-start gap-3 p-3 rounded-lg ${stateColors.success.light.bg} ${stateColors.success.dark.bg}`}
                 >
                   <Badge variant="outline" className="mt-0.5 text-xs shrink-0">
                     {point.domainLabel}
                   </Badge>
-                  <p className="text-sm text-green-800">{point.point}</p>
+                  <p className={`text-sm ${stateColors.success.light.text} ${stateColors.success.dark.text}`}>{point.point}</p>
                 </div>
               ))}
             </div>
@@ -64,7 +65,7 @@ export function InterviewPoints({ points }: InterviewPointsProps) {
         {/* Confirm Points */}
         {confirms.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 text-sm font-medium text-orange-600 mb-3">
+            <div className={`flex items-center gap-2 text-sm font-medium mb-3 ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`}>
               <HelpCircle className="h-4 w-4" />
               確認すべき点
             </div>
@@ -72,13 +73,13 @@ export function InterviewPoints({ points }: InterviewPointsProps) {
               {confirms.map((point, idx) => (
                 <div
                   key={idx}
-                  className="p-3 bg-orange-50 rounded-lg space-y-2"
+                  className={`p-3 rounded-lg space-y-2 ${stateColors.warning.light.bg} ${stateColors.warning.dark.bg}`}
                 >
                   <div className="flex items-start gap-3">
-                    <Badge variant="outline" className="mt-0.5 text-xs shrink-0 border-orange-200">
+                    <Badge variant="outline" className={`mt-0.5 text-xs shrink-0 ${stateColors.warning.light.border} ${stateColors.warning.dark.border}`}>
                       {point.domainLabel}
                     </Badge>
-                    <p className="text-sm text-orange-800">{point.point}</p>
+                    <p className={`text-sm ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`}>{point.point}</p>
                   </div>
                   {point.suggestedQuestion && (
                     <div className="ml-[60px] text-sm text-muted-foreground">
