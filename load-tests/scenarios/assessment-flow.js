@@ -6,7 +6,7 @@
 import http from 'k6/http';
 import { check, sleep, group } from 'k6';
 import { Rate, Counter, Trend } from 'k6/metrics';
-import { BASE_URL, defaultThresholds, loadStages, getHeaders } from '../k6-config.js';
+import { BASE_URL, defaultThresholds, getHeaders } from '../k6-config.js';
 
 // Custom metrics
 const errorRate = new Rate('errors');
@@ -29,22 +29,6 @@ export const options = {
     'errors': ['rate<0.05'],  // 5% error tolerance for complex flow
   },
 };
-
-// Simulate assessment data
-function generateAssessmentData() {
-  return {
-    // HY適性検査の回答データ（模擬）
-    responses: {
-      section1: Array(10).fill(0).map(() => Math.floor(Math.random() * 5) + 1),
-      section2: Array(10).fill(0).map(() => Math.floor(Math.random() * 5) + 1),
-      section3: Array(10).fill(0).map(() => Math.floor(Math.random() * 5) + 1),
-    },
-    metadata: {
-      startTime: new Date().toISOString(),
-      userAgent: 'k6-load-test',
-    },
-  };
-}
 
 // Main test function - simulates assessment flow
 export default function () {

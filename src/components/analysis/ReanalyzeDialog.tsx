@@ -60,11 +60,12 @@ export function ReanalyzeDialog({
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch available prompts when dialog opens
+  // Fetch available prompts when dialog opens (once)
   useEffect(() => {
     if (open && prompts.length === 0) {
       fetchPrompts();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally fetch only on open, not on prompts change
   }, [open]);
 
   const fetchPrompts = async () => {

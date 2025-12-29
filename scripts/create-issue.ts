@@ -24,23 +24,6 @@ function ask(question: string): Promise<string> {
   });
 }
 
-// Reserved for future use
-function _askMultiline(prompt: string): Promise<string[]> {
-  return new Promise((resolve) => {
-    console.log(prompt);
-    const lines: string[] = [];
-    const handler = (line: string) => {
-      if (line === '') {
-        rl.removeListener('line', handler);
-        resolve(lines);
-      } else {
-        lines.push(line);
-      }
-    };
-    rl.on('line', handler);
-  });
-}
-
 function select(question: string, options: string[]): Promise<number> {
   return new Promise((resolve) => {
     console.log(question);

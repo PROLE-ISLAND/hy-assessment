@@ -177,7 +177,7 @@ export function AnalysisResultsClient({
         await fetchHistory();
       }
     },
-    [fetchHistory]
+    [fetchVersion, fetchHistory]
   );
 
   // Handle version selection
