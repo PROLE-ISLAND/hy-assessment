@@ -132,13 +132,21 @@ export async function POST(
 
     try {
       // Get responses
-      const { data: responses } = await supabase
+      const { data: responses, error: responsesError } = await supabase
         .from('responses')
         .select('question_id, answer')
         .eq('assessment_id', assessment.id)
         .returns<ResponseData[]>();
 
-      if (responses && responses.length > 0) {
+      if (responsesError) {
+        console.error('Responses query error at completion:', {
+          error: responsesError,
+          assessmentId: assessment.id,
+          code: responsesError.code,
+          message: responsesError.message,
+        });
+        analysisResult = { success: false, error: `回答データ取得エラー: ${responsesError.message}` };
+      } else if (responses && responses.length > 0) {
         const candidatePosition = assessment.candidates?.position || '不明';
         const analysisInput = {
           responses,
@@ -195,12 +203,13 @@ export async function POST(
 
         if (saveError) {
           console.error('Save analysis error:', saveError);
-          analysisResult = { success: false, error: 'Failed to save analysis' };
+          analysisResult = { success: false, error: '分析結果の保存に失敗しました' };
         } else {
           analysisResult = { success: true, analysisId: savedAnalysis?.id };
         }
       } else {
-        analysisResult = { success: false, error: 'No responses found' };
+        console.warn('No responses found at completion:', { assessmentId: assessment.id });
+        analysisResult = { success: false, error: '回答データがありません' };
       }
     } catch (analysisError) {
       console.error('Analysis error:', analysisError);

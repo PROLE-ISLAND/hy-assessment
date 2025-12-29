@@ -83,9 +83,24 @@ export async function POST(
       .eq('assessment_id', assessmentId)
       .returns<ResponseData[]>();
 
-    if (responsesError || !responses || responses.length === 0) {
+    // Handle query errors separately from empty results
+    if (responsesError) {
+      console.error('Responses query error:', {
+        error: responsesError,
+        assessmentId,
+        code: responsesError.code,
+        message: responsesError.message,
+      });
       return NextResponse.json(
-        { error: 'No responses found for this assessment' },
+        { error: `回答データの取得に失敗しました: ${responsesError.message}` },
+        { status: 500 }
+      );
+    }
+
+    if (!responses || responses.length === 0) {
+      console.warn('No responses found for analysis:', { assessmentId });
+      return NextResponse.json(
+        { error: '回答データがありません。検査が正常に完了していない可能性があります。' },
         { status: 400 }
       );
     }
@@ -260,9 +275,24 @@ export async function PUT(
       .eq('assessment_id', assessmentId)
       .returns<ResponseData[]>();
 
-    if (responsesError || !responses || responses.length === 0) {
+    // Handle query errors separately from empty results
+    if (responsesError) {
+      console.error('Responses query error:', {
+        error: responsesError,
+        assessmentId,
+        code: responsesError.code,
+        message: responsesError.message,
+      });
       return NextResponse.json(
-        { error: 'No responses found' },
+        { error: `回答データの取得に失敗しました: ${responsesError.message}` },
+        { status: 500 }
+      );
+    }
+
+    if (!responses || responses.length === 0) {
+      console.warn('No responses found for re-analysis:', { assessmentId });
+      return NextResponse.json(
+        { error: '回答データがありません。検査が正常に完了していない可能性があります。' },
         { status: 400 }
       );
     }
