@@ -96,13 +96,13 @@ export function Header({ user }: HeaderProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/settings/profile" className="cursor-pointer">
+                <Link href="/admin/settings/profile" className="cursor-pointer">
                   <User className="mr-2 h-4 w-4" />
                   <span>プロフィール</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer">
+                <Link href="/admin/settings" className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>設定</span>
                 </Link>
