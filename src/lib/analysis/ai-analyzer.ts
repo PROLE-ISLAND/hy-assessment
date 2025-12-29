@@ -37,7 +37,7 @@ export type AIAnalysisOutput = LegacyAIAnalysisOutput;
 // Default Configuration (fallback when no DB prompt)
 // =====================================================
 
-const DEFAULT_MODEL = process.env.OPENAI_DEFAULT_MODEL || 'gpt-5.2';
+const DEFAULT_MODEL = process.env.OPENAI_DEFAULT_MODEL || 'gpt-4o';
 const DEFAULT_PROMPT_VERSION = 'v2.0.0';
 const DEFAULT_MAX_TOKENS = 8000; // Increased for GPT-5.x reasoning tokens
 const DEFAULT_TEMPERATURE = 0.3;
@@ -47,10 +47,13 @@ const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_REASONING_EFFORT = 'low';
 
 /**
- * Check if the model is a GPT-5.x model that supports reasoning effort
+ * Check if the model is an O-series reasoning model that requires special parameters
+ * Note: Only o1/o3 models use reasoning_effort. GPT-5.x models don't use this parameter.
  */
 function isReasoningModel(model: string): boolean {
-  return model.startsWith('gpt-5') || model.startsWith('o1') || model.startsWith('o3');
+  // Only o1 and o3 series models require reasoning_effort parameter
+  // GPT-5.x models work like GPT-4 (standard temperature/max_tokens)
+  return model.startsWith('o1') || model.startsWith('o3');
 }
 
 // =====================================================

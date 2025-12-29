@@ -94,14 +94,14 @@ import {
 | 変数名 | 説明 | デフォルト値 |
 |--------|------|-------------|
 | `OPENAI_API_KEY` | OpenAI APIキー | - |
-| `OPENAI_DEFAULT_MODEL` | デフォルトモデル | `gpt-5.2` |
+| `OPENAI_DEFAULT_MODEL` | デフォルトモデル | `gpt-4o` |
 
-### 利用可能なモデル（2024-12時点）
-- `gpt-5.2` / `gpt-5.2-pro` (最新)
-- `gpt-5.1` / `gpt-5`
-- `gpt-4.1` / `gpt-4.1-mini`
-- `gpt-4o` / `gpt-4o-mini`
-- `gpt-4-turbo`
+### 利用可能なモデル（2025-12時点）
+- `gpt-5.2` (最新)
+- `gpt-5.2-pro` (高精度)
+- `gpt-5.1`
+- `gpt-4o`
+- `gpt-4o-mini` (軽量・高速)
 
 ### 関連ファイル
 - `src/lib/analysis/ai-analyzer.ts` - AI分析処理

@@ -29,10 +29,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
 import type { PromptTemplate } from '@/types/database';
 
-// Available AI models
+// Available AI models (2025-12)
 const AVAILABLE_MODELS = [
   { value: 'gpt-5.2', label: 'GPT-5.2 (最新)' },
-  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+  { value: 'gpt-5.2-pro', label: 'GPT-5.2 Pro (高精度)' },
+  { value: 'gpt-5.1', label: 'GPT-5.1' },
   { value: 'gpt-4o', label: 'GPT-4o' },
   { value: 'gpt-4o-mini', label: 'GPT-4o Mini (軽量)' },
 ];
