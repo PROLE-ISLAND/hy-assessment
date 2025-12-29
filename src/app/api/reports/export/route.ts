@@ -99,14 +99,15 @@ export async function GET(request: NextRequest) {
 
     if (exportType === 'candidates') {
       // Fetch candidate data
+      // Use explicit foreign key names to avoid ambiguous relationship resolution
       const { data: analyses, error } = await adminSupabase
         .from('ai_analyses')
         .select(`
           scores,
           judgment,
           created_at,
-          assessments!inner(
-            candidates!inner(
+          assessments!ai_analyses_assessment_id_fkey!inner(
+            candidates!assessments_candidate_id_fkey!inner(
               name,
               email,
               position,
@@ -182,12 +183,13 @@ export async function GET(request: NextRequest) {
 
     } else if (exportType === 'positions') {
       // Fetch position analysis data
+      // Use explicit foreign key names to avoid ambiguous relationship resolution
       const { data: analyses, error } = await adminSupabase
         .from('ai_analyses')
         .select(`
           scores,
-          assessments!inner(
-            candidates!inner(
+          assessments!ai_analyses_assessment_id_fkey!inner(
+            candidates!assessments_candidate_id_fkey!inner(
               position,
               desired_positions
             )
