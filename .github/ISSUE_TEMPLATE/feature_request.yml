@@ -71,6 +71,17 @@ body:
     validations:
       required: false
 
+  - type: input
+    id: v0-link
+    attributes:
+      label: v0 Generation Link (Optional)
+      description: |
+        v0.devでUIを生成した場合、そのURLを貼ってください。
+        実装時にコードを流用できます。shadcn/ui + Tailwindなのでそのまま使えます。
+      placeholder: "https://v0.dev/chat/..."
+    validations:
+      required: false
+
   - type: checkboxes
     id: figma-checklist
     attributes:
