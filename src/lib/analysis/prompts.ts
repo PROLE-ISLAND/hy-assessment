@@ -216,11 +216,147 @@ export function parseEnhancedAnalysisResponse(response: string): EnhancedAIAnaly
       return convertLegacyToEnhanced(v1Result.data);
     }
 
-    // Both failed - throw with v2 error details (more informative)
+    // Try flexible fallback for partial v1/v2 responses
+    const flexibleResult = tryFlexibleParse(parsed);
+    if (flexibleResult) {
+      console.log('[AI Parser] Flexible fallback: Converting partial format to v2');
+      return flexibleResult;
+    }
+
+    // All parsing attempts failed
+    console.error('[AI Parser] All parsing attempts failed. Raw parsed:', JSON.stringify(parsed).slice(0, 500));
     throw new Error(`Schema validation failed: ${formatValidationErrors(v2Result.error)}`);
   } catch (error) {
     throw new Error(`Failed to parse enhanced AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+/**
+ * Flexible parser that handles partial/mixed format responses
+ * Extracts whatever fields are available and fills in defaults
+ */
+function tryFlexibleParse(parsed: unknown): EnhancedAIAnalysisOutput | null {
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  const obj = parsed as Record<string, unknown>;
+
+  // Must have at least summary and recommendation
+  if (typeof obj.summary !== 'string' || typeof obj.recommendation !== 'string') {
+    return null;
+  }
+
+  // Extract strengths (can be string[] or object[])
+  const rawStrengths = Array.isArray(obj.strengths) ? obj.strengths : [];
+  const strengths = rawStrengths.slice(0, 5).map((s, i) => {
+    if (typeof s === 'string') {
+      return { title: `強み${i + 1}`, behavior: s, evidence: '検査結果に基づく' };
+    }
+    if (s && typeof s === 'object') {
+      const sObj = s as Record<string, unknown>;
+      return {
+        title: String(sObj.title || `強み${i + 1}`),
+        behavior: String(sObj.behavior || sObj.description || ''),
+        evidence: String(sObj.evidence || '検査結果に基づく'),
+      };
+    }
+    return { title: `強み${i + 1}`, behavior: '（データなし）', evidence: '検査結果に基づく' };
+  });
+
+  // Extract watchouts/weaknesses (can be string[] or object[])
+  const rawWatchouts = Array.isArray(obj.watchouts)
+    ? obj.watchouts
+    : Array.isArray(obj.weaknesses)
+      ? obj.weaknesses
+      : [];
+  const watchouts = rawWatchouts.slice(0, 5).map((w, i) => {
+    if (typeof w === 'string') {
+      return { title: `注意点${i + 1}`, risk: w, evidence: '検査結果に基づく' };
+    }
+    if (w && typeof w === 'object') {
+      const wObj = w as Record<string, unknown>;
+      return {
+        title: String(wObj.title || `注意点${i + 1}`),
+        risk: String(wObj.risk || wObj.description || ''),
+        evidence: String(wObj.evidence || '検査結果に基づく'),
+      };
+    }
+    return { title: `注意点${i + 1}`, risk: '（データなし）', evidence: '検査結果に基づく' };
+  });
+
+  // Generate risk_scenarios if not present
+  const rawScenarios = Array.isArray(obj.risk_scenarios) ? obj.risk_scenarios : [];
+  const risk_scenarios =
+    rawScenarios.length > 0
+      ? rawScenarios.slice(0, 4).map((r) => {
+          const rObj = (r && typeof r === 'object' ? r : {}) as Record<string, unknown>;
+          return {
+            condition: String(rObj.condition || '業務負荷が高い状況'),
+            symptom: String(rObj.symptom || '注意が必要な行動が現れやすい'),
+            impact: String(rObj.impact || '業務への影響の可能性'),
+            prevention: String(rObj.prevention || '適切なサポート体制の構築'),
+            risk_environment: Array.isArray(rObj.risk_environment)
+              ? rObj.risk_environment.map(String)
+              : ['高ストレス環境'],
+          };
+        })
+      : watchouts.slice(0, 2).map((w) => ({
+          condition: '業務負荷が高い状況',
+          symptom: w.risk,
+          impact: '業務効率や対人関係への影響の可能性',
+          prevention: '定期的なフォローアップと適切なサポート体制の構築',
+          risk_environment: ['高ストレス環境', '締切が厳しい状況'],
+        }));
+
+  // Generate interview_checks if not present
+  const rawChecks = Array.isArray(obj.interview_checks) ? obj.interview_checks : [];
+  const interview_checks =
+    rawChecks.length > 0
+      ? rawChecks.slice(0, 6).map((c) => {
+          const cObj = (c && typeof c === 'object' ? c : {}) as Record<string, unknown>;
+          return {
+            question: String(cObj.question || '過去の経験について教えてください'),
+            intent: String(cObj.intent || '行動傾向の確認'),
+            look_for: String(cObj.look_for || '具体的なエピソードと対応'),
+          };
+        })
+      : watchouts.slice(0, 3).map((w) => ({
+          question: `${w.title}に関連する過去の経験について教えてください`,
+          intent: `${w.risk}に関する自己認識の確認`,
+          look_for: '具体的なエピソードと改善への取り組み姿勢',
+        }));
+
+  // Ensure minimum required items
+  if (strengths.length === 0) {
+    strengths.push({ title: '強み', behavior: '検査結果を総合的に分析中', evidence: '検査結果に基づく' });
+  }
+  if (watchouts.length === 0) {
+    watchouts.push({ title: '注意点', risk: '検査結果を総合的に分析中', evidence: '検査結果に基づく' });
+  }
+  if (risk_scenarios.length === 0) {
+    risk_scenarios.push({
+      condition: '業務負荷が高い状況',
+      symptom: '注意が必要な行動が現れやすい',
+      impact: '業務への影響の可能性',
+      prevention: '適切なサポート体制の構築',
+      risk_environment: ['高ストレス環境'],
+    });
+  }
+  if (interview_checks.length === 0) {
+    interview_checks.push({
+      question: 'これまでの業務で困難だった状況とその対処法を教えてください',
+      intent: 'ストレス対処能力の確認',
+      look_for: '具体的なエピソードと問題解決アプローチ',
+    });
+  }
+
+  return {
+    strengths,
+    watchouts,
+    risk_scenarios,
+    interview_checks,
+    summary: obj.summary as string,
+    recommendation: obj.recommendation as string,
+  };
 }
 
 /**
