@@ -45,6 +45,7 @@ export function AssessmentUrlDisplay({ token }: AssessmentUrlDisplayProps) {
           size="icon"
           onClick={handleCopy}
           title="URLをコピー"
+          aria-label="URLをコピー"
         >
           {copied ? (
             <Check className="h-4 w-4 text-green-600" />
@@ -57,6 +58,7 @@ export function AssessmentUrlDisplay({ token }: AssessmentUrlDisplayProps) {
           size="icon"
           asChild
           title="新しいタブで開く"
+          aria-label="新しいタブで開く"
         >
           <a href={assessmentUrl} target="_blank" rel="noopener noreferrer">
             <ExternalLink className="h-4 w-4" />
