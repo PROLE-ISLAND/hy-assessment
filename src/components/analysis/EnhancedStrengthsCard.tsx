@@ -7,6 +7,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle } from 'lucide-react';
+import { stateColors } from '@/lib/design-system';
 import type { EnhancedStrength } from '@/types/database';
 
 interface EnhancedStrengthsCardProps {
@@ -20,7 +21,7 @@ export function EnhancedStrengthsCard({ strengths }: EnhancedStrengthsCardProps)
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CheckCircle className="h-5 w-5 text-green-600" />
+          <CheckCircle className={`h-5 w-5 ${stateColors.success.light.text} ${stateColors.success.dark.text}`} />
           強み
         </CardTitle>
       </CardHeader>
@@ -28,7 +29,7 @@ export function EnhancedStrengthsCard({ strengths }: EnhancedStrengthsCardProps)
         <div className="space-y-4">
           {strengths.map((strength, index) => (
             <div key={index} className="border rounded-lg p-4 space-y-2">
-              <div className="font-semibold text-green-700 dark:text-green-400">
+              <div className={`font-semibold ${stateColors.success.light.text} ${stateColors.success.dark.text}`}>
                 {strength.title}
               </div>
               <p className="text-sm">

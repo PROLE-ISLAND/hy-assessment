@@ -28,6 +28,7 @@ import {
   riskLevelConfig,
   judgmentConfig,
   getScoreTextClass,
+  stateColors,
   type JudgmentLevel,
   type RiskLevel,
 } from '@/lib/design-system';
@@ -367,7 +368,7 @@ export function AnalysisResultsClient({
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <CheckCircle className={`h-5 w-5 ${stateColors.success.light.text} ${stateColors.success.dark.text}`} />
                       強み
                     </CardTitle>
                   </CardHeader>
@@ -375,7 +376,7 @@ export function AnalysisResultsClient({
                     <ul className="space-y-3">
                       {currentAnalysis.strengths.map((strength, index) => (
                         <li key={index} className="flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                          <div className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 bg-emerald-500`} />
                           <span>{strength}</span>
                         </li>
                       ))}
@@ -386,7 +387,7 @@ export function AnalysisResultsClient({
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                      <AlertTriangle className={`h-5 w-5 ${stateColors.warning.light.text} ${stateColors.warning.dark.text}`} />
                       注意点
                     </CardTitle>
                   </CardHeader>
@@ -394,7 +395,7 @@ export function AnalysisResultsClient({
                     <ul className="space-y-3">
                       {currentAnalysis.weaknesses.map((weakness, index) => (
                         <li key={index} className="flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
+                          <div className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 bg-amber-500`} />
                           <span>{weakness}</span>
                         </li>
                       ))}
