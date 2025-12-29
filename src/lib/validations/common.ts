@@ -80,6 +80,69 @@ export const apiErrorSchema = z.object({
 export type ApiError = z.infer<typeof apiErrorSchema>;
 
 // =====================================================
+// Safe JSON Parsing
+// =====================================================
+
+/**
+ * Safely parse a JSON string with proper error handling.
+ * Returns a discriminated union for type-safe error handling.
+ */
+export function safeParseJson<T = unknown>(
+  jsonString: string,
+  fallback?: T
+): { success: true; data: T } | { success: false; error: string } {
+  try {
+    const parsed = JSON.parse(jsonString) as T;
+    return { success: true, data: parsed };
+  } catch (error) {
+    if (fallback !== undefined) {
+      return { success: true, data: fallback };
+    }
+    const message = error instanceof SyntaxError
+      ? `JSON構文エラー: ${error.message}`
+      : 'JSON解析に失敗しました';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Safely parse request body JSON with validation.
+ * Returns parsed data or null with error message.
+ */
+export async function parseRequestBody<T>(
+  request: Request,
+  schema?: z.ZodSchema<T>
+): Promise<
+  | { success: true; data: T }
+  | { success: false; error: string; status: 400 }
+> {
+  try {
+    const body: unknown = await request.json();
+
+    if (schema) {
+      const result = schema.safeParse(body);
+      if (!result.success) {
+        const firstError = result.error.issues[0];
+        return {
+          success: false,
+          error: firstError?.message || 'リクエストボディが不正です',
+          status: 400,
+        };
+      }
+      return { success: true, data: result.data };
+    }
+
+    return { success: true, data: body as T };
+  } catch (error) {
+    // request.json() throws SyntaxError for invalid JSON
+    const message = error instanceof SyntaxError
+      ? 'リクエストボディのJSON形式が不正です'
+      : 'リクエストボディの解析に失敗しました';
+    return { success: false, error: message, status: 400 };
+  }
+}
+
+// =====================================================
 // Type Helpers
 // =====================================================
 
