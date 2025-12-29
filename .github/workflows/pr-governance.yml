@@ -73,9 +73,10 @@ jobs:
           }
 
           // === リスク評価チェック ===
-          const riskFilled = prBody.match(/\|[^|]+\|(Low|Med|High)\|/i);
+          // テーブル内にLow/Med/Highがあればマッチ（スペース許容）
+          const riskFilled = prBody.match(/\|\s*(Low|Med|High)\s*\|/i);
           if (!riskFilled) {
-            warnings.push('⚠️ **リスク評価テーブルが未記入です**');
+            warnings.push('⚠️ **リスク評価テーブルが未記入です**（Low / Med / High を記入）');
           }
 
           // === 関連Issueチェック ===

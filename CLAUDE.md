@@ -96,11 +96,12 @@ import {
 | `OPENAI_API_KEY` | OpenAI APIキー | - |
 | `OPENAI_DEFAULT_MODEL` | デフォルトモデル | `gpt-4o` |
 
-### 利用可能なモデル（2024-12時点）
-- `gpt-4o` (最新・推奨)
+### 利用可能なモデル（2025-12時点）
+- `gpt-5.2` (最新)
+- `gpt-5.2-pro` (高精度)
+- `gpt-5.1`
+- `gpt-4o`
 - `gpt-4o-mini` (軽量・高速)
-- `gpt-4-turbo`
-- `gpt-4`
 
 ### 関連ファイル
 - `src/lib/analysis/ai-analyzer.ts` - AI分析処理
