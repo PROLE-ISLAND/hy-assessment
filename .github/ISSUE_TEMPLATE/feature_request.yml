@@ -8,7 +8,10 @@ body:
       value: |
         ## Feature Request Template
         Please fill out the sections below to help us understand your feature request.
-        **Important**: UI/UX changes require a Figma mockup before implementation.
+
+        ### ⚠️ Figma-First ルール
+        **UI/UX変更を含む機能は、Figmaモックアップを先に作成してからこのIssueを作成してください。**
+        Figmaリンクがない場合、`design-review` ラベルが付与され、実装は開始されません。
 
   - type: dropdown
     id: priority
@@ -61,9 +64,9 @@ body:
     attributes:
       label: Figma Mockup Link
       description: |
-        **Required for UI/UX features**.
-        Link to Figma design showing the proposed UI changes.
-        Skip only for backend-only features.
+        **UI機能は必須** - Issue作成前にFigmaを作成してリンクを貼ってください。
+        リンクがない場合、実装は開始されません（design-reviewで保留）。
+        バックエンドのみの機能はスキップ可。
       placeholder: "https://www.figma.com/file/..."
     validations:
       required: false
