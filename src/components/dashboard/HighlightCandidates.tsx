@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Star, AlertTriangle, ExternalLink, Users } from 'lucide-react';
 import { stateColors } from '@/lib/design-system';
 
 interface HighPerformer {
@@ -39,8 +39,27 @@ export function HighlightCandidates({
 }: HighlightCandidatesProps) {
   const hasData = highPerformers.length > 0 || needsAttention.length > 0;
 
+  // Empty state - Generated with v0: https://v0.app/chat/tCC628ipuVu
   if (!hasData) {
-    return null;
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Star className="h-5 w-5 text-yellow-500" />
+            注目候補者
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <Users className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2 text-foreground">
+            注目の候補者はまだいません
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-md">
+            検査が完了すると、高評価の候補者や要確認の候補者がここに表示されます。
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
