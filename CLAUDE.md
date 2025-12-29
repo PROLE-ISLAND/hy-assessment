@@ -626,3 +626,4 @@ data-testid="candidate-detail-{id}"     # 詳細リンク
 2. **レースコンディションテスト**
    - 複数の非同期操作が競合するケースをテスト
    - 例: `completeAssessment()` 呼び出し中に `saveResponse()` が発火
+
