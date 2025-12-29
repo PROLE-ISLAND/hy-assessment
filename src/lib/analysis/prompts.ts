@@ -5,13 +5,14 @@
 import type { ScoringResult, Domain } from './types';
 import type {
   EnhancedAIAnalysisOutput,
-  EnhancedStrength,
-  EnhancedWatchout,
-  RiskScenario,
-  InterviewCheck,
   LegacyAIAnalysisOutput,
 } from './types';
 import { DOMAIN_LABELS, DOMAIN_DESCRIPTIONS } from './types';
+import {
+  enhancedAIAnalysisOutputSchema,
+  legacyAIAnalysisOutputSchema,
+  formatValidationErrors,
+} from '@/lib/validations/ai-output';
 
 // =====================================================
 // System Prompt (v2 - Enhanced Internal Version)
@@ -186,11 +187,27 @@ export type AIAnalysisOutput = LegacyAIAnalysisOutput;
 
 /**
  * Parse enhanced AI analysis response (v2)
+ * Uses Zod schema for type-safe validation
  */
 export function parseEnhancedAnalysisResponse(response: string): EnhancedAIAnalysisOutput {
   try {
-    const parsed = JSON.parse(extractJSON(response));
-    return validateEnhancedOutput(parsed);
+    const jsonStr = extractJSON(response);
+    const parsed: unknown = JSON.parse(jsonStr);
+
+    const result = enhancedAIAnalysisOutputSchema.safeParse(parsed);
+    if (!result.success) {
+      throw new Error(`Schema validation failed: ${formatValidationErrors(result.error)}`);
+    }
+
+    // Enforce max counts as per original logic
+    return {
+      strengths: result.data.strengths.slice(0, 5),
+      watchouts: result.data.watchouts.slice(0, 5),
+      risk_scenarios: result.data.risk_scenarios.slice(0, 4),
+      interview_checks: result.data.interview_checks.slice(0, 6),
+      summary: result.data.summary,
+      recommendation: result.data.recommendation,
+    };
   } catch (error) {
     throw new Error(`Failed to parse enhanced AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -198,11 +215,25 @@ export function parseEnhancedAnalysisResponse(response: string): EnhancedAIAnaly
 
 /**
  * Parse legacy AI analysis response (v1)
+ * Uses Zod schema for type-safe validation
  */
 export function parseAnalysisResponse(response: string): LegacyAIAnalysisOutput {
   try {
-    const parsed = JSON.parse(extractJSON(response));
-    return validateLegacyOutput(parsed);
+    const jsonStr = extractJSON(response);
+    const parsed: unknown = JSON.parse(jsonStr);
+
+    const result = legacyAIAnalysisOutputSchema.safeParse(parsed);
+    if (!result.success) {
+      throw new Error(`Schema validation failed: ${formatValidationErrors(result.error)}`);
+    }
+
+    // Enforce max counts as per original logic
+    return {
+      strengths: result.data.strengths.slice(0, 5),
+      weaknesses: result.data.weaknesses.slice(0, 5),
+      summary: result.data.summary,
+      recommendation: result.data.recommendation,
+    };
   } catch (error) {
     throw new Error(`Failed to parse AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -224,145 +255,3 @@ function extractJSON(response: string): string {
   return response.trim();
 }
 
-/**
- * Validate enhanced output structure
- */
-function validateEnhancedOutput(parsed: unknown): EnhancedAIAnalysisOutput {
-  const obj = parsed as Record<string, unknown>;
-
-  // Validate strengths
-  if (!Array.isArray(obj.strengths) || obj.strengths.length === 0) {
-    throw new Error('strengths must be a non-empty array');
-  }
-  const strengths = (obj.strengths as unknown[]).slice(0, 5).map(validateEnhancedStrength);
-
-  // Validate watchouts
-  if (!Array.isArray(obj.watchouts) || obj.watchouts.length === 0) {
-    throw new Error('watchouts must be a non-empty array');
-  }
-  const watchouts = (obj.watchouts as unknown[]).slice(0, 5).map(validateEnhancedWatchout);
-
-  // Validate risk_scenarios
-  if (!Array.isArray(obj.risk_scenarios) || obj.risk_scenarios.length === 0) {
-    throw new Error('risk_scenarios must be a non-empty array');
-  }
-  const risk_scenarios = (obj.risk_scenarios as unknown[]).slice(0, 4).map(validateRiskScenario);
-
-  // Validate interview_checks
-  if (!Array.isArray(obj.interview_checks) || obj.interview_checks.length === 0) {
-    throw new Error('interview_checks must be a non-empty array');
-  }
-  const interview_checks = (obj.interview_checks as unknown[]).slice(0, 6).map(validateInterviewCheck);
-
-  // Validate strings
-  if (typeof obj.summary !== 'string' || obj.summary.length === 0) {
-    throw new Error('summary must be a non-empty string');
-  }
-  if (typeof obj.recommendation !== 'string' || obj.recommendation.length === 0) {
-    throw new Error('recommendation must be a non-empty string');
-  }
-
-  return {
-    strengths,
-    watchouts,
-    risk_scenarios,
-    interview_checks,
-    summary: obj.summary as string,
-    recommendation: obj.recommendation as string,
-  };
-}
-
-/**
- * Validate legacy output structure
- */
-function validateLegacyOutput(parsed: unknown): LegacyAIAnalysisOutput {
-  const obj = parsed as Record<string, unknown>;
-
-  if (!Array.isArray(obj.strengths) || obj.strengths.length === 0) {
-    throw new Error('strengths must be a non-empty array');
-  }
-  if (!Array.isArray(obj.weaknesses) || obj.weaknesses.length === 0) {
-    throw new Error('weaknesses must be a non-empty array');
-  }
-  if (typeof obj.summary !== 'string' || obj.summary.length === 0) {
-    throw new Error('summary must be a non-empty string');
-  }
-  if (typeof obj.recommendation !== 'string' || obj.recommendation.length === 0) {
-    throw new Error('recommendation must be a non-empty string');
-  }
-
-  return {
-    strengths: (obj.strengths as string[]).slice(0, 5),
-    weaknesses: (obj.weaknesses as string[]).slice(0, 5),
-    summary: obj.summary as string,
-    recommendation: obj.recommendation as string,
-  };
-}
-
-/**
- * Validate EnhancedStrength structure
- */
-function validateEnhancedStrength(item: unknown): EnhancedStrength {
-  const obj = item as Record<string, unknown>;
-  if (typeof obj.title !== 'string' || typeof obj.behavior !== 'string' || typeof obj.evidence !== 'string') {
-    throw new Error('strength must have title, behavior, and evidence strings');
-  }
-  return {
-    title: obj.title,
-    behavior: obj.behavior,
-    evidence: obj.evidence,
-  };
-}
-
-/**
- * Validate EnhancedWatchout structure
- */
-function validateEnhancedWatchout(item: unknown): EnhancedWatchout {
-  const obj = item as Record<string, unknown>;
-  if (typeof obj.title !== 'string' || typeof obj.risk !== 'string' || typeof obj.evidence !== 'string') {
-    throw new Error('watchout must have title, risk, and evidence strings');
-  }
-  return {
-    title: obj.title,
-    risk: obj.risk,
-    evidence: obj.evidence,
-  };
-}
-
-/**
- * Validate RiskScenario structure
- */
-function validateRiskScenario(item: unknown): RiskScenario {
-  const obj = item as Record<string, unknown>;
-  if (
-    typeof obj.condition !== 'string' ||
-    typeof obj.symptom !== 'string' ||
-    typeof obj.impact !== 'string' ||
-    typeof obj.prevention !== 'string' ||
-    !Array.isArray(obj.risk_environment)
-  ) {
-    throw new Error('risk_scenario must have condition, symptom, impact, prevention strings and risk_environment array');
-  }
-  return {
-    condition: obj.condition,
-    symptom: obj.symptom,
-    impact: obj.impact,
-    prevention: obj.prevention,
-    risk_environment: obj.risk_environment as string[],
-  };
-}
-
-/**
- * Validate InterviewCheck structure
- */
-function validateInterviewCheck(item: unknown): InterviewCheck {
-  const obj = item as Record<string, unknown>;
-  if (typeof obj.question !== 'string' || typeof obj.intent !== 'string' || typeof obj.look_for !== 'string') {
-    throw new Error('interview_check must have question, intent, and look_for strings');
-  }
-  return {
-    question: obj.question,
-    intent: obj.intent,
-    look_for: obj.look_for,
-  };
-}
