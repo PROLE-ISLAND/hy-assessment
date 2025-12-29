@@ -5,6 +5,7 @@
 // =====================================================
 
 import OpenAI from 'openai';
+import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 import { calculateScores } from './scoring-engine';
 import {
   ANALYSIS_SYSTEM_PROMPT,
@@ -38,8 +39,19 @@ export type AIAnalysisOutput = LegacyAIAnalysisOutput;
 
 const DEFAULT_MODEL = process.env.OPENAI_DEFAULT_MODEL || 'gpt-5.2';
 const DEFAULT_PROMPT_VERSION = 'v2.0.0';
-const DEFAULT_MAX_TOKENS = 2000;
+const DEFAULT_MAX_TOKENS = 8000; // Increased for GPT-5.x reasoning tokens
 const DEFAULT_TEMPERATURE = 0.3;
+
+// GPT-5.x models use reasoning tokens which can consume the token budget
+// Use "low" reasoning effort for faster, more predictable responses
+const DEFAULT_REASONING_EFFORT = 'low';
+
+/**
+ * Check if the model is a GPT-5.x model that supports reasoning effort
+ */
+function isReasoningModel(model: string): boolean {
+  return model.startsWith('gpt-5') || model.startsWith('o1') || model.startsWith('o3');
+}
 
 // =====================================================
 // Types
@@ -433,20 +445,34 @@ async function callOpenAILegacy(
   const userPrompt = buildAnalysisPrompt(input);
 
   try {
-    const response = await openai.chat.completions.create({
+    // Build request options - add reasoning_effort for GPT-5.x models
+    const requestOptions: ChatCompletionCreateParamsNonStreaming & { reasoning_effort?: string } = {
       model: config.model,
       messages: [
         { role: 'system', content: config.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       response_format: { type: 'json_object' },
-      max_completion_tokens: config.maxTokens,
+      max_completion_tokens: Math.max(config.maxTokens, DEFAULT_MAX_TOKENS),
       temperature: config.temperature,
-    });
+    };
+
+    // Add reasoning_effort for GPT-5.x and o-series models
+    if (isReasoningModel(config.model)) {
+      requestOptions.reasoning_effort = DEFAULT_REASONING_EFFORT;
+    }
+
+    const response = await openai.chat.completions.create(requestOptions);
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      throw new Error('Empty response from OpenAI');
+      // Provide more detailed error for debugging
+      const usage = response.usage as Record<string, unknown> | undefined;
+      throw new Error(
+        `Empty response from OpenAI. Model: ${config.model}, ` +
+        `Reasoning tokens: ${usage?.reasoning_tokens ?? 'N/A'}, ` +
+        `Total tokens: ${response.usage?.total_tokens ?? 'N/A'}`
+      );
     }
 
     const aiAnalysis = parseAnalysisResponse(content);
@@ -478,20 +504,33 @@ async function callOpenAIEnhanced(
   const userPrompt = buildAnalysisPrompt(input);
 
   try {
-    const response = await openai.chat.completions.create({
+    // Build request options - add reasoning_effort for GPT-5.x models
+    const requestOptions: ChatCompletionCreateParamsNonStreaming & { reasoning_effort?: string } = {
       model: config.model,
       messages: [
         { role: 'system', content: config.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       response_format: { type: 'json_object' },
-      max_completion_tokens: config.maxTokens,
+      max_completion_tokens: Math.max(config.maxTokens, DEFAULT_MAX_TOKENS),
       temperature: config.temperature,
-    });
+    };
+
+    // Add reasoning_effort for GPT-5.x and o-series models
+    if (isReasoningModel(config.model)) {
+      requestOptions.reasoning_effort = DEFAULT_REASONING_EFFORT;
+    }
+
+    const response = await openai.chat.completions.create(requestOptions);
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      throw new Error('Empty response from OpenAI');
+      const usage = response.usage as Record<string, unknown> | undefined;
+      throw new Error(
+        `Empty response from OpenAI. Model: ${config.model}, ` +
+        `Reasoning tokens: ${usage?.reasoning_tokens ?? 'N/A'}, ` +
+        `Total tokens: ${response.usage?.total_tokens ?? 'N/A'}`
+      );
     }
 
     const aiAnalysis = parseEnhancedAnalysisResponse(content);
@@ -523,20 +562,33 @@ async function callOpenAICandidate(
   const userPrompt = buildCandidatePrompt(input);
 
   try {
-    const response = await openai.chat.completions.create({
+    // Build request options - add reasoning_effort for GPT-5.x models
+    const requestOptions: ChatCompletionCreateParamsNonStreaming & { reasoning_effort?: string } = {
       model: config.model,
       messages: [
         { role: 'system', content: config.systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       response_format: { type: 'json_object' },
-      max_completion_tokens: config.maxTokens,
+      max_completion_tokens: Math.max(config.maxTokens, DEFAULT_MAX_TOKENS),
       temperature: config.temperature,
-    });
+    };
+
+    // Add reasoning_effort for GPT-5.x and o-series models
+    if (isReasoningModel(config.model)) {
+      requestOptions.reasoning_effort = DEFAULT_REASONING_EFFORT;
+    }
+
+    const response = await openai.chat.completions.create(requestOptions);
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      throw new Error('Empty response from OpenAI');
+      const usage = response.usage as Record<string, unknown> | undefined;
+      throw new Error(
+        `Empty response from OpenAI. Model: ${config.model}, ` +
+        `Reasoning tokens: ${usage?.reasoning_tokens ?? 'N/A'}, ` +
+        `Total tokens: ${response.usage?.total_tokens ?? 'N/A'}`
+      );
     }
 
     const candidateReport = parseCandidateResponse(content);
