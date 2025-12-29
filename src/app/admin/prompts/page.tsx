@@ -81,7 +81,7 @@ export default async function PromptsPage() {
   }
 
   // Get prompts (both system-wide and org-specific)
-  const { data: prompts, error } = await adminSupabase
+  const { data: prompts } = await adminSupabase
     .from('prompt_templates')
     .select('*')
     .or(`organization_id.is.null,organization_id.eq.${organizationId}`)
@@ -92,15 +92,6 @@ export default async function PromptsPage() {
     .returns<PromptTemplate[]>();
 
   const isEmpty = !prompts || prompts.length === 0;
-
-  // Group prompts by key
-  const groupedPrompts = prompts?.reduce((acc, prompt) => {
-    if (!acc[prompt.key]) {
-      acc[prompt.key] = [];
-    }
-    acc[prompt.key].push(prompt);
-    return acc;
-  }, {} as Record<PromptKey, PromptTemplate[]>) || {};
 
   return (
     <div className="space-y-6">

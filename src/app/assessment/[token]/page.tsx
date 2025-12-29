@@ -86,7 +86,6 @@ export default async function AssessmentPage({ params }: AssessmentPageProps) {
         <div className="mx-auto max-w-4xl px-4 py-8">
           <AssessmentPageClient
             token={token}
-            assessmentId={assessment.id}
             questions={assessment.template.questions}
           />
         </div>
@@ -124,7 +123,6 @@ export default async function AssessmentPage({ params }: AssessmentPageProps) {
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-4xl px-4 py-8">
         <AssessmentForm
-          assessmentId={assessment.id}
           token={token}
           questions={assessment.template.questions}
           initialData={initialData}

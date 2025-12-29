@@ -156,7 +156,7 @@ test.describe('Error Handling During Save', () => {
   });
 
   test('network timeout handled gracefully', async ({ page }) => {
-    await page.route('**/api/assessment/*/save', async (route) => {
+    await page.route('**/api/assessment/*/save', async () => {
       // Simulate timeout by never responding
       await new Promise(() => {}); // Never resolves
     });

@@ -67,7 +67,6 @@ export function CandidateFilters({
   displayCount,
 }: CandidateFiltersProps) {
   const handleSortChange = (value: string) => {
-    const [sortBy, sortOrder] = value.split('_') as [FilterState['sortBy'], FilterState['sortOrder']];
     // Handle compound sort values like 'created_at_desc'
     if (value.startsWith('created_at')) {
       onFilterChange({ sortBy: 'created_at', sortOrder: value.endsWith('asc') ? 'asc' : 'desc' });

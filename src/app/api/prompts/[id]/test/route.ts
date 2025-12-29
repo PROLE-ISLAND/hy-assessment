@@ -111,7 +111,7 @@ export async function POST(
       if (content) {
         parsedOutput = JSON.parse(content);
       }
-    } catch (e) {
+    } catch {
       parseError = 'JSON解析に失敗しました';
     }
 

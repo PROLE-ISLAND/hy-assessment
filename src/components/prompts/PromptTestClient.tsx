@@ -78,7 +78,7 @@ export function PromptTestClient({ prompt }: PromptTestClientProps) {
 
       const data = await response.json();
       setTestResult(data);
-    } catch (error) {
+    } catch {
       setTestResult({
         success: false,
         error: 'テスト実行中にエラーが発生しました',

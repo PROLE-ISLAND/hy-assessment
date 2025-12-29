@@ -50,7 +50,6 @@ export default async function ProfilePage() {
 
       {/* Profile Form */}
       <ProfileForm
-        userId={profile.id}
         initialName={profile.name}
         email={profile.email}
         role={profile.role}

@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Send, Mail, CheckCircle } from 'lucide-react';
+import { Loader2, Mail, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { issueAssessment } from '@/lib/actions/assessments';
 
@@ -50,7 +50,7 @@ export function IssueAssessmentButton({
 
       setEmailSent(result.emailSent || false);
       router.refresh();
-    } catch (err) {
+    } catch {
       setError('予期しないエラーが発生しました');
     } finally {
       setIsLoading(false);

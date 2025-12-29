@@ -13,8 +13,6 @@ const USE_ASYNC_ANALYSIS = process.env.USE_ASYNC_ANALYSIS === 'true';
 // For synchronous fallback
 import { type ResponseData } from '@/lib/analysis';
 import {
-  analyzeAssessment,
-  analyzeAssessmentMock,
   analyzeAssessmentFull,
   analyzeAssessmentFullMock,
 } from '@/lib/analysis/ai-analyzer';

@@ -3,7 +3,7 @@
 // =====================================================
 
 import { z } from 'zod';
-import { emailSchema, nameSchema, uuidSchema } from './common';
+import { emailSchema, nameSchema } from './common';
 
 // =====================================================
 // Position Values (sync with constants/positions.ts)

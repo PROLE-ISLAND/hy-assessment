@@ -127,7 +127,7 @@ export function CandidateForm({ organizationId }: CandidateFormProps) {
       // Success - redirect to candidates list
       router.push('/admin/candidates');
       router.refresh();
-    } catch (err) {
+    } catch {
       setError('予期しないエラーが発生しました');
     } finally {
       setIsLoading(false);

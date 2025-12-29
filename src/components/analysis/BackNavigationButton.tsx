@@ -5,7 +5,7 @@
 // Smart back button that remembers where user came from
 // =====================================================
 
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, User, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,6 @@ export function BackNavigationButton({
   candidateName,
 }: BackNavigationButtonProps) {
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const from = searchParams.get('from');
 

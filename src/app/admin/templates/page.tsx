@@ -80,7 +80,7 @@ export default async function TemplatesPage() {
   }
 
   // Get templates with type info
-  const { data: templates, error } = await adminSupabase
+  const { data: templates } = await adminSupabase
     .from('assessment_templates')
     .select(`
       id,

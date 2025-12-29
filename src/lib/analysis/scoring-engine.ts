@@ -49,7 +49,7 @@ export function calculateScores(responses: ResponseData[]): ScoringResult {
   const sjtScores = calculateSJTScores(responseMap);
 
   // Check validity
-  const validityFlags = checkValidity(responseMap, domainScores);
+  const validityFlags = checkValidity(responseMap);
 
   // Calculate overall score (weighted average of domains, excluding VALID)
   const scorableDomains: Domain[] = ['GOV', 'CONFLICT', 'REL', 'COG', 'WORK'];
@@ -160,8 +160,7 @@ function calculateSJTScores(responseMap: Map<string, unknown>): SJTScores {
  * Check validity of responses
  */
 function checkValidity(
-  responseMap: Map<string, unknown>,
-  domainScores: Record<Domain, DomainScore>
+  responseMap: Map<string, unknown>
 ): ValidityFlags {
   const details: string[] = [];
   let isValid = true;
@@ -256,7 +255,7 @@ function checkInconsistency(responseMap: Map<string, unknown>): boolean {
   }
 
   // Check each construct for inconsistency
-  for (const [construct, group] of constructGroups.entries()) {
+  for (const [, group] of constructGroups.entries()) {
     if (group.normal.length === 0 || group.reversed.length === 0) continue;
 
     const normalAvg = group.normal.reduce((a, b) => a + b, 0) / group.normal.length;

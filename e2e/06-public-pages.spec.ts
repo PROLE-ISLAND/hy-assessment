@@ -3,7 +3,7 @@
 // Test assessment form, candidate report (no auth required)
 // =====================================================
 
-import { test, expect, SELECTORS, login } from './fixtures';
+import { test, expect, SELECTORS } from './fixtures';
 import { waitForPageReady } from './helpers/deterministic-wait';
 
 test.describe('Public Pages', () => {
