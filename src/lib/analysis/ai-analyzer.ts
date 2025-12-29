@@ -446,6 +446,7 @@ async function callOpenAILegacy(
 
   try {
     // Build request options - add reasoning_effort for GPT-5.x models
+    // Note: GPT-5.x models don't support temperature parameter (only default 1)
     const requestOptions: ChatCompletionCreateParamsNonStreaming & { reasoning_effort?: string } = {
       model: config.model,
       messages: [
@@ -454,12 +455,14 @@ async function callOpenAILegacy(
       ],
       response_format: { type: 'json_object' },
       max_completion_tokens: Math.max(config.maxTokens, DEFAULT_MAX_TOKENS),
-      temperature: config.temperature,
     };
 
-    // Add reasoning_effort for GPT-5.x and o-series models
+    // Add reasoning_effort for GPT-5.x and o-series models (they don't support temperature)
     if (isReasoningModel(config.model)) {
       requestOptions.reasoning_effort = DEFAULT_REASONING_EFFORT;
+    } else {
+      // Only add temperature for non-reasoning models
+      requestOptions.temperature = config.temperature;
     }
 
     const response = await openai.chat.completions.create(requestOptions);
@@ -505,6 +508,7 @@ async function callOpenAIEnhanced(
 
   try {
     // Build request options - add reasoning_effort for GPT-5.x models
+    // Note: GPT-5.x models don't support temperature parameter (only default 1)
     const requestOptions: ChatCompletionCreateParamsNonStreaming & { reasoning_effort?: string } = {
       model: config.model,
       messages: [
@@ -513,12 +517,14 @@ async function callOpenAIEnhanced(
       ],
       response_format: { type: 'json_object' },
       max_completion_tokens: Math.max(config.maxTokens, DEFAULT_MAX_TOKENS),
-      temperature: config.temperature,
     };
 
-    // Add reasoning_effort for GPT-5.x and o-series models
+    // Add reasoning_effort for GPT-5.x and o-series models (they don't support temperature)
     if (isReasoningModel(config.model)) {
       requestOptions.reasoning_effort = DEFAULT_REASONING_EFFORT;
+    } else {
+      // Only add temperature for non-reasoning models
+      requestOptions.temperature = config.temperature;
     }
 
     const response = await openai.chat.completions.create(requestOptions);
@@ -563,6 +569,7 @@ async function callOpenAICandidate(
 
   try {
     // Build request options - add reasoning_effort for GPT-5.x models
+    // Note: GPT-5.x models don't support temperature parameter (only default 1)
     const requestOptions: ChatCompletionCreateParamsNonStreaming & { reasoning_effort?: string } = {
       model: config.model,
       messages: [
@@ -571,12 +578,14 @@ async function callOpenAICandidate(
       ],
       response_format: { type: 'json_object' },
       max_completion_tokens: Math.max(config.maxTokens, DEFAULT_MAX_TOKENS),
-      temperature: config.temperature,
     };
 
-    // Add reasoning_effort for GPT-5.x and o-series models
+    // Add reasoning_effort for GPT-5.x and o-series models (they don't support temperature)
     if (isReasoningModel(config.model)) {
       requestOptions.reasoning_effort = DEFAULT_REASONING_EFFORT;
+    } else {
+      // Only add temperature for non-reasoning models
+      requestOptions.temperature = config.temperature;
     }
 
     const response = await openai.chat.completions.create(requestOptions);
