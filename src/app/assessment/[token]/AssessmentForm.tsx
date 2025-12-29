@@ -204,7 +204,7 @@ export function AssessmentForm({
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="max-w-2xl mx-auto space-y-4">
       {/* Header */}
       <div className="bg-background rounded-lg shadow-sm p-4">
         <div className="flex items-center justify-between">
