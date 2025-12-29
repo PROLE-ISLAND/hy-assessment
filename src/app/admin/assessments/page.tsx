@@ -72,7 +72,6 @@ export default async function AssessmentsListPage() {
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser();
-  console.log('[DEBUG] Current user:', user?.id, user?.email);
 
   // Get user's organization (using admin client to bypass RLS)
   let organizationId: string | null = null;
@@ -83,7 +82,6 @@ export default async function AssessmentsListPage() {
       .eq('id', user.id)
       .single<{ organization_id: string }>();
     organizationId = dbUser?.organization_id || null;
-    console.log('[DEBUG] User org_id:', organizationId);
   }
 
   // Get assessments with relations (using admin client + org filter)
@@ -118,13 +116,6 @@ export default async function AssessmentsListPage() {
     .eq('organization_id', organizationId || '')
     .order('created_at', { ascending: false })
     .returns<AssessmentWithRelations[]>();
-
-  // Debug: Log query results
-  console.log('[DEBUG] Query error:', error);
-  console.log('[DEBUG] Assessments count:', assessments?.length);
-  if (assessments?.length) {
-    console.log('[DEBUG] First assessment:', assessments[0].id);
-  }
 
   const isEmpty = !assessments || assessments.length === 0 || !organizationId;
 

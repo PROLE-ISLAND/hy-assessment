@@ -1,0 +1,46 @@
+{
+  "navigation": {
+    "navDashboard": "[data-testid=\"nav-dashboard\"]",
+    "navCandidates": "[data-testid=\"nav-candidates\"]",
+    "navCompare": "[data-testid=\"nav-compare\"]",
+    "navReports": "[data-testid=\"nav-reports\"]",
+    "navTemplates": "[data-testid=\"nav-templates\"]",
+    "navPrompts": "[data-testid=\"nav-prompts\"]",
+    "navSettings": "[data-testid=\"nav-settings\"]"
+  },
+  "login": {
+    "loginEmail": "[data-testid=\"login-email\"]",
+    "loginPassword": "[data-testid=\"login-password\"]",
+    "loginSubmit": "[data-testid=\"login-submit\"]",
+    "loginError": "[data-testid=\"login-error\"]"
+  },
+  "candidates": {
+    "addCandidateButton": "[data-testid=\"add-candidate-button\"]",
+    "candidateName": "[data-testid=\"candidate-name\"]",
+    "candidateEmail": "[data-testid=\"candidate-email\"]",
+    "candidateSubmit": "[data-testid=\"candidate-submit\"]",
+    "candidateCancel": "[data-testid=\"candidate-cancel\"]",
+    "selectAllButton": "[data-testid=\"select-all-button\"]",
+    "compareButton": "[data-testid=\"compare-button\"]",
+    "candidateRow": "[data-testid^=\"candidate-row-\"]",
+    "candidateDetail": "[data-testid^=\"candidate-detail-\"]"
+  },
+  "compare": {
+    "comparePositionFilter": "[data-testid=\"compare-position-filter\"]",
+    "compareSelectAllButton": "[data-testid=\"compare-select-all-button\"]"
+  },
+  "prompts": {
+    "promptCreateButton": "[data-testid=\"prompt-create-button\"]"
+  },
+  "dialogs": {
+    "dialog": "[role=\"dialog\"]",
+    "dialogConfirm": "[role=\"dialog\"] button:has-text(\"確認\")",
+    "dialogCancel": "[role=\"dialog\"] button:has-text(\"キャンセル\")"
+  },
+  "common": {
+    "loading": "[data-loading=\"true\"], .animate-spin",
+    "toast": "[data-sonner-toast], [role=\"alert\"]",
+    "tableRow": "tbody tr",
+    "tableCell": "td"
+  }
+}
