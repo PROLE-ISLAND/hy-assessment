@@ -115,7 +115,15 @@ export function AssessmentForm({
   // Complete assessment
   const completeAssessment = useCallback(async () => {
     try {
+      // Cancel any pending auto-save to prevent race condition
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+
       setIsSaving(true);
+      setError(null); // Clear any previous errors
+
       const response = await fetch(`/api/assessment/${token}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

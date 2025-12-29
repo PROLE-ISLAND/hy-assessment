@@ -54,12 +54,9 @@ export async function POST(
       );
     }
 
-    // Check if already completed
+    // Check if already completed - return success (data already saved during completion)
     if (assessment.status === 'completed') {
-      return NextResponse.json(
-        { error: 'Assessment already completed' },
-        { status: 409 }
-      );
+      return NextResponse.json({ success: true, alreadyCompleted: true });
     }
 
     // Upsert response (update if exists, insert if not)
