@@ -142,6 +142,8 @@ export function AnalysisHistoryTable({
             {history.map((item) => (
               <TableRow
                 key={item.id}
+                role="button"
+                tabIndex={0}
                 className={`cursor-pointer ${
                   selectedVersion === item.version
                     ? 'bg-muted'
@@ -150,6 +152,12 @@ export function AnalysisHistoryTable({
                       : ''
                 }`}
                 onClick={() => handleVersionSelect(item.version)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleVersionSelect(item.version);
+                  }
+                }}
               >
                 <TableCell>
                   <VersionBadge
