@@ -43,34 +43,6 @@ sb-access-token: <token>
 
 ## Assessment API
 
-### 検査情報取得
-
-```
-GET /api/assessment/[token]
-```
-
-**認証**: 不要（tokenベース）
-
-**レスポンス**:
-```json
-{
-  "data": {
-    "id": "uuid",
-    "token": "abc123",
-    "status": "pending",
-    "template": {
-      "name": "適性検査 v2.0",
-      "questions": { ... }
-    },
-    "candidate": {
-      "name": "田中 太郎",
-      "email": "tanaka@example.com"
-    },
-    "expires_at": "2024-01-20T00:00:00Z"
-  }
-}
-```
-
 ### 候補者情報更新
 
 ```
@@ -441,6 +413,171 @@ GET /api/health
   "status": "healthy",
   "timestamp": "2024-01-15T10:00:00Z",
   "version": "1.0.0"
+}
+```
+
+---
+
+## Templates API
+
+### テンプレート取得
+
+```
+GET /api/templates/[id]
+```
+
+**認証**: 必須
+
+**レスポンス**:
+```json
+{
+  "id": "uuid",
+  "organization_id": "uuid",
+  "type_id": "uuid",
+  "name": "適性検査テンプレート",
+  "version": "2.0.0",
+  "questions": { ... },
+  "is_active": true,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-15T00:00:00Z"
+}
+```
+
+### テンプレート更新
+
+```
+PUT /api/templates/[id]
+```
+
+**認証**: 必須
+
+**リクエスト**:
+```json
+{
+  "questions": {
+    "pages": [...],
+    "showProgressBar": "top"
+  }
+}
+```
+
+**レスポンス**:
+```json
+{
+  "success": true
+}
+```
+
+### テンプレート有効/無効切替
+
+```
+POST /api/templates/[id]/toggle
+```
+
+**認証**: 必須
+
+**レスポンス**:
+```json
+{
+  "success": true,
+  "is_active": false
+}
+```
+
+### テンプレート複製
+
+```
+POST /api/templates/[id]/copy
+```
+
+**認証**: 必須
+
+**レスポンス**:
+```json
+{
+  "id": "new-uuid",
+  "name": "適性検査テンプレート (コピー)"
+}
+```
+
+---
+
+## Reports API
+
+### CSVエクスポート
+
+```
+GET /api/reports/export?type={type}
+```
+
+**認証**: 必須
+
+**パラメータ**:
+| パラメータ | 説明 |
+|-----------|------|
+| `type=candidates` | 候補者一覧CSV |
+| `type=domains` | ドメイン別分析CSV |
+| `type=positions` | 職種別分析CSV |
+
+**レスポンス**: `text/csv`
+
+---
+
+## Report API（候補者向け）
+
+### レポートリンク再送信
+
+```
+POST /api/report/resend
+```
+
+**認証**: 不要（レート制限あり: 3回/時間/メールアドレス）
+
+**リクエスト**:
+```json
+{
+  "email": "candidate@example.com"
+}
+```
+
+**レスポンス**:
+```json
+{
+  "success": true,
+  "message": "メールアドレスが登録されている場合、レポートリンクを送信しました。"
+}
+```
+
+※プライバシー保護のため、メールアドレスの存在有無に関わらず同じレスポンスを返す
+
+---
+
+## Prompts API
+
+### プロンプトテスト
+
+```
+POST /api/prompts/[id]/test
+```
+
+**認証**: 必須（管理者のみ）
+
+**リクエスト**:
+```json
+{
+  "sampleData": {
+    "responses": [...],
+    "candidate": {...}
+  }
+}
+```
+
+**レスポンス**:
+```json
+{
+  "result": "...",
+  "tokens_used": 1200,
+  "model": "gpt-4"
 }
 ```
 

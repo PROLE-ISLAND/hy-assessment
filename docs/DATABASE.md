@@ -74,7 +74,6 @@ erDiagram
         int default_validity_days
         boolean is_active
         timestamp created_at
-        timestamp updated_at
     }
 
     assessment_templates {

@@ -65,9 +65,20 @@ flowchart TB
     J -->|No| N
 ```
 
-### GitHub Actions
+### GitHub Actions ワークフロー一覧
 
-#### ci.yml（PRトリガー）
+| ワークフロー | トリガー | 内容 |
+|-------------|---------|------|
+| `ci.yml` | PR / push to main,develop | Lint, 型チェック, 単体テスト, ビルド |
+| `deploy-production.yml` | push to main | Vercel本番デプロイ |
+| `quality-gate.yml` | CI完了後 | DoD判定・PRコメント投稿 |
+| `pr-check.yml` | PR作成時 | 変更分析・E2Eテスト生成判定 |
+| `e2e.yml` | 手動 / schedule | E2Eテスト実行 |
+| `e2e-test-generation.yml` | pr-check後 | E2Eテスト自動生成 |
+| `codeql.yml` | PR / schedule | セキュリティ分析 |
+| `auto-approve.yml` | PR作成時 | chore/docs等の自動承認 |
+
+#### ci.yml（メインCI）
 
 ```yaml
 name: CI
@@ -80,61 +91,87 @@ on:
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node
       - run: npm run lint
 
   type-check:
+    name: 型チェック
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node
       - run: npx tsc --noEmit
 
-  test:
+  unit-test:
+    name: 単体テスト
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node
       - run: npm run test:coverage
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v5
 
   build:
+    name: ビルド
     runs-on: ubuntu-latest
-    needs: [lint, type-check, test]
+    needs: [lint, type-check, unit-test]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node
       - run: npm run build
 ```
 
-#### deploy-production.yml（mainマージ時）
+#### e2e.yml（E2Eテスト）
 
 ```yaml
-name: Deploy Production
+name: E2E Tests
+
+on:
+  workflow_dispatch:  # 手動実行
+  schedule:
+    - cron: '0 0 * * *'  # 毎日実行
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+```
+
+#### codeql.yml（セキュリティ分析）
+
+```yaml
+name: CodeQL
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 0 * * 0'  # 毎週日曜
 
 jobs:
-  deploy:
+  analyze:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-node
-      - name: Deploy to Vercel
-        run: |
-          npm i -g vercel
-          vercel pull --yes --environment=production
-          vercel build --prod
-          vercel deploy --prebuilt --prod
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - uses: actions/checkout@v6
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: typescript
+      - uses: github/codeql-action/analyze@v3
 ```
 
 ## Vercel設定
