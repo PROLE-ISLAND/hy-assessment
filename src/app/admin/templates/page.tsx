@@ -23,6 +23,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { stateColors } from '@/lib/design-system';
 
 // Type for template with relations
 interface TemplateWithRelations {
@@ -196,12 +197,12 @@ export default async function TemplatesPage() {
                       <TableCell>{usageCount}回</TableCell>
                       <TableCell>
                         {template.is_active ? (
-                          <Badge className="bg-green-100 text-green-800" variant="secondary">
+                          <Badge className={stateColors.success.combined} variant="secondary">
                             <CheckCircle className="mr-1 h-3 w-3" />
                             有効
                           </Badge>
                         ) : (
-                          <Badge className="bg-gray-100 text-gray-800" variant="secondary">
+                          <Badge className={stateColors.neutral.combined} variant="secondary">
                             <XCircle className="mr-1 h-3 w-3" />
                             無効
                           </Badge>

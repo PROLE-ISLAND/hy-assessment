@@ -20,7 +20,7 @@ import {
   HighlightCandidates,
 } from '@/components/dashboard';
 import { POSITIONS } from '@/lib/constants/positions';
-import { pipelineColors } from '@/lib/design-system';
+import { pipelineColors, stateColors } from '@/lib/design-system';
 
 interface StatCardProps {
   title: string;
@@ -30,20 +30,30 @@ interface StatCardProps {
   color?: string;
 }
 
-function StatCard({ title, value, description, icon, color = 'blue' }: StatCardProps) {
-  const colorClasses = {
-    blue: 'from-blue-50 to-white border-blue-100 text-blue-600',
-    green: 'from-green-50 to-white border-green-100 text-green-600',
-    orange: 'from-orange-50 to-white border-orange-100 text-orange-600',
-    purple: 'from-purple-50 to-white border-purple-100 text-purple-600',
-  }[color] || 'from-blue-50 to-white border-blue-100 text-blue-600';
+// Stat card color configuration using design system
+const statCardColors = {
+  blue: {
+    gradient: `from-blue-50 to-white border-blue-100 ${stateColors.info.light.text}`,
+    iconBg: stateColors.info.light.bg,
+  },
+  green: {
+    gradient: `from-emerald-50 to-white border-emerald-100 ${stateColors.success.light.text}`,
+    iconBg: stateColors.success.light.bg,
+  },
+  orange: {
+    gradient: `from-amber-50 to-white border-amber-100 ${stateColors.warning.light.text}`,
+    iconBg: stateColors.warning.light.bg,
+  },
+  purple: {
+    gradient: 'from-purple-50 to-white border-purple-100 text-purple-600',
+    iconBg: 'bg-purple-100',
+  },
+} as const;
 
-  const iconBgClasses = {
-    blue: 'bg-blue-100',
-    green: 'bg-green-100',
-    orange: 'bg-orange-100',
-    purple: 'bg-purple-100',
-  }[color] || 'bg-blue-100';
+function StatCard({ title, value, description, icon, color = 'blue' }: StatCardProps) {
+  const colorConfig = statCardColors[color as keyof typeof statCardColors] || statCardColors.blue;
+  const colorClasses = colorConfig.gradient;
+  const iconBgClasses = colorConfig.iconBg;
 
   return (
     <Card className={`bg-gradient-to-br ${colorClasses}`}>
@@ -479,11 +489,11 @@ export default async function AdminDashboardPage() {
             <AssessmentTrendChart data={trendData} />
             <div className="flex justify-center gap-6 mt-4 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stateColors.info.hex }} />
                 <span className="text-muted-foreground">開始</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stateColors.success.hex }} />
                 <span className="text-muted-foreground">完了</span>
               </div>
             </div>
@@ -505,15 +515,15 @@ export default async function AdminDashboardPage() {
             <ScoreDistributionChart data={distributionData} />
             <div className="flex justify-center gap-4 mt-4 text-xs">
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded bg-red-500" />
+                <div className="w-2 h-2 rounded" style={{ backgroundColor: stateColors.error.hex }} />
                 <span className="text-muted-foreground">低</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded bg-yellow-500" />
+                <div className="w-2 h-2 rounded" style={{ backgroundColor: stateColors.warning.hex }} />
                 <span className="text-muted-foreground">中</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded bg-green-500" />
+                <div className="w-2 h-2 rounded" style={{ backgroundColor: stateColors.success.hex }} />
                 <span className="text-muted-foreground">高</span>
               </div>
             </div>
