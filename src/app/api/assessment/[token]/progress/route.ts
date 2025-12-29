@@ -4,11 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-
-interface ProgressBody {
-  currentPage: number;
-  totalPages: number;
-}
+import { updateProgressSchema } from '@/lib/validations/assessment';
 
 export async function PATCH(
   request: NextRequest,
@@ -16,8 +12,23 @@ export async function PATCH(
 ) {
   try {
     const { token } = await params;
-    const body: ProgressBody = await request.json();
-    const { currentPage, totalPages } = body;
+
+    // Validate request body
+    const rawBody: unknown = await request.json();
+    const parseResult = updateProgressSchema.safeParse(rawBody);
+
+    if (!parseResult.success) {
+      const firstError = parseResult.error.issues[0];
+      return NextResponse.json(
+        {
+          error: firstError?.message || 'Invalid request body',
+          details: parseResult.error.flatten().fieldErrors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { currentPage, totalPages } = parseResult.data;
 
     const supabase = createAdminClient();
 

@@ -4,12 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-
-interface SaveResponseBody {
-  questionId: string;
-  answer: unknown;
-  pageNumber: number;
-}
+import { saveResponseSchema } from '@/lib/validations/assessment';
 
 export async function POST(
   request: NextRequest,
@@ -17,15 +12,23 @@ export async function POST(
 ) {
   try {
     const { token } = await params;
-    const body: SaveResponseBody = await request.json();
-    const { questionId, answer, pageNumber } = body;
 
-    if (!questionId) {
+    // Validate request body
+    const rawBody: unknown = await request.json();
+    const parseResult = saveResponseSchema.safeParse(rawBody);
+
+    if (!parseResult.success) {
+      const firstError = parseResult.error.issues[0];
       return NextResponse.json(
-        { error: 'questionId is required' },
+        {
+          error: firstError?.message || 'Invalid request body',
+          details: parseResult.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
+
+    const { questionId, answer, pageNumber } = parseResult.data;
 
     const supabase = createAdminClient();
 
