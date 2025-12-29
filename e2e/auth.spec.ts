@@ -32,8 +32,8 @@ test.describe('Authentication', () => {
     await page.fill(SELECTORS.loginPassword, 'wrongpassword');
     await page.click(SELECTORS.loginSubmit);
 
-    // Wait for error to appear
-    await page.waitForTimeout(2000);
+    // Wait for error to appear (network request to complete)
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
 
     // Should show error message (check for error element or text)
     const hasError = await page.locator(SELECTORS.loginError).isVisible().catch(() => false);

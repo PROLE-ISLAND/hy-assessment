@@ -4,12 +4,13 @@
 // =====================================================
 
 import { test, expect, SELECTORS, login } from './fixtures';
+import { waitForPageReady } from './helpers/deterministic-wait';
 
 test.describe('Public Pages', () => {
   test.describe('Assessment Form Page', () => {
     test('should show 404 or error for invalid token', async ({ page }) => {
       await page.goto('/assessment/invalid-token-12345');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const hasError = await page.getByText('見つかりません').isVisible().catch(() => false);
       const has404 = await page.getByText('404').isVisible().catch(() => false);
@@ -21,7 +22,7 @@ test.describe('Public Pages', () => {
 
     test('should not require login for assessment page', async ({ page }) => {
       await page.goto('/assessment/test-token');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       expect(page.url()).not.toContain('/login');
     });
@@ -30,7 +31,7 @@ test.describe('Public Pages', () => {
   test.describe('Candidate Report Page', () => {
     test('should show error for invalid report token', async ({ page }) => {
       await page.goto('/report/invalid-report-token-12345');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const hasError = await page.getByText('見つかりません').isVisible().catch(() => false);
       const has404 = await page.getByText('404').isVisible().catch(() => false);
@@ -42,7 +43,7 @@ test.describe('Public Pages', () => {
 
     test('should not require login for report page', async ({ page }) => {
       await page.goto('/report/test-token');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       expect(page.url()).not.toContain('/login');
     });

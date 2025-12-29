@@ -4,6 +4,7 @@
 // =====================================================
 
 import { test, expect, SELECTORS, login } from './fixtures';
+import { waitForPageReady } from './helpers/deterministic-wait';
 
 test.describe('Prompts Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -19,7 +20,7 @@ test.describe('Prompts Management', () => {
 
     test('should display prompts or empty state', async ({ page }) => {
       await page.goto('/admin/prompts');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const hasPrompts = await page.locator('tbody tr, [data-testid="prompt-card"]').count();
       const hasEmptyState = await page.getByText('プロンプトがありません').isVisible().catch(() => false);
@@ -29,7 +30,7 @@ test.describe('Prompts Management', () => {
 
     test('should have "New Prompt" button with data-testid', async ({ page }) => {
       await page.goto('/admin/prompts');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const newButton = page.locator(SELECTORS.promptCreateButton);
       await expect(newButton).toBeVisible();
@@ -37,7 +38,7 @@ test.describe('Prompts Management', () => {
 
     test('should navigate to new prompt form', async ({ page }) => {
       await page.goto('/admin/prompts');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       await page.click(SELECTORS.promptCreateButton);
 
@@ -46,7 +47,7 @@ test.describe('Prompts Management', () => {
 
     test('should have "Detail" button for each prompt', async ({ page }) => {
       await page.goto('/admin/prompts');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const promptRows = await page.locator(SELECTORS.tableRow).count();
       if (promptRows > 0) {
@@ -61,7 +62,7 @@ test.describe('Prompts Management', () => {
 
     test.beforeEach(async ({ page }) => {
       await page.goto('/admin/prompts');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const promptRows = await page.locator(SELECTORS.tableRow).count();
       if (promptRows > 0) {
@@ -81,7 +82,7 @@ test.describe('Prompts Management', () => {
       }
 
       await page.goto(promptUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const promptContent = page.locator('pre, code, .prose, textarea');
       if (await promptContent.count() > 0) {
@@ -96,7 +97,7 @@ test.describe('Prompts Management', () => {
       }
 
       await page.goto(promptUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const backButton = page.locator('a:has-text("戻る"), button:has-text("戻る")');
       await expect(backButton).toBeVisible();
@@ -109,7 +110,7 @@ test.describe('Prompts Management', () => {
       }
 
       await page.goto(promptUrl);
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const backButton = page.locator('a:has-text("戻る")');
       if (await backButton.isVisible()) {
@@ -123,14 +124,14 @@ test.describe('Prompts Management', () => {
     test('should display prompt creation form', async ({ page }) => {
       await page.goto('/admin/prompts/new');
 
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
       // Form should be visible
       await expect(page).toHaveURL(/\/admin\/prompts\/new/);
     });
 
     test('should copy prompt when using copy parameter', async ({ page }) => {
       await page.goto('/admin/prompts');
-      await page.waitForTimeout(2000);
+      await waitForPageReady(page);
 
       const copyButton = page.locator('[data-testid^="prompt-copy-"]').first();
       if (await copyButton.isVisible()) {
