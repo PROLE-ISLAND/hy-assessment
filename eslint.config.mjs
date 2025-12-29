@@ -13,6 +13,20 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // E2E test specific rules - prevent race conditions
+  {
+    files: ["e2e/**/*.ts", "e2e/**/*.spec.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.property.name='waitForTimeout']",
+          message:
+            "Use deterministic waits (waitForData, waitForPageReady, waitForNavigation) instead of arbitrary timeouts. See e2e/helpers/deterministic-wait.ts",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

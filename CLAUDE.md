@@ -198,7 +198,30 @@ git checkout -b feature/issue-{番号}-{簡潔な説明}
 # 例: git checkout -b feature/issue-42-add-pdf-export
 ```
 
-**Step 5: 開発完了後のPR作成**
+**Step 5: 実装計画をIssueコメントに追加** ⚠️必須
+```bash
+# Issueの詳細を確認後、実装計画をコメントとして投稿
+gh issue comment {番号} --body "## 実装計画
+
+### 変更ファイル
+- \`path/to/file.ts\` - 変更内容
+
+### 実装ステップ
+1. xxx
+2. xxx
+
+### テスト方法
+- [ ] 単体テスト追加
+- [ ] E2Eテスト確認
+"
+```
+
+**Step 6: 計画検証（任意）**
+```bash
+npm run plan:validate {番号}
+```
+
+**Step 7: 開発完了後のPR作成**
 ```bash
 gh pr create --title "feat: {説明}" --body "closes #{番号}"
 ```
@@ -372,3 +395,36 @@ data-testid="candidate-name-input"      # 入力フィールド
 data-testid="candidate-row-{id}"        # 動的要素
 data-testid="candidate-detail-{id}"     # 詳細リンク
 ```
+
+### レースコンディション防止ルール
+
+**背景**: 非同期操作の競合によるバグ（Issue #78 等）を防ぐためのテストルール
+
+#### E2Eテスト
+
+1. **`waitForTimeout()` 使用禁止** ⚠️ESLintエラー
+   - 代わりに決定論的待機を使用:
+     - `waitForData()` - データ到着待ち
+     - `waitForPageReady()` - ページ完全読み込み待ち
+     - `waitForNavigation()` - ナビゲーション完了待ち
+   - ヘルパー: `e2e/helpers/deterministic-wait.ts`
+
+2. **非同期フロー完了待ち必須**
+   - フォーム送信後は `waitForResponse()` でAPI完了を確認
+   - デバウンス操作後はネットワーク完了を待つ
+
+3. **クリティカルフロー専用テスト**
+   - 自動保存 + 完了のような複合パターンは専用テストケース作成
+   - 例: 検査回答 → 自動保存中 → 送信ボタン押下
+
+#### 単体テスト（Vitest）
+
+1. **Fake Timers 必須**（デバウンス/スロットルのテスト）
+   ```typescript
+   beforeEach(() => vi.useFakeTimers());
+   afterEach(() => vi.useRealTimers());
+   ```
+
+2. **レースコンディションテスト**
+   - 複数の非同期操作が競合するケースをテスト
+   - 例: `completeAssessment()` 呼び出し中に `saveResponse()` が発火

@@ -63,8 +63,49 @@ jobs:
               return { linked: false };
             }
 
+            // Extract issue number for plan validation
+            const match = body.match(/(?:closes?|fixes?|resolves?)\s+#(\d+)/i);
+            const issueNumber = match ? match[1] : null;
+
             console.log('✅ Issue紐付けOK');
-            return { linked: true };
+            return { linked: true, issueNumber };
+
+      - name: 実装計画コメントチェック
+        id: plan-check
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueResult = ${{ steps.issue-check.outputs.result }};
+            if (!issueResult.issueNumber) {
+              console.log('⏭️ Issue番号が取得できないためスキップ');
+              return { hasPlan: null, skipped: true };
+            }
+
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt(issueResult.issueNumber),
+              });
+
+              // 実装計画コメントを探す
+              const planComment = comments.find(c =>
+                c.body && c.body.includes('## 実装計画')
+              );
+
+              if (!planComment) {
+                core.warning(`Issue #${issueResult.issueNumber} に実装計画コメントがありません`);
+                core.warning('開発前に実装計画をIssueコメントとして追加してください');
+                return { hasPlan: false, issueNumber: issueResult.issueNumber };
+              }
+
+              console.log(`✅ 実装計画コメントOK (Issue #${issueResult.issueNumber})`);
+              return { hasPlan: true, issueNumber: issueResult.issueNumber };
+            } catch (error) {
+              console.log(`⚠️ Issueコメント取得エラー: ${error.message}`);
+              return { hasPlan: null, error: error.message };
+            }
 
       - name: 結果サマリー
         uses: actions/github-script@v8
@@ -72,20 +113,34 @@ jobs:
           script: |
             const branchResult = ${{ steps.branch-check.outputs.result }};
             const issueResult = ${{ steps.issue-check.outputs.result }};
+            const planResult = ${{ steps.plan-check.outputs.result }};
+
+            // 実装計画チェック結果の表示テキスト
+            let planStatus = '⏭️ スキップ';
+            if (planResult.hasPlan === true) {
+              planStatus = '✅ OK';
+            } else if (planResult.hasPlan === false) {
+              planStatus = '⚠️ 要確認';
+            }
 
             let summary = '## PR規約チェック結果\n\n';
             summary += '| チェック項目 | 結果 |\n';
             summary += '|-------------|------|\n';
             summary += `| ブランチ命名規則 | ${branchResult.valid ? '✅ OK' : '⚠️ 要確認'} |\n`;
             summary += `| Issue紐付け | ${issueResult.linked ? '✅ OK' : '⚠️ 要確認'} |\n`;
+            summary += `| 実装計画コメント | ${planStatus} |\n`;
 
-            if (!branchResult.valid || !issueResult.linked) {
+            const needsAction = !branchResult.valid || !issueResult.linked || planResult.hasPlan === false;
+            if (needsAction) {
               summary += '\n### 推奨事項\n';
               if (!branchResult.valid) {
                 summary += `- ブランチ名を \`feature/issue-{番号}-{説明}\` 形式に変更\n`;
               }
               if (!issueResult.linked) {
                 summary += '- PR本文に `closes #番号` を追加してIssueと紐付け\n';
+              }
+              if (planResult.hasPlan === false) {
+                summary += `- Issue #${planResult.issueNumber} に実装計画コメントを追加\n`;
               }
             }
 
