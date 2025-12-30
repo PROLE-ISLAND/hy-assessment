@@ -60,7 +60,7 @@ jobs:
           const whyClean = whyContent.replace(/<!--[\s\S]*?-->/g, '').trim();
 
           if (!whyClean || whyClean.length < 10) {
-            issues.push('❌ **変更理由（Why）が未記入です**\n   → なぜこの変更が必要なのか記載してください');
+            issues.push('❌ **変更理由（Why）が未記入です**\n\n#### 何を書けばいいか\n- **ユーザー価値**: この変更で誰がどう嬉しいか\n- **技術的背景**: なぜ今この変更が必要か\n- **代替案の検討**: 他の方法を考えたか\n\n#### 良いWhyの例\n> 「候補者一覧の読み込みが3秒以上かかり改善要望があった。N+1解消とページネーション追加で200ms以下を目指す。」\n\n📚 **参考**: [PRテンプレート](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/blob/main/.github/PULL_REQUEST_TEMPLATE.md) | [開発ガイド](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/blob/main/CLAUDE.md#開発フロー)');
           }
 
           // === 目的セクションチェック ===
@@ -69,20 +69,20 @@ jobs:
           const whatContent = whatSection ? whatSection[1].replace(/<!--[\s\S]*?-->/g, '').trim() : '';
 
           if (!whatContent || whatContent.length < 5) {
-            warnings.push('⚠️ **目的（What）が未記入です**');
+            warnings.push('⚠️ **目的（What）が未記入です**\n   → 「何を変更するか」を1-2文で簡潔に記載してください\n   💡 例: 「候補者一覧ページにページネーションを追加」');
           }
 
           // === リスク評価チェック ===
           // テーブル内にLow/Med/Highがあればマッチ（スペース許容）
           const riskFilled = prBody.match(/\|\s*(Low|Med|High)\s*\|/i);
           if (!riskFilled) {
-            warnings.push('⚠️ **リスク評価テーブルが未記入です**（Low / Med / High を記入）');
+            warnings.push('⚠️ **リスク評価テーブルが未記入です**\n   → 各カテゴリに Low / Med / High を記入してください\n   📊 リスク目安: Low=影響小, Med=一部機能に影響, High=全体に影響');
           }
 
           // === 関連Issueチェック ===
           const hasIssueRef = prBody.match(/#\d+/) || prBody.match(/Closes|Fixes|Relates/i);
           if (!hasIssueRef) {
-            warnings.push('⚠️ **関連Issueの記載がありません**');
+            warnings.push('⚠️ **関連Issueの記載がありません**\n   → `closes #123` または `Relates to #123` 形式で関連Issueを記載してください\n   📋 [Issue一覧](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/issues)');
           }
 
           // === チェックリスト確認 ===
@@ -107,10 +107,12 @@ jobs:
 
           if (issues.length === 0 && warnings.length === 0) {
             comment += '### ✅ All checks passed!\n\n';
-            comment += 'PR descriptionが適切に記載されています。レビュー可能です。';
+            comment += 'PR descriptionが適切に記載されています。レビュー可能です。\n\n';
+            comment += '📚 **レビュアーへ**: [コードレビュー基準](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/blob/main/CLAUDE.md#コーディング規約) を参照してください。';
           } else if (issues.length === 0) {
             comment += '### ✅ 必須項目OK\n\n';
-            comment += 'レビュー可能ですが、上記の推奨事項の対応を検討してください。';
+            comment += 'レビュー可能ですが、上記の推奨事項の対応を検討してください。\n\n';
+            comment += '📚 **参考**: [PRテンプレート](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/blob/main/.github/PULL_REQUEST_TEMPLATE.md)';
           }
 
           // 既存コメントを更新または新規作成
@@ -285,20 +287,43 @@ jobs:
           // レビュー観点を追加
           summary += '\n### 🔍 レビュー観点\n\n';
 
-          if (Object.keys(dirChanges).some(d => d.includes('api'))) {
-            summary += '- [ ] API変更: 破壊的変更がないか確認\n';
+          const hasApiChanges = Object.keys(dirChanges).some(d => d.includes('api'));
+          const hasDbChanges = Object.keys(dirChanges).some(d => d.includes('supabase') || d.includes('migration'));
+          const hasConfigChanges = Object.keys(dirChanges).some(d => d.includes('config'));
+          const hasAnalysisChanges = Object.keys(dirChanges).some(d => d.includes('analysis'));
+          const isLargeChange = totalAdditions + totalDeletions > 300;
+
+          if (hasApiChanges) {
+            summary += '#### API変更 (`src/app/api/`)\n';
+            summary += '- [ ] **破壊的変更チェック**: レスポンス型変更、必須パラメータ追加はないか\n';
+            summary += '- [ ] **エラーハンドリング**: 適切なHTTPステータスコードを返しているか\n';
+            summary += '- 📚 [技術スタック](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/blob/main/CLAUDE.md#技術スタック)\n\n';
           }
-          if (Object.keys(dirChanges).some(d => d.includes('supabase') || d.includes('migration'))) {
-            summary += '- [ ] DB変更: マイグレーションの安全性を確認\n';
+          if (hasDbChanges) {
+            summary += '#### DB変更 (`supabase/`)\n';
+            summary += '- [ ] **マイグレーション安全性**: `DROP`/`ALTER`は本番データに影響しないか\n';
+            summary += '- [ ] **RLSポリシー**: organization_id分離が維持されているか\n';
+            summary += '- [ ] **ロールバック可能**: down migrationが用意されているか\n';
+            summary += '- 📚 [DB設計ルール](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/blob/main/CLAUDE.md#データベース設計)\n\n';
           }
-          if (Object.keys(dirChanges).some(d => d.includes('config'))) {
-            summary += '- [ ] 設定変更: 環境依存・セキュリティを確認\n';
+          if (hasConfigChanges) {
+            summary += '#### 設定変更\n';
+            summary += '- [ ] **環境依存**: 本番/ステージング/ローカルで動作するか\n';
+            summary += '- [ ] **セキュリティ**: 機密情報がハードコードされていないか\n\n';
           }
-          if (Object.keys(dirChanges).some(d => d.includes('analysis'))) {
-            summary += '- [ ] AI分析: プロンプト・レスポンス形式の整合性を確認\n';
+          if (hasAnalysisChanges) {
+            summary += '#### AI分析変更\n';
+            summary += '- [ ] **プロンプト整合性**: 期待する出力形式と一致しているか\n';
+            summary += '- [ ] **エラーハンドリング**: API失敗時のフォールバックがあるか\n\n';
           }
-          if (totalAdditions + totalDeletions > 300) {
-            summary += '- [ ] 大規模変更: 段階的レビューを推奨\n';
+          if (isLargeChange) {
+            summary += '#### ⚠️ 大規模変更 (' + (totalAdditions + totalDeletions) + '行)\n';
+            summary += '- [ ] **分割検討**: このPRを複数に分けられないか\n';
+            summary += '- [ ] **段階的レビュー**: 重要ファイルから順にレビュー\n';
+            summary += '- 💡 推奨: 1PR = 200行以下\n\n';
+          }
+          if (!hasApiChanges && !hasDbChanges && !hasConfigChanges && !hasAnalysisChanges && !isLargeChange) {
+            summary += '特に注意が必要な変更はありません。通常のコードレビューを実施してください。\n';
           }
 
           console.log(summary);
