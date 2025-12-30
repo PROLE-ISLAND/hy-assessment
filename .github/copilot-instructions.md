@@ -1,20 +1,8 @@
 # HY Assessment - 開発ルール
 
-## 📚 必読ドキュメント
-
-開発開始前に以下を確認すること：
-
-| ドキュメント | 内容 | 必須度 |
-|-------------|------|--------|
-| [DoD_STANDARDS.md](https://github.com/PROLE-ISLAND/.github/blob/main/DoD_STANDARDS.md) | 品質基準（77観点） | ⚠️ 最優先 |
-| [組織Wiki](https://github.com/PROLE-ISLAND/.github/wiki) | 開発標準・CI/CD・テスト戦略 | ⚠️ 必須 |
-| [組織CLAUDE.md](https://github.com/PROLE-ISLAND/.github/blob/main/CLAUDE.md) | 組織共通開発ルール | ⚠️ 必須 |
-| [プロジェクトWiki](https://github.com/PROLE-ISLAND/hy-assessment/wiki) | 実装計画・プロジェクト固有情報 | 📖 参照 |
-| このファイル | プロジェクト固有ルール | 📖 参照 |
-
-> **ルール優先順位**: DoD_STANDARDS.md > 組織Wiki > 組織CLAUDE.md > このファイル
-
----
+> **📚 組織共通ルール**: https://github.com/PROLE-ISLAND/.github/wiki
+>
+> このドキュメントはリポジトリ固有のルールです。組織共通ルールと併せて参照してください。
 
 ## プロジェクト概要
 入社前適性検査システム（SaaS対応マルチテナント設計）
@@ -153,25 +141,6 @@ npm run build          # Next.jsビルド
 | Bronze | 27 | PR最低基準 | PRオープン時 |
 | Silver | 31 | マージ可能基準 | マージ前 |
 | Gold | 19 | 本番リリース基準 | 本番デプロイ前 |
-
-#### Gold E2Eテスト（ユースケーステスト）
-
-Gold E2Eは「事業が死んでない証拠」。5〜10本に限定。
-
-- 機能単位ではなく **Role × Outcome** でユースケースを定義
-- 詳細は組織Wiki参照:
-  - [Goldテストチャーター](https://github.com/PROLE-ISLAND/.github/wiki/Goldテストチャーター) - 目的・採用基準
-  - [Gold仕様テンプレート](https://github.com/PROLE-ISLAND/.github/wiki/Gold仕様テンプレート) - GWT仕様テンプレート
-
-**hy-assessment Gold候補（推奨5本）:**
-
-| ユースケース | Role | Outcome |
-|-------------|------|---------|
-| 管理者ログイン | 管理者 | システムアクセス |
-| 候補者登録→検査リンク発行 | 管理者 | 検査準備完了 |
-| 検査回答→完了 | 候補者 | 回答データ保存 |
-| AI分析結果取得 | 管理者 | 採用判断材料取得 |
-| 結果レポート共有 | 管理者 | ステークホルダー共有 |
 
 #### 実装計画時
 - 対象DoD Level（Bronze/Silver/Gold）を明示
@@ -489,15 +458,81 @@ gh pr create --title "feat: {説明}" --body "closes #{番号}"
 
 ### 並行開発ガイドライン
 
-> **詳細は [組織共通ルール](https://github.com/PROLE-ISLAND/.github/blob/main/copilot-instructions.md#並行開発ガイドライン) を参照。**
+複数のIssueを同時に開発する場合のルール:
 
-#### このリポジトリの `.gtrconfig` 設定
+#### 基本方針
+- **別ブランチで作業**: 各Issueは独立したブランチで開発
+- **mainから分岐**: 必ずmainブランチから新規ブランチを作成
+- **早めにPR**: 作業完了したらすぐPR作成
+
+#### Git Worktree による並行開発（推奨）
+
+複数のClaude Codeセッションで並行開発する場合は、**git worktree** を使用して物理的にワーキングディレクトリを分離する。
+
+**ツール**: [git-worktree-runner (gtr)](https://github.com/coderabbitai/git-worktree-runner)
+
+```bash
+# 新しいworktree作成（Issue用）
+git gtr new feature/issue-21-localstorage
+
+# Claude Codeを起動
+git gtr ai feature/issue-21-localstorage
+
+# エディタで開く
+git gtr editor feature/issue-21-localstorage
+
+# 一覧表示
+git gtr list
+
+# 作業完了後に削除
+git gtr rm feature/issue-21-localstorage
+```
+
+**設定ファイル**: `.gtrconfig`（リポジトリルート）
 
 | 設定 | 値 |
 |------|-----|
 | AI tool | `claude` |
 | Editor | `cursor` |
 | postCreate | `npm install` |
+
+**なぜworktreeが必要か:**
+- 同じリポジトリでも**ローカルファイルは1セット**しかない
+- 別セッションが `git checkout` すると、未コミット変更が消える
+- worktreeなら**物理的に別ディレクトリ**なので安全
+
+#### コンフリクト防止
+
+| 状況 | 対応 |
+|------|------|
+| 同じファイルを編集する複数Issue | 1つずつ順番に対応（先にマージされた方を優先） |
+| 依存関係がある | 依存元を先にマージ、依存先はその後にリベース |
+| 独立したIssue | worktreeで並行開発OK |
+| 複数セッション同時開発 | **必ずworktree使用** |
+
+#### コンフリクト発生時
+
+```bash
+# 1. mainを最新化
+git checkout main && git pull
+
+# 2. 作業ブランチをリベース
+git checkout feature/issue-xxx
+git rebase main
+
+# 3. コンフリクト解消後
+git add . && git rebase --continue
+
+# 4. 強制プッシュ（自分のブランチのみ）
+git push --force-with-lease
+```
+
+#### 関連Issueの判断基準
+
+以下の場合は**1ブランチにまとめることを検討**:
+- 同一ファイルの異なる箇所を修正
+- 機能的に密結合（一方が他方に依存）
+- 同一PRでレビューした方が理解しやすい
 
 ---
 
