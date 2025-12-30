@@ -3,7 +3,7 @@
 // Test comparison page, selection, charts
 // =====================================================
 
-import { test, expect, SELECTORS } from './fixtures';
+import { test, expect, SELECTORS } from '../fixtures';
 
 test.describe('Candidate Comparison', () => {
   // Authentication is handled by the setup project via storageState

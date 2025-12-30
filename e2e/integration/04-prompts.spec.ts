@@ -3,8 +3,8 @@
 // Test prompt list, detail, create, copy, toggle
 // =====================================================
 
-import { test, expect, SELECTORS, login } from './fixtures';
-import { waitForPageReady } from './helpers/deterministic-wait';
+import { test, expect, SELECTORS, login } from '../fixtures';
+import { waitForPageReady } from '../helpers/deterministic-wait';
 
 test.describe('Prompts Management', () => {
   test.beforeEach(async ({ page }) => {

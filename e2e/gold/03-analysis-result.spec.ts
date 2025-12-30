@@ -3,8 +3,8 @@
 // Test analysis viewing, tabs, PDF, re-analysis, sharing
 // =====================================================
 
-import { test, expect, SELECTORS, login } from './fixtures';
-import { waitForPageReady } from './helpers/deterministic-wait';
+import { test, expect, SELECTORS, login } from '../fixtures';
+import { waitForPageReady } from '../helpers/deterministic-wait';
 
 test.describe('Analysis Results', () => {
   test.beforeEach(async ({ page }) => {

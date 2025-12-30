@@ -3,7 +3,7 @@
 // Test login/logout buttons and navigation
 // =====================================================
 
-import { test, expect, SELECTORS, login } from './fixtures';
+import { test, expect, SELECTORS, login } from '../fixtures';
 
 // E2E credentials from environment
 const E2E_TEST_EMAIL = process.env.E2E_TEST_EMAIL || 'e2e-test@hy-assessment.local';

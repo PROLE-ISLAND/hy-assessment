@@ -1,6 +1,6 @@
 // =====================================================
 // Playwright Configuration
-// E2E tests for login, candidate flow, assessment flow
+// E2E tests organized by DoD Level: Gold / Integration
 // =====================================================
 
 import { defineConfig, devices } from '@playwright/test';
@@ -50,24 +50,52 @@ export default defineConfig({
   },
 
   projects: [
+    // =========================================
     // Setup project - runs first to authenticate
-    // Needs longer timeout for Vercel Preview cold starts
+    // =========================================
     {
       name: 'setup',
       testMatch: /auth\.setup\.ts/,
       timeout: 120000, // 2 minutes for cold start
     },
-    // Auth tests - run without storageState (test login/logout/redirect)
+
+    // =========================================
+    // 🥇 Gold E2E Tests (本番リリース基準)
+    // 5本: 事業成立の証明
+    // Run with: npx playwright test --project=gold
+    // =========================================
     {
-      name: 'auth-tests',
-      testMatch: /01-auth\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
-      // No storageState - tests run as unauthenticated user
+      name: 'gold',
+      testDir: './e2e/gold',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/user.json',
+      },
+      dependencies: ['setup'],
     },
-    // Main tests - depend on setup and use saved auth state
+
+    // =========================================
+    // 🥈 Integration Tests (マージ可能基準)
+    // 機能単位のテスト
+    // Run with: npx playwright test --project=integration
+    // =========================================
+    {
+      name: 'integration',
+      testDir: './e2e/integration',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+
+    // =========================================
+    // Default: All tests (backward compatibility)
+    // Run with: npx playwright test --project=chromium
+    // =========================================
     {
       name: 'chromium',
-      testIgnore: /01-auth\.spec\.ts/,  // Skip auth tests in this project
+      testIgnore: /auth\.setup\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/user.json',
