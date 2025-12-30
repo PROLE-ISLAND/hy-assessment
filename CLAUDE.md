@@ -13,9 +13,9 @@
 ### コード・コメントは英語
 - 変数名、関数名は英語
 - コメントは英語（必要に応じて日本語補足可）
-- コミットメッセージは英語（Conventional Commits形式）
 
-### PRは日本語
+### コミット・PRは日本語
+- コミットメッセージは日本語（プレフィックスは英語: `feat:`, `fix:`, `docs:` 等）
 - PRタイトル・本文は日本語で記述
 - `.github/PULL_REQUEST_TEMPLATE.md` に従う
 - ブランチ名: `{type}/issue-{番号}-{説明}` または `{type}/{説明}`
@@ -561,6 +561,65 @@ E2E Preview workflowでVercel Deployment Protectionを回避するために必�
 5. `VERCEL_AUTOMATION_BYPASS_SECRET` として追加
 
 参考: [Vercel Protection Bypass for Automation](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation)
+
+---
+
+## 実装計画の永続化（GitHub Wiki）
+
+セッションを跨いで実装計画を共有するため、GitHub Wiki を使用する。
+
+### Wiki URL
+
+https://github.com/PROLE-ISLAND/hy-assessment/wiki
+
+### 主要ページ
+
+| ページ | 内容 |
+|--------|------|
+| [Home](https://github.com/PROLE-ISLAND/hy-assessment/wiki) | トップページ・目次 |
+| [Implementation Plans](https://github.com/PROLE-ISLAND/hy-assessment/wiki/Implementation-Plans) | 実装計画一覧 |
+| [Development Rules](https://github.com/PROLE-ISLAND/hy-assessment/wiki/Development-Rules) | 開発ルール概要 |
+
+### Claude Code での使用方法
+
+1. **セッション開始時**: Wiki の Implementation Plans を確認
+2. **計画立案時**: 新しい計画を Wiki に追加
+3. **作業中断時**: 進捗を Wiki に記録
+
+### Wiki の更新方法
+
+```bash
+# Wiki リポジトリをクローン
+git clone https://github.com/PROLE-ISLAND/hy-assessment.wiki.git
+
+# 編集後にプッシュ
+cd hy-assessment.wiki
+git add . && git commit -m "Update implementation plan" && git push
+```
+
+### 実装計画テンプレート
+
+```markdown
+## [機能名] - Issue #xxx
+
+**ステータス**: 🔵 計画中 / 🟡 実装中 / 🟢 完了
+
+### 概要
+[機能の目的と価値]
+
+### 変更対象ファイル
+| ファイル | 変更種別 | 内容 |
+|---------|---------|------|
+| `path/to/file.ts` | 新規/修正 | 説明 |
+
+### 実装ステップ
+1. [ ] ステップ1
+2. [ ] ステップ2
+
+### 依存関係
+- 先行: #xxx
+- 後続: #xxx
+```
 
 ---
 
