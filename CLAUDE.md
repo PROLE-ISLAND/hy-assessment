@@ -421,6 +421,59 @@ npm run plan:validate {番号}
 gh pr create --title "feat: {説明}" --body "closes #{番号}"
 ```
 
+### 実装計画の永続化
+
+セッション間で実装計画を共有するためのルール:
+
+| 場所 | 用途 | いつ使う |
+|------|------|----------|
+| **Issueコメント** | 実装計画・進捗メモ | 全Issue（Step 5で必須） |
+| **docs/plans/** | 詳細設計ドキュメント | 複雑な機能（5ファイル以上の変更） |
+
+**複雑な機能の場合:**
+```bash
+# 設計ドキュメントを作成
+mkdir -p docs/plans
+cat > docs/plans/issue-{番号}-{説明}.md << 'EOF'
+# Issue #{番号}: {タイトル}
+
+## 概要
+{機能の概要}
+
+## 設計
+### アーキテクチャ
+{コンポーネント構成}
+
+### データフロー
+{処理の流れ}
+
+### 変更ファイル一覧
+| ファイル | 変更内容 |
+|----------|----------|
+| `path/to/file.ts` | 新規作成 / 修正内容 |
+
+## 実装ステップ
+- [ ] Step 1: xxx
+- [ ] Step 2: xxx
+
+## テスト計画
+- [ ] 単体テスト
+- [ ] E2Eテスト
+EOF
+
+# Issueにリンクを追加
+gh issue comment {番号} --body "📋 設計ドキュメント: docs/plans/issue-{番号}-{説明}.md"
+```
+
+**セッション再開時の確認:**
+```bash
+# 担当Issueの計画を確認
+gh issue view {番号} --comments
+
+# 設計ドキュメントがあれば確認
+cat docs/plans/issue-{番号}-*.md 2>/dev/null || echo "設計ドキュメントなし"
+```
+
 ### ラベル体系
 
 | ラベル | 意味 | Claude Codeの対応 |
