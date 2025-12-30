@@ -458,81 +458,15 @@ gh pr create --title "feat: {説明}" --body "closes #{番号}"
 
 ### 並行開発ガイドライン
 
-複数のIssueを同時に開発する場合のルール:
+> **詳細は [組織共通ルール](https://github.com/PROLE-ISLAND/.github/blob/main/copilot-instructions.md#並行開発ガイドライン) を参照。**
 
-#### 基本方針
-- **別ブランチで作業**: 各Issueは独立したブランチで開発
-- **mainから分岐**: 必ずmainブランチから新規ブランチを作成
-- **早めにPR**: 作業完了したらすぐPR作成
-
-#### Git Worktree による並行開発（推奨）
-
-複数のClaude Codeセッションで並行開発する場合は、**git worktree** を使用して物理的にワーキングディレクトリを分離する。
-
-**ツール**: [git-worktree-runner (gtr)](https://github.com/coderabbitai/git-worktree-runner)
-
-```bash
-# 新しいworktree作成（Issue用）
-git gtr new feature/issue-21-localstorage
-
-# Claude Codeを起動
-git gtr ai feature/issue-21-localstorage
-
-# エディタで開く
-git gtr editor feature/issue-21-localstorage
-
-# 一覧表示
-git gtr list
-
-# 作業完了後に削除
-git gtr rm feature/issue-21-localstorage
-```
-
-**設定ファイル**: `.gtrconfig`（リポジトリルート）
+#### このリポジトリの `.gtrconfig` 設定
 
 | 設定 | 値 |
 |------|-----|
 | AI tool | `claude` |
 | Editor | `cursor` |
 | postCreate | `npm install` |
-
-**なぜworktreeが必要か:**
-- 同じリポジトリでも**ローカルファイルは1セット**しかない
-- 別セッションが `git checkout` すると、未コミット変更が消える
-- worktreeなら**物理的に別ディレクトリ**なので安全
-
-#### コンフリクト防止
-
-| 状況 | 対応 |
-|------|------|
-| 同じファイルを編集する複数Issue | 1つずつ順番に対応（先にマージされた方を優先） |
-| 依存関係がある | 依存元を先にマージ、依存先はその後にリベース |
-| 独立したIssue | worktreeで並行開発OK |
-| 複数セッション同時開発 | **必ずworktree使用** |
-
-#### コンフリクト発生時
-
-```bash
-# 1. mainを最新化
-git checkout main && git pull
-
-# 2. 作業ブランチをリベース
-git checkout feature/issue-xxx
-git rebase main
-
-# 3. コンフリクト解消後
-git add . && git rebase --continue
-
-# 4. 強制プッシュ（自分のブランチのみ）
-git push --force-with-lease
-```
-
-#### 関連Issueの判断基準
-
-以下の場合は**1ブランチにまとめることを検討**:
-- 同一ファイルの異なる箇所を修正
-- 機能的に密結合（一方が他方に依存）
-- 同一PRでレビューした方が理解しやすい
 
 ---
 
