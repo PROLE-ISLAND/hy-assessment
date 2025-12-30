@@ -1,0 +1,149 @@
+# 要件定義ガバナンスワークフロー
+# 新機能PRで関連Issueに requirements-approved ラベルがない場合にブロック
+#
+# 使用方法: 各リポジトリの .github/workflows/ にコピー
+
+name: Requirements Governance
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  check-requirements:
+    name: 要件定義チェック
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: write
+
+    steps:
+      - name: PRタイトルから変更種別を判定
+        id: check-type
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+
+          # 要件定義不要な変更種別
+          if [[ "$PR_TITLE" =~ ^(fix|docs|style|refactor|test|chore|ci|deps|perf): ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "reason=変更種別が要件定義不要（$PR_TITLE）" >> $GITHUB_OUTPUT
+          elif [[ "$PR_TITLE" =~ ^feat: ]]; then
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "reason=新機能（feat）は要件定義必須" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "reason=変更種別不明、要件定義チェック実施" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 関連Issueを抽出
+        if: steps.check-type.outputs.skip == 'false'
+        id: extract-issue
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+
+          # closes #123, fixes #456, resolves #789 などを抽出
+          ISSUE_NUMBERS=$(echo "$PR_BODY" | grep -oE '(closes|fixes|resolves)\s*#[0-9]+' | grep -oE '[0-9]+' | head -1)
+
+          if [ -z "$ISSUE_NUMBERS" ]; then
+            echo "issue_number=" >> $GITHUB_OUTPUT
+            echo "has_issue=false" >> $GITHUB_OUTPUT
+          else
+            echo "issue_number=$ISSUE_NUMBERS" >> $GITHUB_OUTPUT
+            echo "has_issue=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Issueラベルをチェック
+        if: steps.check-type.outputs.skip == 'false' && steps.extract-issue.outputs.has_issue == 'true'
+        id: check-labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ISSUE_NUMBER="${{ steps.extract-issue.outputs.issue_number }}"
+          REPO="${{ github.repository }}"
+
+          # Issueのラベルを取得
+          LABELS=$(gh api repos/$REPO/issues/$ISSUE_NUMBER --jq '.labels[].name' 2>/dev/null || echo "")
+
+          echo "Issue #$ISSUE_NUMBER のラベル: $LABELS"
+
+          if echo "$LABELS" | grep -q "requirements-approved"; then
+            echo "approved=true" >> $GITHUB_OUTPUT
+            echo "message=✅ 要件定義承認済み（requirements-approved ラベルあり）" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "no-requirements"; then
+            echo "approved=true" >> $GITHUB_OUTPUT
+            echo "message=✅ 要件定義不要（no-requirements ラベルあり）" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "needs-requirements"; then
+            echo "approved=false" >> $GITHUB_OUTPUT
+            echo "message=❌ 要件定義待ち（needs-requirements ラベルあり）" >> $GITHUB_OUTPUT
+          else
+            echo "approved=false" >> $GITHUB_OUTPUT
+            echo "message=❌ 要件定義ステータス不明（needs-requirements または requirements-approved ラベルを付与してください）" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 結果をPRにコメント
+        if: steps.check-type.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          REPO="${{ github.repository }}"
+
+          # コメント本文を作成
+          if [ "${{ steps.extract-issue.outputs.has_issue }}" == "false" ]; then
+            COMMENT="## 🔍 要件定義チェック結果
+
+          ❌ **関連Issueが見つかりません**
+
+          PR本文に \`closes #番号\` 形式でIssueを紐付けてください。
+
+          **参照**: [Issue駆動開発](https://github.com/PROLE-ISLAND/.github/blob/main/copilot-instructions.md#issue駆動開発)"
+          else
+            ISSUE_NUMBER="${{ steps.extract-issue.outputs.issue_number }}"
+            MESSAGE="${{ steps.check-labels.outputs.message }}"
+
+            COMMENT="## 🔍 要件定義チェック結果
+
+          **関連Issue**: #$ISSUE_NUMBER
+          **ステータス**: $MESSAGE
+
+          **参照**:
+          - [要件定義テンプレート](https://github.com/PROLE-ISLAND/.github/wiki/要件定義テンプレート)
+          - [Issue駆動開発](https://github.com/PROLE-ISLAND/.github/blob/main/copilot-instructions.md#issue駆動開発)"
+          fi
+
+          # 既存のコメントを探して更新、なければ新規作成
+          EXISTING_COMMENT=$(gh api repos/$REPO/issues/$PR_NUMBER/comments --jq '.[] | select(.body | startswith("## 🔍 要件定義チェック結果")) | .id' | head -1)
+
+          if [ -n "$EXISTING_COMMENT" ]; then
+            gh api repos/$REPO/issues/comments/$EXISTING_COMMENT -X PATCH -f body="$COMMENT"
+          else
+            gh api repos/$REPO/issues/$PR_NUMBER/comments -f body="$COMMENT"
+          fi
+
+      - name: 要件定義未承認の場合に失敗
+        if: steps.check-type.outputs.skip == 'false'
+        run: |
+          if [ "${{ steps.extract-issue.outputs.has_issue }}" == "false" ]; then
+            echo "❌ 関連Issueが見つかりません"
+            echo "PR本文に 'closes #番号' 形式でIssueを紐付けてください"
+            exit 1
+          fi
+
+          if [ "${{ steps.check-labels.outputs.approved }}" != "true" ]; then
+            echo "❌ 要件定義が承認されていません"
+            echo "${{ steps.check-labels.outputs.message }}"
+            echo ""
+            echo "以下の手順で要件定義を完了してください:"
+            echo "1. Issueに要件定義コメントを投稿"
+            echo "2. レビュアーの承認を得る"
+            echo "3. Issueに 'requirements-approved' ラベルを付与"
+            exit 1
+          fi
+
+          echo "✅ 要件定義チェック通過"
+
+      - name: スキップ時のメッセージ
+        if: steps.check-type.outputs.skip == 'true'
+        run: |
+          echo "ℹ️ 要件定義チェックをスキップ"
+          echo "${{ steps.check-type.outputs.reason }}"
