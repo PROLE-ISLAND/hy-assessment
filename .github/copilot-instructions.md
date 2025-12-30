@@ -160,8 +160,8 @@ Gold E2Eは「事業が死んでない証拠」。5〜10本に限定。
 
 - 機能単位ではなく **Role × Outcome** でユースケースを定義
 - 詳細は組織Wiki参照:
-  - [Gold-Test-Charter](https://github.com/PROLE-ISLAND/.github/wiki/Gold-Test-Charter) - 目的・採用基準
-  - [Gold-Spec-Template](https://github.com/PROLE-ISLAND/.github/wiki/Gold-Spec-Template) - GWT仕様テンプレート
+  - [Goldテストチャーター](https://github.com/PROLE-ISLAND/.github/wiki/Goldテストチャーター) - 目的・採用基準
+  - [Gold仕様テンプレート](https://github.com/PROLE-ISLAND/.github/wiki/Gold仕様テンプレート) - GWT仕様テンプレート
 
 **hy-assessment Gold候補（推奨5本）:**
 
