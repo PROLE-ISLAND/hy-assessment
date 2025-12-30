@@ -126,7 +126,7 @@ jobs:
 
           ### DoD Level: $DOD_LEVEL ($DOD_LABEL)
 
-          📚 [DoD基準の詳細](https://github.com/${{ github.repository }}/blob/main/CLAUDE.md#dod-definition-of-done-レベル)
+          📚 [DoD基準の詳細](https://github.com/PROLE-ISLAND/.github/blob/main/DoD_STANDARDS.md)
 
           | チェック項目 | 結果 | $DOD_LEVEL基準 |
           |-------------|------|---------------|

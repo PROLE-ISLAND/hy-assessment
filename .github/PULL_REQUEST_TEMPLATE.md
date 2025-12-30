@@ -44,9 +44,12 @@ closes #
 <!-- 必要に応じて対策を追記 -->
 
 ## 7. DoD Level
-- [ ] Bronze (プロトタイプ)
-- [ ] Silver (開発版) ← 推奨
-- [ ] Gold (本番品質)
+
+📚 [DoD基準の詳細](https://github.com/PROLE-ISLAND/.github/blob/main/DoD_STANDARDS.md)
+
+- [ ] Bronze (27観点: PR最低基準)
+- [ ] Silver (31観点: マージ可能基準) ← 推奨
+- [ ] Gold (19観点: 本番リリース基準)
 
 ## 8. チェックリスト
 - [ ] **Why（変更理由）を記載した** ⚠️ 必須

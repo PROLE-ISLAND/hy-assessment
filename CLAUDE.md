@@ -132,13 +132,27 @@ npm run test:run       # Vitest単体テスト
 npm run build          # Next.jsビルド
 ```
 
-### DoD (Definition of Done) レベル
+### DoD (Definition of Done)
 
-| レベル | カバレッジ | 用途 |
-|-------|-----------|------|
-| Bronze | 80%以上 | プロトタイプ |
-| Silver | 85%以上 | 開発版（推奨） |
-| Gold | 95%以上 | 本番品質 |
+すべての実装は [DoD基準](https://github.com/PROLE-ISLAND/.github/blob/main/DoD_STANDARDS.md) に従う。
+
+| Level | 観点数 | 用途 | 必須タイミング |
+|-------|--------|------|---------------|
+| Bronze | 27 | PR最低基準 | PRオープン時 |
+| Silver | 31 | マージ可能基準 | マージ前 |
+| Gold | 19 | 本番リリース基準 | 本番デプロイ前 |
+
+#### 実装計画時
+- 対象DoD Level（Bronze/Silver/Gold）を明示
+- 該当するDoD観点を洗い出し、計画に含める
+
+#### 実装時
+- Bronze観点（型安全、テスト、Lint）は常に遵守
+- セキュリティ観点（入力検証、認可）は該当する場合必須
+
+#### PR作成時
+- DoD Levelを選択し、チェックリストを確認
+- 未達項目がある場合は理由を記載
 
 ### 開発フロー
 
