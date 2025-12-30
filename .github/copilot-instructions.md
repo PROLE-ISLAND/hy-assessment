@@ -154,6 +154,25 @@ npm run build          # Next.jsビルド
 | Silver | 31 | マージ可能基準 | マージ前 |
 | Gold | 19 | 本番リリース基準 | 本番デプロイ前 |
 
+#### Gold E2Eテスト（ユースケーステスト）
+
+Gold E2Eは「事業が死んでない証拠」。5〜10本に限定。
+
+- 機能単位ではなく **Role × Outcome** でユースケースを定義
+- 詳細は組織Wiki参照:
+  - [Gold-Test-Charter](https://github.com/PROLE-ISLAND/.github/wiki/Gold-Test-Charter) - 目的・採用基準
+  - [Gold-Spec-Template](https://github.com/PROLE-ISLAND/.github/wiki/Gold-Spec-Template) - GWT仕様テンプレート
+
+**hy-assessment Gold候補（推奨5本）:**
+
+| ユースケース | Role | Outcome |
+|-------------|------|---------|
+| 管理者ログイン | 管理者 | システムアクセス |
+| 候補者登録→検査リンク発行 | 管理者 | 検査準備完了 |
+| 検査回答→完了 | 候補者 | 回答データ保存 |
+| AI分析結果取得 | 管理者 | 採用判断材料取得 |
+| 結果レポート共有 | 管理者 | ステークホルダー共有 |
+
 #### 実装計画時
 - 対象DoD Level（Bronze/Silver/Gold）を明示
 - 該当するDoD観点を洗い出し、計画に含める
