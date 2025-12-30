@@ -142,6 +142,39 @@ npm run build          # Next.jsビルド
 | Silver | 31 | マージ可能基準 | マージ前 |
 | Gold | 19 | 本番リリース基準 | 本番デプロイ前 |
 
+#### Gold E2Eテスト（ユースケーステスト）
+
+Gold E2Eは「事業が死んでない証拠」。5〜10本に限定。
+
+- 機能単位ではなく **Role × Outcome** でユースケースを定義
+- 詳細は組織Wiki参照:
+  - [Goldテストチャーター](https://github.com/PROLE-ISLAND/.github/wiki/Goldテストチャーター) - 目的・採用基準
+  - [Gold仕様テンプレート](https://github.com/PROLE-ISLAND/.github/wiki/Gold仕様テンプレート) - GWT仕様テンプレート
+
+#### 網羅性証明（ユースケースマトリクス）
+
+Gold E2Eの網羅性を「証明」するドキュメント体系:
+
+| ドキュメント | 内容 | パス |
+|-------------|------|------|
+| **ユースケースユニバース** | 母集合YAML（UC-ID体系） | [`docs/usecase_universe.yml`](./docs/usecase_universe.yml) |
+| **カバレッジマトリクス** | Role×Outcome MECE証明表 | [`docs/coverage_matrix.md`](./docs/coverage_matrix.md) |
+| **価値フローマップ** | Mermaid図による可視化 | [`docs/value_flow_map.md`](./docs/value_flow_map.md) |
+
+**人間がレビューするのは2点のみ:**
+1. Universeが網羅的か（母集合の妥当性）
+2. 採用/却下の線引きが妥当か（トリアージ判断）
+
+**hy-assessment Gold採用（5本）:**
+
+| # | UC-ID | Role | Outcome | GS-ID |
+|---|-------|------|---------|-------|
+| 1 | UC-HY-ADMIN-AUTH-WEB | 管理者 | 認証成功 | GS-HY-001 |
+| 2 | UC-HY-ADMIN-CANDIDATE-WEB | 管理者 | 候補者登録 | GS-HY-002 |
+| 3 | UC-HY-CAND-RESPONSE-WEB | 候補者 | 回答保存 | GS-HY-003 |
+| 4 | UC-HY-ADMIN-VIEW-WEB | 管理者 | 分析閲覧 | GS-HY-004 |
+| 5 | UC-HY-ADMIN-SHARE-WEB | 管理者 | レポート共有 | GS-HY-005 |
+
 #### 実装計画時
 - 対象DoD Level（Bronze/Silver/Gold）を明示
 - 該当するDoD観点を洗い出し、計画に含める
