@@ -126,29 +126,54 @@ jobs:
 
           ### DoD Level: $DOD_LEVEL ($DOD_LABEL)
 
-          | チェック項目 | 結果 | 基準 |
-          |-------------|------|------|
+          📚 [DoD基準の詳細](https://github.com/${{ github.repository }}/blob/main/CLAUDE.md#dod-definition-of-done-レベル)
+
+          | チェック項目 | 結果 | $DOD_LEVEL基準 |
+          |-------------|------|---------------|
           REPORT_END
 
           if [ "$CI_STATUS" == "pass" ]; then
-            echo "| Lint | ✅ 合格 | 必須 |" >> quality-report.md
-            echo "| 型チェック | ✅ 合格 | 必須 |" >> quality-report.md
-            echo "| 単体テスト | ✅ 合格 | 必須 |" >> quality-report.md
-            echo "| ビルド | ✅ 合格 | 必須 |" >> quality-report.md
+            echo "| Lint | ✅ 合格 | 警告0 |" >> quality-report.md
+            echo "| 型チェック | ✅ 合格 | エラー0 |" >> quality-report.md
+            echo "| 単体テスト | ✅ 合格 | カバレッジ85%+ |" >> quality-report.md
+            echo "| ビルド | ✅ 合格 | 成功 |" >> quality-report.md
             echo "" >> quality-report.md
             echo "### 判定結果: ✅ レビュー可能" >> quality-report.md
             echo "" >> quality-report.md
-            echo "> すべてのチェックに合格しました。レビューをお願いします。" >> quality-report.md
+            echo "すべてのチェックに合格しました。" >> quality-report.md
+            echo "" >> quality-report.md
+            echo "#### 次のステップ" >> quality-report.md
+            echo "" >> quality-report.md
+            echo "レビュアーは以下を確認してください:" >> quality-report.md
+            echo "1. PR Governanceのチェック項目" >> quality-report.md
+            echo "2. 変更サマリーのレビュー観点" >> quality-report.md
+            echo "3. コードの品質・可読性" >> quality-report.md
+            echo "" >> quality-report.md
+            echo "📚 **参考**: [コーディング規約](https://github.com/${{ github.repository }}/blob/main/CLAUDE.md#コーディング規約)" >> quality-report.md
             echo "gate=pass" >> $GITHUB_OUTPUT
           else
-            echo "| Lint | ❌ 要確認 | 必須 |" >> quality-report.md
-            echo "| 型チェック | ❌ 要確認 | 必須 |" >> quality-report.md
-            echo "| 単体テスト | ❌ 要確認 | 必須 |" >> quality-report.md
-            echo "| ビルド | ❌ 要確認 | 必須 |" >> quality-report.md
+            echo "| Lint | ❌ 要確認 | 警告0 |" >> quality-report.md
+            echo "| 型チェック | ❌ 要確認 | エラー0 |" >> quality-report.md
+            echo "| 単体テスト | ❌ 要確認 | カバレッジ85%+ |" >> quality-report.md
+            echo "| ビルド | ❌ 要確認 | 成功 |" >> quality-report.md
             echo "" >> quality-report.md
             echo "### 判定結果: ❌ 修正が必要" >> quality-report.md
             echo "" >> quality-report.md
-            echo "> CIが失敗しています。[実行ログ](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})を確認してください。" >> quality-report.md
+            echo "CIが失敗しています。" >> quality-report.md
+            echo "" >> quality-report.md
+            echo "#### 修正手順" >> quality-report.md
+            echo "" >> quality-report.md
+            echo "1. [実行ログ](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})を確認" >> quality-report.md
+            echo "2. エラー内容を修正" >> quality-report.md
+            echo "3. 再プッシュでCIを再実行" >> quality-report.md
+            echo "" >> quality-report.md
+            echo "#### よくある修正コマンド" >> quality-report.md
+            echo "" >> quality-report.md
+            echo "\`\`\`bash" >> quality-report.md
+            echo "npm run lint          # Lint確認" >> quality-report.md
+            echo "npx tsc --noEmit      # 型チェック" >> quality-report.md
+            echo "npm run test:run      # テスト実行" >> quality-report.md
+            echo "\`\`\`" >> quality-report.md
             echo "gate=fail" >> $GITHUB_OUTPUT
           fi
 
