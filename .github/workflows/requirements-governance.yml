@@ -52,6 +52,27 @@ jobs:
             echo "has_issue=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: リポジトリをチェックアウト
+        if: steps.check-type.outputs.skip == 'false' && steps.extract-issue.outputs.has_issue == 'true'
+        uses: actions/checkout@v4
+
+      - name: 詳細要件定義ファイルをチェック
+        if: steps.check-type.outputs.skip == 'false' && steps.extract-issue.outputs.has_issue == 'true'
+        id: check-file
+        run: |
+          ISSUE_NUMBER="${{ steps.extract-issue.outputs.issue_number }}"
+          REQ_FILE="docs/requirements/REQ-${ISSUE_NUMBER}.md"
+
+          if [ -f "$REQ_FILE" ]; then
+            echo "file_exists=true" >> $GITHUB_OUTPUT
+            echo "file_path=$REQ_FILE" >> $GITHUB_OUTPUT
+            echo "file_message=✅ 詳細要件定義ファイルあり: $REQ_FILE" >> $GITHUB_OUTPUT
+          else
+            echo "file_exists=false" >> $GITHUB_OUTPUT
+            echo "file_path=$REQ_FILE" >> $GITHUB_OUTPUT
+            echo "file_message=❌ 詳細要件定義ファイルなし: $REQ_FILE" >> $GITHUB_OUTPUT
+          fi
+
       - name: Issueラベルをチェック
         if: steps.check-type.outputs.skip == 'false' && steps.extract-issue.outputs.has_issue == 'true'
         id: check-labels
@@ -67,17 +88,32 @@ jobs:
           echo "Issue #$ISSUE_NUMBER のラベル: $LABELS"
 
           if echo "$LABELS" | grep -q "requirements-approved"; then
-            echo "approved=true" >> $GITHUB_OUTPUT
-            echo "message=✅ 要件定義承認済み（requirements-approved ラベルあり）" >> $GITHUB_OUTPUT
+            echo "label_approved=true" >> $GITHUB_OUTPUT
+            echo "label_message=✅ 要件定義承認済み（requirements-approved ラベルあり）" >> $GITHUB_OUTPUT
           elif echo "$LABELS" | grep -q "no-requirements"; then
-            echo "approved=true" >> $GITHUB_OUTPUT
-            echo "message=✅ 要件定義不要（no-requirements ラベルあり）" >> $GITHUB_OUTPUT
+            echo "label_approved=true" >> $GITHUB_OUTPUT
+            echo "label_message=✅ 要件定義不要（no-requirements ラベルあり）" >> $GITHUB_OUTPUT
           elif echo "$LABELS" | grep -q "needs-requirements"; then
-            echo "approved=false" >> $GITHUB_OUTPUT
-            echo "message=❌ 要件定義待ち（needs-requirements ラベルあり）" >> $GITHUB_OUTPUT
+            echo "label_approved=false" >> $GITHUB_OUTPUT
+            echo "label_message=❌ 要件定義待ち（needs-requirements ラベルあり）" >> $GITHUB_OUTPUT
           else
-            echo "approved=false" >> $GITHUB_OUTPUT
-            echo "message=❌ 要件定義ステータス不明（needs-requirements または requirements-approved ラベルを付与してください）" >> $GITHUB_OUTPUT
+            echo "label_approved=false" >> $GITHUB_OUTPUT
+            echo "label_message=❌ 要件定義ステータス不明（ラベルを付与してください）" >> $GITHUB_OUTPUT
+          fi
+
+          # design-approved チェック（UI変更がある場合）
+          if echo "$LABELS" | grep -q "design-approved"; then
+            echo "design_approved=true" >> $GITHUB_OUTPUT
+            echo "design_message=✅ デザイン承認済み" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "design-review"; then
+            echo "design_approved=false" >> $GITHUB_OUTPUT
+            echo "design_message=⚠️ デザインレビュー中" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "no-ui"; then
+            echo "design_approved=true" >> $GITHUB_OUTPUT
+            echo "design_message=✅ UI変更なし（no-ui）" >> $GITHUB_OUTPUT
+          else
+            echo "design_approved=true" >> $GITHUB_OUTPUT
+            echo "design_message=ℹ️ デザインラベルなし" >> $GITHUB_OUTPUT
           fi
 
       - name: 結果をPRにコメント
@@ -99,15 +135,25 @@ jobs:
           **参照**: [Issue駆動開発](https://github.com/PROLE-ISLAND/.github/blob/main/copilot-instructions.md#issue駆動開発)"
           else
             ISSUE_NUMBER="${{ steps.extract-issue.outputs.issue_number }}"
-            MESSAGE="${{ steps.check-labels.outputs.message }}"
+            FILE_MESSAGE="${{ steps.check-file.outputs.file_message }}"
+            LABEL_MESSAGE="${{ steps.check-labels.outputs.label_message }}"
+            DESIGN_MESSAGE="${{ steps.check-labels.outputs.design_message }}"
 
             COMMENT="## 🔍 要件定義チェック結果
 
           **関連Issue**: #$ISSUE_NUMBER
-          **ステータス**: $MESSAGE
+
+          ### チェック項目
+
+          | 項目 | 結果 |
+          |------|------|
+          | 詳細要件定義ファイル | $FILE_MESSAGE |
+          | 要件定義ラベル | $LABEL_MESSAGE |
+          | デザイン承認 | $DESIGN_MESSAGE |
 
           **参照**:
           - [要件定義テンプレート](https://github.com/PROLE-ISLAND/.github/wiki/要件定義テンプレート)
+          - [V0-Figma活用ガイド](https://github.com/PROLE-ISLAND/.github/wiki/V0-Figma活用ガイド)
           - [Issue駆動開発](https://github.com/PROLE-ISLAND/.github/blob/main/copilot-instructions.md#issue駆動開発)"
           fi
 
@@ -123,20 +169,45 @@ jobs:
       - name: 要件定義未承認の場合に失敗
         if: steps.check-type.outputs.skip == 'false'
         run: |
+          FAILED=false
+
           if [ "${{ steps.extract-issue.outputs.has_issue }}" == "false" ]; then
             echo "❌ 関連Issueが見つかりません"
             echo "PR本文に 'closes #番号' 形式でIssueを紐付けてください"
             exit 1
           fi
 
-          if [ "${{ steps.check-labels.outputs.approved }}" != "true" ]; then
-            echo "❌ 要件定義が承認されていません"
-            echo "${{ steps.check-labels.outputs.message }}"
+          # 詳細要件定義ファイルチェック
+          if [ "${{ steps.check-file.outputs.file_exists }}" != "true" ]; then
+            echo "❌ 詳細要件定義ファイルがありません"
+            echo "パス: ${{ steps.check-file.outputs.file_path }}"
             echo ""
-            echo "以下の手順で要件定義を完了してください:"
-            echo "1. Issueに要件定義コメントを投稿"
-            echo "2. レビュアーの承認を得る"
-            echo "3. Issueに 'requirements-approved' ラベルを付与"
+            echo "【Stage 2: 詳細要件定義】の手順:"
+            echo "1. デザインモックの承認を得る"
+            echo "2. docs/requirements/REQ-{番号}.md を作成"
+            echo "3. PRでレビュー・マージ"
+            FAILED=true
+          fi
+
+          # ラベルチェック
+          if [ "${{ steps.check-labels.outputs.label_approved }}" != "true" ]; then
+            echo "❌ 要件定義ラベルが承認されていません"
+            echo "${{ steps.check-labels.outputs.label_message }}"
+            FAILED=true
+          fi
+
+          # デザインチェック（警告のみ）
+          if [ "${{ steps.check-labels.outputs.design_approved }}" != "true" ]; then
+            echo "⚠️ デザインレビューが完了していません"
+            echo "${{ steps.check-labels.outputs.design_message }}"
+          fi
+
+          if [ "$FAILED" == "true" ]; then
+            echo ""
+            echo "【2段階要件定義フロー】"
+            echo "Stage 1: ラフ要件定義 + V0デザインモック → デザイン承認"
+            echo "Stage 2: 詳細要件定義MDファイル作成 → レビュー・マージ"
+            echo "Stage 3: 実装 → PR"
             exit 1
           fi
 
