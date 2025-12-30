@@ -1,0 +1,30 @@
+# =====================================================
+# dependabot.local.yml - リポジトリ固有設定
+# 組織テンプレートにマージされる追加設定
+# =====================================================
+
+# 追加グループ（npm の groups にマージ）
+groups:
+  # SurveyJS（peer dependency があるため一括更新必須）
+  surveyjs:
+    patterns:
+      - "survey-*"
+    update-types:
+      - "minor"
+      - "patch"
+
+  # Recharts（グラフライブラリ）
+  recharts:
+    patterns:
+      - "recharts*"
+    update-types:
+      - "minor"
+      - "patch"
+
+  # OpenAI（AI分析）
+  openai:
+    patterns:
+      - "openai*"
+    update-types:
+      - "minor"
+      - "patch"

@@ -1,0 +1,221 @@
+# =====================================================
+# 組織テンプレート同期ワークフロー
+# PROLE-ISLAND/.github のテンプレートと同期
+# =====================================================
+#
+# 使用方法:
+# 1. このファイルを .github/workflows/sync-templates.yml にコピー
+# 2. 必要に応じて .github/CODEOWNERS.local, .github/dependabot.local.yml を作成
+#
+# 動作:
+# - 週1回（月曜09:00 JST）自動実行
+# - 手動実行: Actions → Sync Templates → Run workflow
+# - 組織テンプレート + ローカル拡張をマージ
+#
+# 参考: docs/TEMPLATE_SYNC_GUIDE.md
+
+name: Sync Templates
+
+on:
+  schedule:
+    # 毎週月曜 09:00 JST (00:00 UTC)
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (変更を適用せず差分のみ表示)'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync-templates:
+    name: Sync Organization Templates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch organization templates
+        run: |
+          mkdir -p .github/templates-cache
+
+          # CODEOWNERS テンプレート取得
+          curl -sL -o .github/templates-cache/CODEOWNERS_TEMPLATE.md \
+            https://raw.githubusercontent.com/PROLE-ISLAND/.github/main/CODEOWNERS_TEMPLATE.md
+
+          # Dependabot テンプレート取得
+          curl -sL -o .github/templates-cache/dependabot.yml.template \
+            https://raw.githubusercontent.com/PROLE-ISLAND/.github/main/dependabot.yml.template
+
+          echo "✓ テンプレート取得完了"
+
+      - name: Merge CODEOWNERS
+        run: |
+          TEMPLATE=".github/templates-cache/CODEOWNERS_TEMPLATE.md"
+          LOCAL=".github/CODEOWNERS.local"
+          OUTPUT=".github/CODEOWNERS"
+
+          echo "# =====================================================" > "$OUTPUT"
+          echo "# CODEOWNERS - 自動生成ファイル" >> "$OUTPUT"
+          echo "# 組織テンプレート + ローカル拡張のマージ結果" >> "$OUTPUT"
+          echo "# " >> "$OUTPUT"
+          echo "# 編集方法:" >> "$OUTPUT"
+          echo "#   - 組織共通ルール: PROLE-ISLAND/.github の CODEOWNERS_TEMPLATE.md" >> "$OUTPUT"
+          echo "#   - リポジトリ固有ルール: .github/CODEOWNERS.local に追記" >> "$OUTPUT"
+          echo "# =====================================================" >> "$OUTPUT"
+          echo "" >> "$OUTPUT"
+
+          # テンプレートからコメント以外を抽出
+          echo "# === 組織共通ルール ===" >> "$OUTPUT"
+          grep -v "^#" "$TEMPLATE" | grep -v "^$" | head -20 >> "$OUTPUT" || true
+          echo "" >> "$OUTPUT"
+
+          # ローカル拡張があれば追加
+          if [ -f "$LOCAL" ]; then
+            echo "# === リポジトリ固有ルール ===" >> "$OUTPUT"
+            grep -v "^#" "$LOCAL" | grep -v "^$" >> "$OUTPUT" || true
+            echo "✓ ローカル拡張を適用: $LOCAL"
+          else
+            echo "ℹ ローカル拡張なし（.github/CODEOWNERS.local が存在しない）"
+          fi
+
+          echo "✓ CODEOWNERS マージ完了"
+
+      - name: Merge dependabot.yml
+        run: |
+          TEMPLATE=".github/templates-cache/dependabot.yml.template"
+          LOCAL=".github/dependabot.local.yml"
+          OUTPUT=".github/dependabot.yml"
+
+          # Python スクリプトでYAMLマージ
+          python3 << 'PYTHON_SCRIPT'
+          import yaml
+          import os
+
+          template_path = ".github/templates-cache/dependabot.yml.template"
+          local_path = ".github/dependabot.local.yml"
+          output_path = ".github/dependabot.yml"
+
+          # テンプレート読み込み
+          with open(template_path, 'r') as f:
+              # コメント行をスキップしてYAML部分のみ抽出
+              content = f.read()
+              # 最初の "version:" から開始
+              yaml_start = content.find('version:')
+              if yaml_start == -1:
+                  print("Error: version: not found in template")
+                  exit(1)
+              yaml_content = content[yaml_start:]
+              base = yaml.safe_load(yaml_content)
+
+          # ローカル拡張読み込み
+          local_groups = {}
+          local_updates = []
+          if os.path.exists(local_path):
+              with open(local_path, 'r') as f:
+                  local = yaml.safe_load(f)
+                  if local:
+                      local_groups = local.get('groups', {})
+                      local_updates = local.get('updates', [])
+              print(f"✓ ローカル拡張を読み込み: {local_path}")
+          else:
+              print("ℹ ローカル拡張なし")
+
+          # マージ処理
+          if base and 'updates' in base:
+              for update in base['updates']:
+                  if update.get('package-ecosystem') == 'npm':
+                      # groups にローカル拡張を追加
+                      if 'groups' not in update:
+                          update['groups'] = {}
+                      for group_name, group_config in local_groups.items():
+                          if group_name not in update['groups']:
+                              update['groups'][group_name] = group_config
+                              print(f"  + グループ追加: {group_name}")
+
+          # ローカルの追加updates（Docker等）をマージ
+          if local_updates:
+              for local_update in local_updates:
+                  # 同じ ecosystem がなければ追加
+                  ecosystem = local_update.get('package-ecosystem')
+                  existing = [u for u in base.get('updates', []) if u.get('package-ecosystem') == ecosystem]
+                  if not existing:
+                      base['updates'].append(local_update)
+                      print(f"  + エコシステム追加: {ecosystem}")
+
+          # 出力
+          header = """# =====================================================
+          # dependabot.yml - 自動生成ファイル
+          # 組織テンプレート + ローカル拡張のマージ結果
+          #
+          # 編集方法:
+          #   - 組織共通設定: PROLE-ISLAND/.github の dependabot.yml.template
+          #   - リポジトリ固有設定: .github/dependabot.local.yml に追記
+          # =====================================================
+
+          """
+          with open(output_path, 'w') as f:
+              f.write(header)
+              yaml.dump(base, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+          print("✓ dependabot.yml マージ完了")
+          PYTHON_SCRIPT
+
+      - name: Cleanup cache
+        run: rm -rf .github/templates-cache
+
+      - name: Check for changes
+        id: diff
+        run: |
+          git add .github/CODEOWNERS .github/dependabot.yml
+          if git diff --cached --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "ℹ 変更なし"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "✓ 変更を検出"
+            git diff --cached --stat
+          fi
+
+      - name: Show diff (dry run)
+        if: inputs.dry_run == 'true' && steps.diff.outputs.changed == 'true'
+        run: |
+          echo "=== Dry Run: 以下の変更が適用されます ==="
+          git diff --cached
+
+      - name: Create Pull Request
+        if: inputs.dry_run != 'true' && steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: 組織テンプレートと同期"
+          branch: chore/sync-templates
+          delete-branch: true
+          title: "chore: 組織テンプレートと同期"
+          body: |
+            ## 概要
+
+            PROLE-ISLAND/.github の最新テンプレートと同期しました。
+
+            ### 変更内容
+
+            - CODEOWNERS: 組織テンプレート + ローカル拡張のマージ
+            - dependabot.yml: 組織テンプレート + ローカル拡張のマージ
+
+            ### 確認事項
+
+            - [ ] CODEOWNERS のチーム名が正しいか
+            - [ ] dependabot.yml のグループ設定が適切か
+
+            ---
+
+            🤖 この PR は [sync-templates.yml](https://github.com/PROLE-ISLAND/.github/blob/main/workflow-templates/sync-templates.yml) により自動生成されました。
+          labels: |
+            dependencies
+            automated

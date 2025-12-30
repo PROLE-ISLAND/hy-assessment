@@ -1,0 +1,18 @@
+# =====================================================
+# CODEOWNERS.local - リポジトリ固有ルール
+# 組織テンプレートにマージされる追加ルール
+# =====================================================
+
+# SurveyJS 関連
+/src/lib/survey/ @PROLE-ISLAND/backend
+/src/components/survey/ @PROLE-ISLAND/frontend
+
+# 検査分析機能
+/src/lib/analysis/ @PROLE-ISLAND/backend
+/src/components/analysis/ @PROLE-ISLAND/frontend
+
+# デザインシステム（プロジェクト固有拡張）
+/src/lib/design-system/ @PROLE-ISLAND/frontend
+
+# Supabase 追加パス
+/src/lib/supabase/ @PROLE-ISLAND/backend
