@@ -1,8 +1,20 @@
 # HY Assessment - 開発ルール
 
-> **📚 組織共通ルール**: https://github.com/PROLE-ISLAND/.github/wiki
->
-> このドキュメントはリポジトリ固有のルールです。組織共通ルールと併せて参照してください。
+## 📚 必読ドキュメント
+
+開発開始前に以下を確認すること：
+
+| ドキュメント | 内容 | 必須度 |
+|-------------|------|--------|
+| [DoD_STANDARDS.md](https://github.com/PROLE-ISLAND/.github/blob/main/DoD_STANDARDS.md) | 品質基準（77観点） | ⚠️ 最優先 |
+| [組織Wiki](https://github.com/PROLE-ISLAND/.github/wiki) | 開発標準・CI/CD・テスト戦略 | ⚠️ 必須 |
+| [組織CLAUDE.md](https://github.com/PROLE-ISLAND/.github/blob/main/CLAUDE.md) | 組織共通開発ルール | ⚠️ 必須 |
+| [プロジェクトWiki](https://github.com/PROLE-ISLAND/hy-assessment/wiki) | 実装計画・プロジェクト固有情報 | 📖 参照 |
+| このファイル | プロジェクト固有ルール | 📖 参照 |
+
+> **ルール優先順位**: DoD_STANDARDS.md > 組織Wiki > 組織CLAUDE.md > このファイル
+
+---
 
 ## プロジェクト概要
 入社前適性検査システム（SaaS対応マルチテナント設計）
