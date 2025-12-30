@@ -1,0 +1,435 @@
+# HY Assessment - Usecase Universe
+# ユースケース母集合（Gold E2E網羅性証明用）
+#
+# ID命名規則: UC-HY-{ROLE}-{OUTCOME}-{CHANNEL}
+# Role: ADMIN(管理者), CAND(候補者), SYS(システム)
+# Channel: WEB(ブラウザ), API(直接API), BG(バックグラウンド)
+
+meta:
+  domain: hy-assessment
+  version: "1.0"
+  last_updated: "2025-12-30"
+  description: |
+    入社前適性検査システムのユースケース母集合。
+    Role×Outcomeの網羅的洗い出しから、Gold E2Eテストの採用/却下を決定する。
+
+# ===================================================================
+# Role定義
+# ===================================================================
+roles:
+  ADMIN:
+    description: "管理者（HR/採用担当者）"
+    capabilities:
+      - 候補者管理
+      - 検査管理
+      - 分析閲覧
+      - レポート共有
+      - テンプレート管理
+      - システム設定
+
+  CAND:
+    description: "候補者（検査受験者）"
+    capabilities:
+      - 検査回答
+      - 結果確認（限定的）
+
+  SYS:
+    description: "システム（バックグラウンド処理）"
+    capabilities:
+      - 自動分析
+      - メール送信
+      - データ同期
+
+# ===================================================================
+# Outcome定義（価値確定イベント）
+# ===================================================================
+outcomes:
+  # --- セキュリティ ---
+  認証成功:
+    id: AUTH_SUCCESS
+    description: "認証成功・システムアクセス"
+    value_type: "security"
+
+  # --- データ作成 ---
+  候補者登録完了:
+    id: CANDIDATE_REGISTERED
+    description: "候補者登録完了"
+    value_type: "data_creation"
+
+  検査リンク発行:
+    id: ASSESSMENT_LINK_ISSUED
+    description: "検査リンク発行完了"
+    value_type: "workflow_trigger"
+
+  # --- 検査実施 ---
+  回答データ保存:
+    id: RESPONSE_SAVED
+    description: "回答データ保存完了"
+    value_type: "data_persistence"
+
+  検査完了:
+    id: ASSESSMENT_COMPLETED
+    description: "検査完了（全設問回答）"
+    value_type: "milestone"
+
+  # --- 分析・価値創造 ---
+  AI分析生成:
+    id: ANALYSIS_GENERATED
+    description: "AI分析結果生成完了"
+    value_type: "value_creation"
+
+  分析結果閲覧:
+    id: ANALYSIS_VIEWED
+    description: "分析結果閲覧（管理者が採用判断材料を取得）"
+    value_type: "value_delivery"
+
+  候補者比較:
+    id: CANDIDATES_COMPARED
+    description: "候補者比較分析完了"
+    value_type: "value_creation"
+
+  # --- 価値配信 ---
+  レポート共有:
+    id: REPORT_SHARED
+    description: "レポート外部共有完了（管理者→ステークホルダー）"
+    value_type: "value_distribution"
+
+  候補者レポート閲覧:
+    id: CANDIDATE_REPORT_VIEWED
+    description: "候補者がフィードバックレポートを閲覧"
+    value_type: "value_delivery_to_candidate"
+
+  レポートリンク再取得:
+    id: REPORT_LINK_RESENT
+    description: "候補者がレポートリンクを再取得"
+    value_type: "self_service"
+
+  # --- 設定・管理 ---
+  テンプレート管理:
+    id: TEMPLATE_MANAGED
+    description: "検査テンプレート管理完了"
+    value_type: "configuration"
+
+  プロンプト管理:
+    id: PROMPT_MANAGED
+    description: "AIプロンプト設定完了"
+    value_type: "configuration"
+
+  検査一覧閲覧:
+    id: ASSESSMENT_LIST_VIEWED
+    description: "検査一覧・詳細閲覧"
+    value_type: "monitoring"
+
+  ダッシュボード閲覧:
+    id: DASHBOARD_VIEWED
+    description: "ダッシュボード閲覧（KPI確認）"
+    value_type: "monitoring"
+
+# ===================================================================
+# ユースケース一覧（Role × Outcome × Channel）
+# ===================================================================
+usecases:
+
+  # ---------------------------------------------------------------
+  # 管理者 × 認証
+  # ---------------------------------------------------------------
+  - id: UC-HY-ADMIN-AUTH-WEB
+    role: ADMIN
+    outcome: AUTH_SUCCESS
+    channel: WEB
+    description: "管理者がブラウザでログインしシステムにアクセス"
+    triage:
+      criticality: 5      # 認証できないと何もできない
+      frequency: 5        # 毎日使用
+      detectability: 5    # 失敗は即座に気づく
+      recovery_cost: 3    # パスワードリセット可能
+    score: 18
+    gold_selected: true
+    rationale: "認証は全機能の入口。失敗するとサービス利用不可"
+    gs_id: GS-HY-001
+    pw_file: "e2e/gold/admin-login.spec.ts"
+
+  # ---------------------------------------------------------------
+  # 管理者 × 候補者登録
+  # ---------------------------------------------------------------
+  - id: UC-HY-ADMIN-CANDIDATE-WEB
+    role: ADMIN
+    outcome: CANDIDATE_REGISTERED
+    channel: WEB
+    description: "管理者が候補者情報を登録"
+    triage:
+      criticality: 5      # 候補者なしでは検査不可
+      frequency: 4        # 採用活動期に頻繁
+      detectability: 4    # 登録失敗は比較的早く気づく
+      recovery_cost: 2    # 再登録可能
+    score: 15
+    gold_selected: true
+    rationale: "候補者登録→検査リンク発行の起点。事業フローの入口"
+    gs_id: GS-HY-002
+    pw_file: "e2e/gold/candidate-registration.spec.ts"
+
+  # ---------------------------------------------------------------
+  # 管理者 × 検査リンク発行
+  # ---------------------------------------------------------------
+  - id: UC-HY-ADMIN-LINK-WEB
+    role: ADMIN
+    outcome: ASSESSMENT_LINK_ISSUED
+    channel: WEB
+    description: "管理者が候補者に検査リンクを発行"
+    triage:
+      criticality: 4      # リンクなしでは検査不可
+      frequency: 4        # 候補者登録とセット
+      detectability: 4    # メール未着で気づく
+      recovery_cost: 2    # 再発行可能
+    score: 14
+    gold_selected: false
+    rationale: "候補者登録と統合してテスト。単独Gold不要"
+    merged_into: UC-HY-ADMIN-CANDIDATE-WEB
+
+  # ---------------------------------------------------------------
+  # 候補者 × 検査回答
+  # ---------------------------------------------------------------
+  - id: UC-HY-CAND-RESPONSE-WEB
+    role: CAND
+    outcome: RESPONSE_SAVED
+    channel: WEB
+    description: "候補者が検査に回答しデータが保存される"
+    triage:
+      criticality: 5      # 回答なしでは分析不可
+      frequency: 5        # 全候補者が実行
+      detectability: 3    # 保存失敗は気づきにくい
+      recovery_cost: 4    # 再回答は負担大
+    score: 17
+    gold_selected: true
+    rationale: "検査の本質。回答データが永続化されないと事業成立せず"
+    gs_id: GS-HY-003
+    pw_file: "e2e/gold/assessment-completion.spec.ts"
+
+  # ---------------------------------------------------------------
+  # 候補者 × 検査完了
+  # ---------------------------------------------------------------
+  - id: UC-HY-CAND-COMPLETE-WEB
+    role: CAND
+    outcome: ASSESSMENT_COMPLETED
+    channel: WEB
+    description: "候補者が全設問に回答し検査を完了"
+    triage:
+      criticality: 5      # 完了しないと分析不可
+      frequency: 5        # 全候補者が実行
+      detectability: 4    # 完了画面で確認可能
+      recovery_cost: 3    # 部分回答からの再開可能
+    score: 17
+    gold_selected: false
+    rationale: "RESPONSE_SAVEDと統合してテスト（同一フロー内）"
+    merged_into: UC-HY-CAND-RESPONSE-WEB
+
+  # ---------------------------------------------------------------
+  # システム × AI分析
+  # ---------------------------------------------------------------
+  - id: UC-HY-SYS-ANALYSIS-BG
+    role: SYS
+    outcome: ANALYSIS_GENERATED
+    channel: BG
+    description: "システムがAI分析を自動実行"
+    triage:
+      criticality: 5      # 分析なしでは採用判断不可
+      frequency: 5        # 全検査完了後に実行
+      detectability: 3    # 分析失敗は管理画面で確認
+      recovery_cost: 2    # 再分析可能
+    score: 15
+    gold_selected: false
+    rationale: "バックグラウンド処理。E2Eではなく統合テストで検証"
+    test_level: "integration"
+
+  # ---------------------------------------------------------------
+  # 管理者 × 分析結果閲覧
+  # ---------------------------------------------------------------
+  - id: UC-HY-ADMIN-VIEW-WEB
+    role: ADMIN
+    outcome: ANALYSIS_VIEWED
+    channel: WEB
+    description: "管理者がAI分析結果を閲覧し採用判断材料を取得"
+    triage:
+      criticality: 5      # 閲覧できないと採用判断不可
+      frequency: 5        # 全候補者で確認
+      detectability: 5    # 表示されないと即座に気づく
+      recovery_cost: 1    # 再読み込みで解決
+    score: 16
+    gold_selected: true
+    rationale: "分析結果の価値提供。採用判断の核心機能"
+    gs_id: GS-HY-004
+    pw_file: "e2e/gold/analysis-result-view.spec.ts"
+
+  # ---------------------------------------------------------------
+  # 管理者 × レポート共有
+  # ---------------------------------------------------------------
+  - id: UC-HY-ADMIN-SHARE-WEB
+    role: ADMIN
+    outcome: REPORT_SHARED
+    channel: WEB
+    description: "管理者が分析レポートを外部ステークホルダーに共有"
+    triage:
+      criticality: 4      # 共有できないと意思決定遅延
+      frequency: 3        # 採用候補に絞って実行
+      detectability: 4    # 共有失敗は受信者から連絡
+      recovery_cost: 2    # 再送可能
+    score: 13
+    gold_selected: true
+    rationale: "価値の外部配信。採用プロセス完結に必要"
+    gs_id: GS-HY-005
+    pw_file: "e2e/gold/report-sharing.spec.ts"
+
+  # ---------------------------------------------------------------
+  # 管理者 × テンプレート管理
+  # ---------------------------------------------------------------
+  - id: UC-HY-ADMIN-TEMPLATE-WEB
+    role: ADMIN
+    outcome: TEMPLATE_MANAGED
+    channel: WEB
+    description: "管理者が検査テンプレートを作成/編集"
+    triage:
+      criticality: 3      # 初期設定後は頻度低
+      frequency: 2        # 設定時のみ
+      detectability: 4    # 動作確認で検知可能
+      recovery_cost: 2    # 修正可能
+    score: 11
+    gold_selected: false
+    rationale: "初期設定・運用変更時のみ。Silverで十分"
+    test_level: "silver"
+
+  # ---------------------------------------------------------------
+  # 管理者 × 候補者比較
+  # ---------------------------------------------------------------
+  - id: UC-HY-ADMIN-COMPARE-WEB
+    role: ADMIN
+    outcome: CANDIDATES_COMPARED
+    channel: WEB
+    description: "管理者が複数候補者を比較分析"
+    triage:
+      criticality: 3      # 比較なしでも個別判断可能
+      frequency: 3        # 最終選考時
+      detectability: 4    # 表示で確認可能
+      recovery_cost: 1    # 再読み込みで解決
+    score: 11
+    gold_selected: false
+    rationale: "付加価値機能。個別閲覧で代替可能。Silverで検証"
+    test_level: "silver"
+
+  # ---------------------------------------------------------------
+  # 候補者 × フィードバックレポート閲覧 ★NEW★
+  # ---------------------------------------------------------------
+  - id: UC-HY-CAND-REPORT-WEB
+    role: CAND
+    outcome: CANDIDATE_REPORT_VIEWED
+    channel: WEB
+    description: "候補者がフィードバックレポートを閲覧し自己理解を深める"
+    triage:
+      criticality: 4      # 候補者への価値提供の完結点
+      frequency: 5        # 全候補者が閲覧を期待
+      detectability: 5    # 閲覧できないと即座に気づく
+      recovery_cost: 2    # リンク再発行可能
+    score: 16
+    gold_selected: true
+    rationale: "候補者への価値提供の唯一のユースケース。双方向価値創造の証明"
+    gs_id: GS-HY-006
+    pw_file: "e2e/gold/GS-HY-006-candidate-report-view.spec.ts"
+
+  # ---------------------------------------------------------------
+  # 候補者 × レポートリンク再取得 ★NEW★
+  # ---------------------------------------------------------------
+  - id: UC-HY-CAND-RESEND-WEB
+    role: CAND
+    outcome: REPORT_LINK_RESENT
+    channel: WEB
+    description: "候補者がレポートリンクを再取得（セルフサービス）"
+    triage:
+      criticality: 2      # リンク紛失時のみ
+      frequency: 2        # 稀に発生
+      detectability: 5    # 再送画面で確認可能
+      recovery_cost: 1    # 再試行可能
+    score: 10
+    gold_selected: false
+    rationale: "セルフサービス機能。CANDIDATE_REPORT_VIEWEDで代替可能"
+    test_level: "silver"
+
+  # ---------------------------------------------------------------
+  # 管理者 × プロンプト管理 ★NEW★
+  # ---------------------------------------------------------------
+  - id: UC-HY-ADMIN-PROMPT-WEB
+    role: ADMIN
+    outcome: PROMPT_MANAGED
+    channel: WEB
+    description: "管理者がAI分析プロンプトを設定"
+    triage:
+      criticality: 3      # 初期設定後は頻度低
+      frequency: 2        # 設定時のみ
+      detectability: 4    # 動作確認で検知可能
+      recovery_cost: 2    # 修正可能
+    score: 11
+    gold_selected: false
+    rationale: "初期設定・運用変更時のみ。Silverで十分"
+    test_level: "silver"
+
+  # ---------------------------------------------------------------
+  # 管理者 × 検査一覧閲覧 ★NEW★
+  # ---------------------------------------------------------------
+  - id: UC-HY-ADMIN-ASSESSMENTS-WEB
+    role: ADMIN
+    outcome: ASSESSMENT_LIST_VIEWED
+    channel: WEB
+    description: "管理者が検査一覧・詳細を閲覧"
+    triage:
+      criticality: 3      # 運用監視機能
+      frequency: 4        # 定期的に確認
+      detectability: 5    # 表示されないと即座に気づく
+      recovery_cost: 1    # 再読み込みで解決
+    score: 13
+    gold_selected: false
+    rationale: "監視機能。分析結果閲覧（GS-HY-004）で主要フロー検証済み"
+    test_level: "silver"
+
+  # ---------------------------------------------------------------
+  # 管理者 × ダッシュボード閲覧 ★NEW★
+  # ---------------------------------------------------------------
+  - id: UC-HY-ADMIN-DASHBOARD-WEB
+    role: ADMIN
+    outcome: DASHBOARD_VIEWED
+    channel: WEB
+    description: "管理者がダッシュボードでKPIを確認"
+    triage:
+      criticality: 3      # 経営判断補助
+      frequency: 4        # 定期的に確認
+      detectability: 5    # 表示されないと即座に気づく
+      recovery_cost: 1    # 再読み込みで解決
+    score: 13
+    gold_selected: false
+    rationale: "監視機能。分析結果閲覧で主要価値は検証済み"
+    test_level: "silver"
+
+# ===================================================================
+# Gold採用サマリー
+# ===================================================================
+gold_summary:
+  total_universe: 15
+  gold_selected: 6
+  not_gold: 9
+
+  selected:
+    - UC-HY-ADMIN-AUTH-WEB
+    - UC-HY-ADMIN-CANDIDATE-WEB
+    - UC-HY-CAND-RESPONSE-WEB
+    - UC-HY-ADMIN-VIEW-WEB
+    - UC-HY-ADMIN-SHARE-WEB
+    - UC-HY-CAND-REPORT-WEB  # ★NEW: 候補者への価値提供
+
+  threshold:
+    minimum_score: 13
+    rationale: "事業継続に直接影響するユースケースのみGold採用。UC-HY-CAND-REPORT-WEBは候補者への価値提供完結点として特別採用"
+
+# ===================================================================
+# トレーサビリティ
+# ===================================================================
+traceability:
+  gs_prefix: "GS-HY-"
+  pw_directory: "e2e/gold/"
+  ci_job: "e2e-gold"
