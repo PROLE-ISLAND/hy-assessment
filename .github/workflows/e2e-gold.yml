@@ -1,0 +1,204 @@
+# =====================================================
+# Gold E2Eテスト ワークフロー
+# 事業継続に必須のユースケーステスト（5本）
+# トリガー: dod:goldラベルPR、mainへのpush
+# 失敗時: マージ/デプロイブロック
+# =====================================================
+
+name: Gold E2Eテスト
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-gold-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # Gold E2Eテストの実行判定
+  should-run:
+    name: 実行判定
+    runs-on: ubuntu-latest
+    outputs:
+      run_gold: ${{ steps.check.outputs.run_gold }}
+    steps:
+      - id: check
+        run: |
+          # mainブランチへのpushは常に実行
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "run_gold=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # PRの場合、dod:goldラベルがある場合のみ実行
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            labels='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+            if echo "$labels" | grep -q "dod:gold"; then
+              echo "run_gold=true" >> $GITHUB_OUTPUT
+            else
+              echo "run_gold=false" >> $GITHUB_OUTPUT
+              echo "::notice::dod:goldラベルがないためGold E2Eはスキップ"
+            fi
+            exit 0
+          fi
+
+          # 手動実行は常に実行
+          echo "run_gold=true" >> $GITHUB_OUTPUT
+
+  # Gold E2Eテスト
+  e2e-gold:
+    name: Gold E2E (${{ matrix.spec }})
+    needs: should-run
+    if: needs.should-run.outputs.run_gold == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        spec:
+          - GS-HY-001-admin-login
+          - GS-HY-002-candidate-registration
+          - GS-HY-003-assessment-completion
+          - GS-HY-004-analysis-result-view
+          - GS-HY-005-report-sharing
+          - GS-HY-006-candidate-report-view
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-node
+
+      - name: Playwrightブラウザインストール
+        run: npx playwright install --with-deps chromium
+
+      - name: アプリケーションビルド
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Gold E2Eテスト実行 - ${{ matrix.spec }}
+        run: |
+          echo "🥇 Running Gold E2E: ${{ matrix.spec }}"
+          npx playwright test e2e/gold/${{ matrix.spec }}.spec.ts --reporter=list
+        env:
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          E2E_TEST_CANDIDATE_ID: ${{ secrets.E2E_TEST_CANDIDATE_ID }}
+          E2E_TEST_ASSESSMENT_TOKEN: ${{ secrets.E2E_TEST_ASSESSMENT_TOKEN }}
+          E2E_TEST_REPORT_TOKEN: ${{ secrets.E2E_TEST_REPORT_TOKEN }}
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: テスト結果アップロード
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: gold-e2e-report-${{ matrix.spec }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: 失敗時スクリーンショット
+        uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: gold-e2e-screenshots-${{ matrix.spec }}
+          path: test-results/
+          retention-days: 7
+
+  # Gold E2E結果サマリー
+  gold-summary:
+    name: Gold E2Eサマリー
+    needs: [should-run, e2e-gold]
+    if: always() && needs.should-run.outputs.run_gold == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 結果判定
+        run: |
+          if [[ "${{ needs.e2e-gold.result }}" == "success" ]]; then
+            echo "## 🥇 Gold E2Eテスト成功" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "全6本のGold E2Eテストが成功しました。" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| テスト | ステータス |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|----------|" >> $GITHUB_STEP_SUMMARY
+            echo "| GS-HY-001 管理者ログイン | ✅ |" >> $GITHUB_STEP_SUMMARY
+            echo "| GS-HY-002 候補者登録 | ✅ |" >> $GITHUB_STEP_SUMMARY
+            echo "| GS-HY-003 検査回答→完了 | ✅ |" >> $GITHUB_STEP_SUMMARY
+            echo "| GS-HY-004 分析結果閲覧 | ✅ |" >> $GITHUB_STEP_SUMMARY
+            echo "| GS-HY-005 レポート共有 | ✅ |" >> $GITHUB_STEP_SUMMARY
+            echo "| GS-HY-006 候補者レポート閲覧 | ✅ |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 🚨 Gold E2Eテスト失敗" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**事業継続に影響するテストが失敗しています。**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 対応手順" >> $GITHUB_STEP_SUMMARY
+            echo "1. 失敗したテストのログを確認" >> $GITHUB_STEP_SUMMARY
+            echo "2. スクリーンショットで実際の画面を確認" >> $GITHUB_STEP_SUMMARY
+            echo "3. 修正PR作成 or ロールバック判断" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "📄 [Gold Spec仕様書](./docs/gold-specs/README.md)" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: PRコメント投稿
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const result = '${{ needs.e2e-gold.result }}';
+            const emoji = result === 'success' ? '🥇' : '🚨';
+            const status = result === 'success' ? '成功' : '失敗';
+
+            const body = `## ${emoji} Gold E2Eテスト ${status}
+
+            | ユースケース | ステータス |
+            |-------------|----------|
+            | GS-HY-001 管理者ログイン | ${result === 'success' ? '✅' : '❓'} |
+            | GS-HY-002 候補者登録 | ${result === 'success' ? '✅' : '❓'} |
+            | GS-HY-003 検査回答→完了 | ${result === 'success' ? '✅' : '❓'} |
+            | GS-HY-004 分析結果閲覧 | ${result === 'success' ? '✅' : '❓'} |
+            | GS-HY-005 レポート共有 | ${result === 'success' ? '✅' : '❓'} |
+            | GS-HY-006 候補者レポート閲覧 | ${result === 'success' ? '✅' : '❓'} |
+
+            ${result !== 'success' ? '⚠️ **マージブロック**: Gold E2Eテストが失敗しています。修正してください。' : '✅ Gold E2Eテストをパスしました。'}
+
+            📄 [Gold Spec仕様書](./docs/gold-specs/README.md)
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # スキップ時の通知
+  gold-skipped:
+    name: Gold E2Eスキップ
+    needs: should-run
+    if: needs.should-run.outputs.run_gold == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: スキップ通知
+        run: |
+          echo "## ⏭️ Gold E2Eテストスキップ" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "このPRには \`dod:gold\` ラベルがないため、Gold E2Eテストはスキップされました。" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "本番リリース品質が必要な場合は \`dod:gold\` ラベルを追加してください。" >> $GITHUB_STEP_SUMMARY
