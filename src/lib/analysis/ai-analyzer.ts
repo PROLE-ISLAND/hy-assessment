@@ -21,6 +21,14 @@ import {
   parseCandidateResponse,
   type CandidateAnalysisInput,
 } from './candidate-prompts';
+import {
+  PERSONALITY_SYSTEM_PROMPT,
+  buildPersonalityPrompt,
+  parsePersonalityResponse,
+  generateMockPersonalityAnalysis,
+  type PersonalityAnalysisInput,
+  type PersonalityAnalysisOutput,
+} from './personality-prompts';
 import type {
   ScoringResult,
   ResponseData,
@@ -428,6 +436,74 @@ export async function analyzeAssessmentFull(
 }
 
 // =====================================================
+// Personality Analysis
+// =====================================================
+
+/**
+ * Generate personality analysis (behavioral, stress, EQ, values)
+ */
+export async function generatePersonalityAnalysis(
+  input: AnalyzeAssessmentInput
+): Promise<{ personalityAnalysis: PersonalityAnalysisOutput; tokensUsed: number }> {
+  const { responses, organizationId, modelOverride } = input;
+
+  // 1. Calculate scores using scoring engine
+  const scoringResult = calculateScores(responses);
+
+  // 2. Extract SJT answers
+  const sjtAnswers: Record<string, string> = {};
+  for (const r of responses) {
+    if (r.question_id.startsWith('SJT') && typeof r.answer === 'string') {
+      sjtAnswers[r.question_id] = r.answer;
+    }
+  }
+
+  // 3. Extract free text answer
+  const freeTextResponse = responses.find((r) => r.question_id === 'T01');
+  const freeTextAnswer =
+    typeof freeTextResponse?.answer === 'string' ? freeTextResponse.answer : null;
+
+  // 4. Build personality input
+  const personalityInput: PersonalityAnalysisInput = {
+    scoringResult,
+    sjtAnswers,
+    freeTextAnswer,
+  };
+
+  // 5. Load prompt config
+  const promptConfig = await loadActivePrompt({
+    organizationId,
+    modelOverride,
+    promptKey: 'system',
+  });
+
+  // Override with personality-specific prompt
+  promptConfig.systemPrompt = PERSONALITY_SYSTEM_PROMPT;
+
+  // 6. Call OpenAI API
+  const { personalityAnalysis, tokensUsed } = await callOpenAIPersonality(personalityInput, promptConfig);
+
+  return { personalityAnalysis, tokensUsed };
+}
+
+/**
+ * Generate personality analysis (mock - no API call)
+ */
+export async function generatePersonalityAnalysisMock(
+  input: AnalyzeAssessmentInput
+): Promise<{ personalityAnalysis: PersonalityAnalysisOutput; tokensUsed: number }> {
+  const { responses } = input;
+
+  // Calculate scores
+  const scoringResult = calculateScores(responses);
+
+  // Generate mock personality analysis based on scores
+  const personalityAnalysis = generateMockPersonalityAnalysis(scoringResult);
+
+  return { personalityAnalysis, tokensUsed: 0 };
+}
+
+// =====================================================
 // OpenAI API Calls
 // =====================================================
 
@@ -607,6 +683,63 @@ async function callOpenAICandidate(
     const tokensUsed = response.usage?.total_tokens ?? 0;
 
     return { candidateReport, tokensUsed };
+  } catch (error) {
+    if (error instanceof OpenAI.APIError) {
+      throw new Error(`OpenAI API error: ${error.message}`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Call OpenAI with personality prompt
+ */
+async function callOpenAIPersonality(
+  input: PersonalityAnalysisInput,
+  config: PromptConfig
+): Promise<{ personalityAnalysis: PersonalityAnalysisOutput; tokensUsed: number }> {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY environment variable is not set');
+  }
+
+  const openai = new OpenAI({ apiKey });
+  const userPrompt = buildPersonalityPrompt(input);
+
+  try {
+    const requestOptions: ChatCompletionCreateParamsNonStreaming & { reasoning_effort?: string } = {
+      model: config.model,
+      messages: [
+        { role: 'system', content: config.systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: { type: 'json_object' },
+      max_completion_tokens: Math.max(config.maxTokens, DEFAULT_MAX_TOKENS),
+    };
+
+    if (isReasoningModel(config.model)) {
+      requestOptions.reasoning_effort = DEFAULT_REASONING_EFFORT;
+    } else {
+      requestOptions.temperature = config.temperature;
+    }
+
+    const response = await openai.chat.completions.create(requestOptions);
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      const usage = response.usage as Record<string, unknown> | undefined;
+      throw new Error(
+        `Empty response from OpenAI. Model: ${config.model}, ` +
+        `Reasoning tokens: ${usage?.reasoning_tokens ?? 'N/A'}, ` +
+        `Total tokens: ${response.usage?.total_tokens ?? 'N/A'}`
+      );
+    }
+
+    const personalityAnalysis = parsePersonalityResponse(content);
+    const tokensUsed = response.usage?.total_tokens ?? 0;
+
+    return { personalityAnalysis, tokensUsed };
   } catch (error) {
     if (error instanceof OpenAI.APIError) {
       throw new Error(`OpenAI API error: ${error.message}`);

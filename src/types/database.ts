@@ -129,6 +129,11 @@ export interface AIAnalysis {
   interview_checks: InterviewCheck[] | null;
   candidate_report: CandidateReport | null;
   report_version: 'v1' | 'v2';
+  // Personality analysis fields (v3)
+  behavioral_analysis: BehavioralAnalysisData | null;
+  stress_resilience: StressResilienceData | null;
+  eq_analysis: EQAnalysisData | null;
+  values_analysis: ValuesAnalysisData | null;
   // Common fields
   summary: string | null;
   recommendation: string | null;
@@ -139,6 +144,72 @@ export interface AIAnalysis {
   is_latest: boolean;
   analyzed_at: string;
   created_at: string;
+}
+
+// =====================================================
+// Personality Analysis Types
+// =====================================================
+
+export interface BehavioralTrait {
+  name: string;
+  score: number;
+  description: string;
+}
+
+export interface BehavioralAnalysisData {
+  dominance: number;
+  influence: number;
+  steadiness: number;
+  conscientiousness: number;
+  traits: BehavioralTrait[];
+  overallType: string;
+}
+
+export interface StressMetric {
+  name: string;
+  score: number;
+  description: string;
+}
+
+export interface StressResilienceData {
+  pressureHandling: number;
+  recoverySpeed: number;
+  emotionalStability: number;
+  adaptability: number;
+  metrics: StressMetric[];
+  overallScore: number;
+  riskLevel: 'low' | 'medium' | 'high';
+}
+
+export interface EQDimension {
+  name: string;
+  score: number;
+  description: string;
+}
+
+export interface EQAnalysisData {
+  selfAwareness: number;
+  selfManagement: number;
+  socialAwareness: number;
+  relationshipManagement: number;
+  dimensions: EQDimension[];
+  overallScore: number;
+}
+
+export interface ValueDimension {
+  name: string;
+  score: number;
+  description: string;
+}
+
+export interface ValuesAnalysisData {
+  achievement: number;
+  stability: number;
+  growth: number;
+  socialContribution: number;
+  autonomy: number;
+  dimensions: ValueDimension[];
+  primaryValue: string;
 }
 
 // Enhanced strength with evidence (v2)

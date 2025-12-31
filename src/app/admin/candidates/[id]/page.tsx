@@ -19,6 +19,12 @@ import {
   type JudgmentLevel,
 } from '@/lib/design-system';
 import type { AssessmentStatus } from '@/types/database';
+import type {
+  BehavioralAnalysisData,
+  StressResilienceData,
+  EQAnalysisData,
+  ValuesAnalysisData,
+} from '@/components/analysis';
 
 interface CandidateDetail {
   id: string;
@@ -51,6 +57,11 @@ interface AnalysisData {
   summary: string | null;
   recommendation: string | null;
   is_latest: boolean;
+  // Personality analysis fields
+  behavioral_analysis: BehavioralAnalysisData | null;
+  stress_resilience: StressResilienceData | null;
+  eq_analysis: EQAnalysisData | null;
+  values_analysis: ValuesAnalysisData | null;
 }
 
 function getPositionLabel(value: string): string {
@@ -134,7 +145,7 @@ export default async function CandidateDetailPage({
   if (latestAssessment?.status === 'completed') {
     const { data } = await adminSupabase
       .from('ai_analyses')
-      .select('id, assessment_id, scores, strengths, weaknesses, summary, recommendation, is_latest')
+      .select('id, assessment_id, scores, strengths, weaknesses, summary, recommendation, is_latest, behavioral_analysis, stress_resilience, eq_analysis, values_analysis')
       .eq('assessment_id', latestAssessment.id)
       .eq('is_latest', true)
       .single<AnalysisData>();
@@ -179,6 +190,10 @@ export default async function CandidateDetailPage({
     weaknesses: analysis.weaknesses,
     summary: analysis.summary,
     recommendation: analysis.recommendation,
+    behavioralAnalysis: analysis.behavioral_analysis,
+    stressResilience: analysis.stress_resilience,
+    eqAnalysis: analysis.eq_analysis,
+    valuesAnalysis: analysis.values_analysis,
   } : null;
 
   const judgmentData = judgment ? {

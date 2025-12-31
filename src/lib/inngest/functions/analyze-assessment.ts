@@ -9,6 +9,8 @@ import { type ResponseData } from '@/lib/analysis';
 import {
   analyzeAssessmentFull,
   analyzeAssessmentFullMock,
+  generatePersonalityAnalysis,
+  generatePersonalityAnalysisMock,
 } from '@/lib/analysis/ai-analyzer';
 import { sendAssessmentCompletion, sendReportLink } from '@/lib/email';
 import { nanoid } from 'nanoid';
@@ -61,7 +63,20 @@ export const analyzeAssessmentFunction = inngest.createFunction(
         : await analyzeAssessmentFull(input);
     });
 
-    // Step 3: Save analysis to database
+    // Step 3: Run personality analysis
+    const personalityResult = await step.run('run-personality-analysis', async () => {
+      const input = {
+        responses,
+        candidatePosition,
+        organizationId,
+      };
+
+      return USE_MOCK
+        ? await generatePersonalityAnalysisMock(input)
+        : await generatePersonalityAnalysis(input);
+    });
+
+    // Step 4: Save analysis to database
     const savedAnalysis = await step.run('save-analysis', async () => {
       const supabase = createAdminClient();
 
@@ -71,6 +86,9 @@ export const analyzeAssessmentFunction = inngest.createFunction(
       // Build legacy fields from v2 for backward compatibility
       const legacyStrengths = internalReport.strengths.map((s: { behavior: string }) => s.behavior);
       const legacyWeaknesses = internalReport.watchouts.map((w: { risk: string }) => w.risk);
+
+      // Total tokens used (v2 + personality)
+      const totalTokens = analysisResult.totalTokensUsed + personalityResult.tokensUsed;
 
       const insertData: Omit<AIAnalysis, 'id' | 'created_at'> = {
         assessment_id: assessmentId,
@@ -87,7 +105,7 @@ export const analyzeAssessmentFunction = inngest.createFunction(
         recommendation: internalReport.recommendation,
         model_version: analysisResult.modelVersion,
         prompt_version: analysisResult.promptVersion,
-        tokens_used: analysisResult.totalTokensUsed,
+        tokens_used: totalTokens,
         version: 1,
         is_latest: true,
         analyzed_at: new Date().toISOString(),
@@ -98,6 +116,11 @@ export const analyzeAssessmentFunction = inngest.createFunction(
         interview_checks: internalReport.interview_checks,
         candidate_report: candidateReportData,
         report_version: 'v2',
+        // v3 personality analysis fields
+        behavioral_analysis: personalityResult.personalityAnalysis.behavioral,
+        stress_resilience: personalityResult.personalityAnalysis.stress,
+        eq_analysis: personalityResult.personalityAnalysis.eq,
+        values_analysis: personalityResult.personalityAnalysis.values,
       };
 
       const { data, error } = await supabase
@@ -113,7 +136,7 @@ export const analyzeAssessmentFunction = inngest.createFunction(
       return data;
     });
 
-    // Step 4: Generate report token and send candidate email
+    // Step 5: Generate report token and send candidate email
     await step.run('send-candidate-report', async () => {
       const supabase = createAdminClient();
 
@@ -171,7 +194,7 @@ export const analyzeAssessmentFunction = inngest.createFunction(
       });
     });
 
-    // Step 5: Send notification email to admins
+    // Step 6: Send notification email to admins
     await step.run('notify-admins', async () => {
       const supabase = createAdminClient();
 

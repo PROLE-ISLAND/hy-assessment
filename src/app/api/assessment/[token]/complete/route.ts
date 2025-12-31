@@ -191,6 +191,11 @@ export async function POST(
           interview_checks: internalReport.interview_checks,
           candidate_report: candidateReportData,
           report_version: 'v2',
+          // v3 personality analysis fields (null for now, populated separately)
+          behavioral_analysis: null,
+          stress_resilience: null,
+          eq_analysis: null,
+          values_analysis: null,
         };
 
         const { data: savedAnalysis, error: saveError } = await supabase
