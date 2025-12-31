@@ -688,6 +688,108 @@ fix: ログインエラー時のリダイレクト修正
 - `P0` - クリティカル優先度
 - `needs-template-fix` - テンプレート修正完了まで
 
+---
+
+## タスク完了条件（Claude Code必読）
+
+**重要**: 以下の条件を満たすまでタスクは「未完了」。TodoWriteで `completed` にしてはいけない。
+
+### Issue作成
+
+```
+完了条件:
+  1. ✅ gh issue create 成功（Issue番号取得）
+  2. ✅ Issue に template-valid ラベルが付与されている
+  3. ✅ needs-template-fix ラベルが付いていない
+
+検証コマンド:
+  gh issue view {番号} --json labels -q '.labels[].name' | grep -q "template-valid"
+
+未完了時の対応:
+  - needs-template-fix がある → Issue本文を修正して再度検証
+  - template-valid がない → 数秒待って再確認（CI実行中の可能性）
+```
+
+### コミット
+
+```
+完了条件:
+  1. ✅ git commit 成功（exit code 0）
+  2. ✅ コミットハッシュが存在する
+  3. ✅ commitlint エラーが出ていない
+
+検証コマンド:
+  git log -1 --oneline | grep -q "^[a-f0-9]"
+
+未完了時の対応:
+  - commitlint エラー → メッセージを Conventional Commits 形式に修正
+  - pre-commit フック失敗 → lint/format 修正後に再コミット
+```
+
+### PR作成
+
+```
+完了条件:
+  1. ✅ gh pr create 成功（PR番号取得）
+  2. ✅ PR Governance チェック通過（エラーコメントなし）
+  3. ✅ CI（Lint/型/テスト/ビルド）が全て通過
+
+検証コマンド:
+  gh pr checks {番号} --watch  # 全チェック通過まで待機
+  gh pr view {番号} --json statusCheckRollup -q '.statusCheckRollup[] | select(.state != "SUCCESS")'
+
+未完了時の対応:
+  - PR Governance 失敗 → PR本文を修正（Why必須、リスク評価等）
+  - CI失敗 → エラー内容を確認し、コード修正後に再プッシュ
+```
+
+### PRマージ
+
+```
+完了条件:
+  1. ✅ 最低1名のレビュー承認がある
+  2. ✅ 全CIチェック通過
+  3. ✅ コンフリクトなし
+  4. ✅ gh pr merge 成功
+
+検証コマンド:
+  gh pr view {番号} --json reviewDecision,statusCheckRollup,mergeable
+
+未完了時の対応:
+  - レビュー待ち → ユーザーに通知して待機
+  - CI失敗 → 修正して再プッシュ
+  - コンフリクト → リベースして解消
+```
+
+### Issue Close
+
+```
+完了条件:
+  1. ✅ Close理由をコメントに記載済み
+  2. ✅ gh issue close 成功
+  3. ✅ needs-close-reason ラベルが付いていない（自動再オープンされていない）
+
+検証コマンド:
+  gh issue view {番号} --json state,labels -q '{state: .state, labels: [.labels[].name]}'
+
+未完了時の対応:
+  - 自動再オープンされた → Close理由コメントを追加してから再Close
+```
+
+### タスク完了フロー（必須）
+
+```
+1. アクション実行（commit, issue create, pr create 等）
+2. 検証コマンド実行
+3. 結果確認
+   ├─ 成功 → TodoWrite で completed に更新
+   └─ 失敗 → エラー修正 → 1に戻る
+```
+
+**絶対に「試みた」だけで完了にしないこと。検証して成功を確認するまで続ける。**
+
+---
+
 ### 並行開発ガイドライン
 
 複数のIssueを同時に開発する場合のルール:
