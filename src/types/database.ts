@@ -129,6 +129,11 @@ export interface AIAnalysis {
   interview_checks: InterviewCheck[] | null;
   candidate_report: CandidateReport | null;
   report_version: 'v1' | 'v2';
+  // Personality analysis fields (Issue #153) - optional until AI generates them
+  personality_behavioral?: PersonalityBehavioral | null;
+  personality_stress?: PersonalityStress | null;
+  personality_eq?: PersonalityEQ | null;
+  personality_values?: PersonalityValues | null;
   // Common fields
   summary: string | null;
   recommendation: string | null;
@@ -181,6 +186,76 @@ export interface CandidateReport {
   stress_tips: string[];
   values_tags: string[];
   note: string;
+}
+
+// =====================================================
+// Personality Analysis Types (Issue #153)
+// =====================================================
+
+// Behavioral analysis (DISC-based)
+export interface PersonalityBehavioralTrait {
+  name: string;
+  score: number;
+  description: string;
+}
+
+export interface PersonalityBehavioral {
+  dominance: number;
+  influence: number;
+  steadiness: number;
+  conscientiousness: number;
+  traits: PersonalityBehavioralTrait[];
+  overallType: string;
+}
+
+// Stress resilience analysis
+export interface PersonalityStressMetric {
+  name: string;
+  score: number;
+  description: string;
+}
+
+export interface PersonalityStress {
+  pressureHandling: number;
+  recoverySpeed: number;
+  emotionalStability: number;
+  adaptability: number;
+  metrics: PersonalityStressMetric[];
+  overallScore: number;
+  riskLevel: 'low' | 'medium' | 'high';
+}
+
+// EQ (Emotional Intelligence) analysis
+export interface PersonalityEQDimension {
+  name: string;
+  score: number;
+  description: string;
+}
+
+export interface PersonalityEQ {
+  selfAwareness: number;
+  selfManagement: number;
+  socialAwareness: number;
+  relationshipManagement: number;
+  dimensions: PersonalityEQDimension[];
+  overallScore: number;
+}
+
+// Values analysis
+export interface PersonalityValueDimension {
+  name: string;
+  score: number;
+  description: string;
+}
+
+export interface PersonalityValues {
+  achievement: number;
+  stability: number;
+  growth: number;
+  socialContribution: number;
+  autonomy: number;
+  dimensions: PersonalityValueDimension[];
+  primaryValue: string;
 }
 
 export interface AuditLog {
