@@ -21,6 +21,13 @@ import {
   parseCandidateResponse,
   type CandidateAnalysisInput,
 } from './candidate-prompts';
+import {
+  PERSONALITY_SYSTEM_PROMPT,
+  buildPersonalityPrompt,
+  parsePersonalityResponse,
+  type PersonalityAnalysisInput,
+  type PersonalityAnalysisOutput,
+} from './personality-prompts';
 import type {
   ScoringResult,
   ResponseData,
@@ -28,7 +35,13 @@ import type {
   EnhancedAIAnalysisOutput,
   CandidateReportOutput,
 } from './types';
-import type { PromptTemplate } from '@/types/database';
+import type {
+  PromptTemplate,
+  PersonalityBehavioral,
+  PersonalityStress,
+  PersonalityEQ,
+  PersonalityValues,
+} from '@/types/database';
 
 // Re-export legacy type for backward compatibility
 export type AIAnalysisOutput = LegacyAIAnalysisOutput;
@@ -867,4 +880,278 @@ export async function analyzeAssessmentFullMock(
     promptVersion: 'v2.0.0',
     totalTokensUsed: 0,
   };
+}
+
+// =====================================================
+// Personality Analysis Functions (Issue #153)
+// =====================================================
+
+export interface PersonalityAnalysisResult {
+  behavioral: PersonalityBehavioral;
+  stress: PersonalityStress;
+  eq: PersonalityEQ;
+  values: PersonalityValues;
+  modelVersion: string;
+  promptVersion: string;
+  tokensUsed: number;
+}
+
+/**
+ * Generate personality analysis from assessment responses
+ * Analyzes behavioral traits (DISC), stress resilience, EQ, and values
+ */
+export async function generatePersonalityAnalysis(
+  input: AnalyzeAssessmentInput
+): Promise<PersonalityAnalysisResult> {
+  const { responses, candidatePosition, organizationId, modelOverride } = input;
+
+  // 1. Calculate scores using scoring engine
+  const scoringResult = calculateScores(responses);
+
+  // 2. Build personality analysis input
+  const personalityInput: PersonalityAnalysisInput = {
+    scoringResult,
+    candidatePosition,
+  };
+
+  // 3. Load prompt config (use system prompt for personality)
+  const promptConfig = await loadActivePrompt({
+    organizationId,
+    modelOverride,
+    promptKey: 'system', // Reuse system prompt config for model settings
+  });
+
+  // Override with personality-specific prompt
+  promptConfig.systemPrompt = PERSONALITY_SYSTEM_PROMPT;
+
+  // 4. Call OpenAI API
+  const { personalityAnalysis, tokensUsed } = await callOpenAIPersonality(
+    personalityInput,
+    promptConfig
+  );
+
+  return {
+    ...personalityAnalysis,
+    modelVersion: promptConfig.model,
+    promptVersion: 'personality-v1.0.0',
+    tokensUsed,
+  };
+}
+
+/**
+ * Call OpenAI with personality analysis prompt
+ */
+async function callOpenAIPersonality(
+  input: PersonalityAnalysisInput,
+  config: PromptConfig
+): Promise<{ personalityAnalysis: PersonalityAnalysisOutput; tokensUsed: number }> {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY environment variable is not set');
+  }
+
+  const openai = new OpenAI({ apiKey });
+  const userPrompt = buildPersonalityPrompt(input);
+
+  try {
+    const requestOptions: ChatCompletionCreateParamsNonStreaming & { reasoning_effort?: string } = {
+      model: config.model,
+      messages: [
+        { role: 'system', content: config.systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: { type: 'json_object' },
+      max_completion_tokens: Math.max(config.maxTokens, DEFAULT_MAX_TOKENS),
+    };
+
+    if (isReasoningModel(config.model)) {
+      requestOptions.reasoning_effort = DEFAULT_REASONING_EFFORT;
+    } else {
+      requestOptions.temperature = config.temperature;
+    }
+
+    const response = await openai.chat.completions.create(requestOptions);
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      const usage = response.usage as Record<string, unknown> | undefined;
+      throw new Error(
+        `Empty response from OpenAI. Model: ${config.model}, ` +
+        `Reasoning tokens: ${usage?.reasoning_tokens ?? 'N/A'}, ` +
+        `Total tokens: ${response.usage?.total_tokens ?? 'N/A'}`
+      );
+    }
+
+    const personalityAnalysis = parsePersonalityResponse(content);
+    const tokensUsed = response.usage?.total_tokens ?? 0;
+
+    return { personalityAnalysis, tokensUsed };
+  } catch (error) {
+    if (error instanceof OpenAI.APIError) {
+      throw new Error(`OpenAI API error: ${error.message}`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Mock for personality analysis (testing)
+ */
+export async function generatePersonalityAnalysisMock(
+  input: AnalyzeAssessmentInput
+): Promise<PersonalityAnalysisResult> {
+  const { responses } = input;
+
+  // Calculate real scores for consistency
+  const scoringResult = calculateScores(responses);
+
+  // Generate scores based on domain scores
+  const govScore = scoringResult.domainScores.GOV?.percentage ?? 50;
+  const conflictScore = scoringResult.domainScores.CONFLICT?.percentage ?? 50;
+  const relScore = scoringResult.domainScores.REL?.percentage ?? 50;
+  const cogScore = scoringResult.domainScores.COG?.percentage ?? 50;
+  const workScore = scoringResult.domainScores.WORK?.percentage ?? 50;
+
+  return {
+    behavioral: {
+      dominance: Math.round(conflictScore * 0.8 + workScore * 0.2),
+      influence: Math.round(relScore * 0.7 + conflictScore * 0.3),
+      steadiness: Math.round(govScore * 0.6 + relScore * 0.4),
+      conscientiousness: Math.round(govScore * 0.5 + workScore * 0.5),
+      traits: [
+        {
+          name: '協調性',
+          score: Math.round(relScore),
+          description: 'チームでの協力を重視し、周囲と良好な関係を築く傾向があります',
+        },
+        {
+          name: '責任感',
+          score: Math.round(govScore),
+          description: '与えられた役割や約束を大切にし、最後までやり遂げようとする傾向があります',
+        },
+        {
+          name: '計画性',
+          score: Math.round(workScore),
+          description: '事前に計画を立て、着実に物事を進めることを好む傾向があります',
+        },
+      ],
+      overallType: getOverallType(conflictScore, relScore, govScore, workScore),
+    },
+    stress: {
+      pressureHandling: Math.round(cogScore * 0.6 + workScore * 0.4),
+      recoverySpeed: Math.round(cogScore * 0.7 + relScore * 0.3),
+      emotionalStability: Math.round(cogScore),
+      adaptability: Math.round((cogScore + relScore) / 2),
+      metrics: [
+        {
+          name: 'プレッシャー対処',
+          score: Math.round(cogScore * 0.6 + workScore * 0.4),
+          description: '締め切りや困難な状況でも冷静に対処できる傾向があります',
+        },
+        {
+          name: '感情コントロール',
+          score: Math.round(cogScore),
+          description: '感情的になりすぎず、バランスを保つことができる傾向があります',
+        },
+        {
+          name: '回復力',
+          score: Math.round(cogScore * 0.7 + relScore * 0.3),
+          description: '困難な状況からの立ち直りが比較的早い傾向があります',
+        },
+      ],
+      overallScore: Math.round((cogScore * 2 + workScore + relScore) / 4),
+      riskLevel: getStressRiskLevel(cogScore),
+    },
+    eq: {
+      selfAwareness: Math.round(cogScore * 0.8 + govScore * 0.2),
+      selfManagement: Math.round(cogScore * 0.6 + conflictScore * 0.4),
+      socialAwareness: Math.round(relScore * 0.8 + cogScore * 0.2),
+      relationshipManagement: Math.round(relScore * 0.6 + conflictScore * 0.4),
+      dimensions: [
+        {
+          name: '自己認識',
+          score: Math.round(cogScore * 0.8 + govScore * 0.2),
+          description: '自分の強みや課題を客観的に把握できる傾向があります',
+        },
+        {
+          name: '対人理解',
+          score: Math.round(relScore * 0.8 + cogScore * 0.2),
+          description: '相手の立場や感情を理解しようとする傾向があります',
+        },
+        {
+          name: '関係構築',
+          score: Math.round(relScore * 0.6 + conflictScore * 0.4),
+          description: '周囲との信頼関係を築くことを大切にする傾向があります',
+        },
+      ],
+      overallScore: Math.round((cogScore + relScore * 2 + conflictScore) / 4),
+    },
+    values: {
+      achievement: Math.round(workScore * 0.7 + conflictScore * 0.3),
+      stability: Math.round(govScore * 0.8 + relScore * 0.2),
+      growth: Math.round(workScore * 0.5 + cogScore * 0.5),
+      socialContribution: Math.round(relScore * 0.6 + govScore * 0.4),
+      autonomy: Math.round(conflictScore * 0.5 + cogScore * 0.5),
+      dimensions: [
+        {
+          name: '達成志向',
+          score: Math.round(workScore * 0.7 + conflictScore * 0.3),
+          description: '目標を達成し、成果を出すことにやりがいを感じる傾向があります',
+        },
+        {
+          name: '安定志向',
+          score: Math.round(govScore * 0.8 + relScore * 0.2),
+          description: '安定した環境や予測可能性を重視する傾向があります',
+        },
+        {
+          name: '成長志向',
+          score: Math.round(workScore * 0.5 + cogScore * 0.5),
+          description: '新しいスキルを習得し、自己成長することを大切にする傾向があります',
+        },
+      ],
+      primaryValue: getPrimaryValueFromScores(workScore, govScore, relScore, conflictScore, cogScore),
+    },
+    modelVersion: 'mock',
+    promptVersion: 'personality-v1.0.0',
+    tokensUsed: 0,
+  };
+}
+
+// Helper functions for mock personality analysis
+function getOverallType(d: number, i: number, s: number, c: number): string {
+  const threshold = 60;
+  const high: string[] = [];
+  if (d >= threshold) high.push('D');
+  if (i >= threshold) high.push('I');
+  if (s >= threshold) high.push('S');
+  if (c >= threshold) high.push('C');
+
+  if (high.length === 0) return 'バランス型';
+  if (high.length === 1) return `高${high[0]}型`;
+  return `高${high.join('')}型`;
+}
+
+function getStressRiskLevel(cogScore: number): 'low' | 'medium' | 'high' {
+  if (cogScore >= 70) return 'low';
+  if (cogScore >= 40) return 'medium';
+  return 'high';
+}
+
+function getPrimaryValueFromScores(
+  work: number,
+  gov: number,
+  rel: number,
+  conflict: number,
+  cog: number
+): string {
+  const values = {
+    '達成志向': work * 0.7 + conflict * 0.3,
+    '安定志向': gov * 0.8 + rel * 0.2,
+    '成長志向': work * 0.5 + cog * 0.5,
+    '社会貢献志向': rel * 0.6 + gov * 0.4,
+    '自律志向': conflict * 0.5 + cog * 0.5,
+  };
+
+  return Object.entries(values).reduce((a, b) => a[1] > b[1] ? a : b)[0];
 }
