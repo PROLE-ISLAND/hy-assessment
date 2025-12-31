@@ -354,3 +354,161 @@ jobs:
               body: summary
             });
           }
+
+  variant-check:
+    name: 🎨 Variant Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: 🎨 Check UI Component Variants
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const { data: files } = await github.rest.pulls.listFiles({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+          });
+
+          const fs = require('fs');
+          const path = require('path');
+
+          // 対象: src/components/ 配下の新規 .tsx ファイル（ui/ は除外）
+          const newComponentFiles = files.filter(f =>
+            f.status === 'added' &&
+            f.filename.endsWith('.tsx') &&
+            f.filename.startsWith('src/components/') &&
+            !f.filename.startsWith('src/components/ui/') &&
+            !f.filename.includes('/shared') &&
+            !f.filename.includes('/index')
+          );
+
+          if (newComponentFiles.length === 0) {
+            console.log('No new UI components detected. Skipping variant check.');
+            return;
+          }
+
+          const issues = [];
+          const warnings = [];
+
+          for (const file of newComponentFiles) {
+            try {
+              const content = fs.readFileSync(file.filename, 'utf8');
+
+              // コンポーネント名を推定（ファイル名から）
+              const componentName = path.basename(file.filename, '.tsx');
+
+              // data-testid パターンを検出
+              const testIdPattern = /data-testid=["'`]([^"'`]+)["'`]/g;
+              const foundTestIds = [];
+              let match;
+              while ((match = testIdPattern.exec(content)) !== null) {
+                foundTestIds.push(match[1]);
+              }
+
+              // ケバブケース変換（BehavioralAnalysisCard → behavioral-analysis-card）
+              const kebabName = componentName
+                .replace(/([a-z])([A-Z])/g, '$1-$2')
+                .toLowerCase();
+
+              // 必須バリアントチェック
+              const requiredVariants = [
+                { suffix: '', name: 'Default' },
+                { suffix: '-skeleton', name: 'Loading' },
+                { suffix: '-empty', name: 'Empty' },
+                { suffix: '-error', name: 'Error' }
+              ];
+
+              const missingVariants = [];
+              for (const variant of requiredVariants) {
+                const expectedTestId = kebabName + variant.suffix;
+                const hasVariant = foundTestIds.some(id =>
+                  id === expectedTestId ||
+                  id.includes(expectedTestId) ||
+                  (variant.suffix === '' && id === kebabName)
+                );
+
+                if (!hasVariant) {
+                  missingVariants.push(`\`${expectedTestId}\` (${variant.name})`);
+                }
+              }
+
+              if (missingVariants.length > 0) {
+                // 4つ全部ない場合は警告のみ（バリアント不要なコンポーネントの可能性）
+                if (missingVariants.length === 4) {
+                  warnings.push(`⚠️ **${file.filename}**\n   data-testidが見つかりません。バリアント対応が必要な場合は追加してください。`);
+                } else {
+                  // 一部ある場合はエラー（バリアント対応中だが不完全）
+                  issues.push(`❌ **${file.filename}**\n   不足バリアント: ${missingVariants.join(', ')}`);
+                }
+              }
+            } catch (e) {
+              console.log(`Could not read file: ${file.filename}`);
+            }
+          }
+
+          // 結果出力
+          if (issues.length === 0 && warnings.length === 0) {
+            console.log('All new components have proper variant data-testids.');
+            return;
+          }
+
+          let comment = '## 🎨 Variant Check\n\n';
+
+          if (issues.length > 0) {
+            comment += '### ❌ バリアント不足\n\n';
+            comment += '以下のコンポーネントで必須バリアントの data-testid が不足しています:\n\n';
+            comment += issues.join('\n') + '\n\n';
+            comment += '📚 **必須バリアント**: Default, Loading (skeleton), Empty, Error\n\n';
+            comment += '```tsx\n';
+            comment += '// 例: PersonalityCardのバリアント\n';
+            comment += 'data-testid="personality-card"           // Default\n';
+            comment += 'data-testid="personality-card-skeleton"  // Loading\n';
+            comment += 'data-testid="personality-card-empty"     // Empty\n';
+            comment += 'data-testid="personality-card-error"     // Error\n';
+            comment += '```\n\n';
+          }
+
+          if (warnings.length > 0) {
+            comment += '### ⚠️ 確認が必要\n\n';
+            comment += warnings.join('\n') + '\n\n';
+          }
+
+          comment += '📚 **参考**: [バリアント設計ガイド](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/blob/main/CLAUDE.md#コンポーネントバリアント設計)';
+
+          // PRにコメント
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const existingComment = comments.find(c =>
+            c.user.type === 'Bot' && c.body.includes('Variant Check')
+          );
+
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: comment
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+          }
+
+          // バリアント不足がある場合は失敗（警告のみの場合は通過）
+          if (issues.length > 0) {
+            core.setFailed('Missing required variant data-testids in new UI components.');
+          }
