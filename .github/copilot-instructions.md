@@ -92,6 +92,65 @@ import {
 
 ---
 
+## コンポーネントバリアント設計
+
+本番品質のUIを実現するため、すべてのコンポーネントは状態パターン（バリアント）を網羅的に設計・実装すること。
+
+### バリアント定義の必須項目
+
+| カテゴリ | バリアント | 必須度 | 説明 | data-testid例 |
+|---------|-----------|--------|------|---------------|
+| **データ状態** | Default | ⚫必須 | 正常データ表示 | `{component}` |
+| | Loading | ⚫必須 | スケルトンUI / スピナー | `{component}-skeleton` |
+| | Empty | ⚫必須 | データなし状態 | `{component}-empty` |
+| | Error | ⚫必須 | API失敗 / エラー表示 | `{component}-error` |
+| **インタラクション** | Disabled | ◯推奨 | 操作不可状態 | `{component}-disabled` |
+| | Hover/Focus | △任意 | マウスオーバー/フォーカス | - |
+| **データパターン** | Success | ◯推奨 | スコア高 / 成功色 | - |
+| | Warning | ◯推奨 | スコア中 / 警告色 | - |
+| | Danger | ◯推奨 | スコア低 / 危険色 | - |
+| **サイズ** | sm/md/lg | △任意 | 用途に応じたサイズ | - |
+
+### バリアント設計フロー
+
+```
+1. 機能要件定義
+   ↓
+2. バリアント洗い出し（Issueテンプレートのチェックリスト使用）
+   ↓
+3. v0/Figmaで全バリアント生成
+   ↓
+4. デザインレビュー（バリアント網羅性確認）
+   ↓
+5. 実装（Props型でバリアント定義）
+   ↓
+6. E2Eテスト（バリアント別テストケース）
+```
+
+### バリアント実装パターン
+
+```typescript
+// 推奨: 早期リターンパターン
+export function Component({ data, isLoading, error, onRetry }: Props) {
+  if (isLoading) return <ComponentSkeleton data-testid="component-skeleton" />;
+  if (error) return <ComponentError error={error} onRetry={onRetry} data-testid="component-error" />;
+  if (!data || data.length === 0) return <ComponentEmpty data-testid="component-empty" />;
+  return <ComponentDefault data={data} data-testid="component" />;
+}
+```
+
+### デザインレビュー時のバリアント確認
+
+レビュアーは以下を確認すること:
+
+- [ ] 全必須バリアント（Default/Loading/Empty/Error）がv0/Figmaにあるか
+- [ ] 状態遷移が明確か（どの条件でどのバリアントを表示するか）
+- [ ] エッジケースが考慮されているか（極端値、長文、空配列等）
+- [ ] data-testidがバリアント別に付与されているか
+- [ ] E2Eテスト計画にバリアントテストが含まれているか
+
+---
+
 ## AI分析設定
 
 ### 環境変数
@@ -218,10 +277,20 @@ UI/UX変更を含む機能は、**Issue作成前にFigmaでデザインを作成
 
 デザイン作成時に確認すること:
 
+**基本チェック:**
 - [ ] モバイルレスポンシブ対応を考慮
 - [ ] ダークモードの色を確認
 - [ ] アクセシビリティ（コントラスト、フォントサイズ）
 - [ ] 既存デザインシステムとの整合性
+
+**バリアントチェック（⚫必須 ◯推奨 △任意）:**
+- [ ] ⚫ Default状態（正常データ表示）
+- [ ] ⚫ Loading状態（スケルトンUI）
+- [ ] ⚫ Empty状態（データなし）
+- [ ] ⚫ Error状態（エラー + 再試行）
+- [ ] ◯ データパターン別表示（成功/警告/危険）
+- [ ] △ Disabled状態（操作不可）
+- [ ] △ インタラクション状態（Hover/Focus）
 
 ### バックエンドのみの機能
 
@@ -294,35 +363,52 @@ UI変更がない場合:
 ### v0プロンプトテンプレート
 
 ```markdown
-## 基本形式
+## 基本形式（バリアント込み）
 
 「{コンポーネント名}を作成。
+
+### 基本要件
 - shadcn/uiコンポーネント使用
 - Tailwind CSS
 - ダークモード対応（dark:クラス使用）
 - 日本語テキスト
+- data-testid属性付与
+
+### バリアント（以下すべて作成）
+1. **Default** - 正常データ表示
+2. **Loading** - スケルトンUI表示（Skeletonコンポーネント使用）
+3. **Empty** - 「データがありません」メッセージ + アイコン
+4. **Error** - 「読み込みに失敗しました」+ 再試行ボタン
+
+### データパターン（該当する場合）
+- 高スコア/成功: emerald系カラー
+- 中スコア/警告: amber系カラー
+- 低スコア/危険: rose系カラー
+
+### 追加要件
 - {具体的な要件}」
 
-## 例：空状態カード
+## 例：分析結果カード（バリアント込み）
 
-「ダッシュボードの空状態カードを作成。
-- shadcn/uiのCard, Buttonコンポーネント使用
+「分析結果スコアカードを作成。
+
+### 基本要件
+- shadcn/uiのCard, Badge, Progressコンポーネント使用
 - Tailwind CSS
 - ダークモード対応
-- 日本語テキスト「注目候補者がまだいません」
-- イラストまたはアイコン付き
-- 「候補者を追加」ボタン付き
-- 中央寄せレイアウト」
+- 日本語テキスト
+- data-testid="score-card", "score-card-skeleton", "score-card-empty", "score-card-error"
 
-## 例：データテーブル
+### バリアント
+1. **Default** - スコア表示（0-100）+ 判定バッジ
+2. **Loading** - カード形状のスケルトンUI
+3. **Empty** - 「分析結果がありません」+ 分析開始ボタン
+4. **Error** - 「分析に失敗しました」+ 再分析ボタン
 
-「候補者一覧テーブルを作成。
-- shadcn/uiのTable, Badge, Buttonコンポーネント使用
-- 列: 名前、メール、ステータス（バッジ）、操作ボタン
-- ソート可能なヘッダー
-- 行ホバーエフェクト
-- ダークモード対応
-- 日本語ラベル」
+### データパターン
+- スコア70以上: emerald + 「優秀」バッジ
+- スコア50-69: amber + 「標準」バッジ
+- スコア50未満: rose + 「要注意」バッジ」
 ```
 
 ### v0生成コンポーネントの配置
@@ -344,13 +430,34 @@ src/components/
 2. **型安全性**: 必要に応じてPropsの型を追加
 3. **テスト追加**: 単体テストを作成
 4. **出典記録**: コンポーネント冒頭にv0 URLをコメントで記載
+5. **バリアント実装**: 全状態パターンを実装
 
 ```typescript
 /**
- * EmptyState component
+ * ScoreCard component
  * Generated with v0: https://v0.dev/chat/xxxxx
  * Modified: デザインシステム適用、日本語化
+ *
+ * Variants:
+ * - Default: 正常データ表示
+ * - Loading: スケルトンUI
+ * - Empty: データなし状態
+ * - Error: エラー + 再試行
  */
+
+interface ScoreCardProps {
+  data?: ScoreData;
+  isLoading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
+}
+
+export function ScoreCard({ data, isLoading, error, onRetry }: ScoreCardProps) {
+  if (isLoading) return <ScoreCardSkeleton />;
+  if (error) return <ScoreCardError error={error} onRetry={onRetry} />;
+  if (!data) return <ScoreCardEmpty />;
+  return <ScoreCardDefault data={data} />;
+}
 ```
 
 ---

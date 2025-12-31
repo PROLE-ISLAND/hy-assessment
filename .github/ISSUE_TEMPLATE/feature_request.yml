@@ -94,6 +94,25 @@ body:
         - label: "Accessibility (contrast, font size) checked"
         - label: "This is a backend-only feature (no UI changes)"
 
+  - type: checkboxes
+    id: variant-checklist
+    attributes:
+      label: Component Variant Checklist（UIコンポーネントのバリアント）
+      description: |
+        本番品質のUIには全状態パターンのデザインが必要です。
+        該当するバリアントをv0/Figmaで作成し、リンクに含めてください。
+        バックエンドのみの機能はスキップ可。
+      options:
+        - label: "⚫ **Default** - 正常データ表示状態"
+        - label: "⚫ **Loading** - データ読み込み中（スケルトンUI/スピナー）"
+        - label: "⚫ **Empty** - データなし状態（「データがありません」等）"
+        - label: "⚫ **Error** - エラー発生時（再試行ボタン付き）"
+        - label: "◯ **Disabled** - 無効状態（操作不可）"
+        - label: "◯ **Success/Warning/Danger** - データパターン別の色分け表示"
+        - label: "△ **Size variants** - サイズ違い（sm/md/lg）"
+        - label: "△ **Hover/Focus/Active** - インタラクション状態"
+        - label: "該当なし（バックエンドのみ/状態変化のないUI）"
+
   - type: textarea
     id: requirements
     attributes:
