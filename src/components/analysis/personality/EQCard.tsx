@@ -3,9 +3,10 @@
 // =====================================================
 // EQ (Emotional Intelligence) Card
 // Displays self-awareness, self-management, social awareness, relationship management
+// Variants: Default, Loading (skeleton), Empty, Error
 // =====================================================
 
-import { Eye, Brain, Users, Handshake } from 'lucide-react';
+import { Eye, Brain, Users, Handshake, AlertCircle, RefreshCw } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -13,12 +14,17 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { PersonalityEQ, PersonalityCardBaseProps } from './types';
 import { cn } from '@/lib/utils';
 
 interface EQCardProps extends PersonalityCardBaseProps {
   data: PersonalityEQ | null;
+  isLoading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
 const EQ_DIMENSIONS = {
@@ -58,7 +64,81 @@ function getScoreLevel(score: number): { label: string; color: string } {
   return { label: '要注意', color: 'text-rose-600 dark:text-rose-400' };
 }
 
-export function EQCard({ data, className }: EQCardProps) {
+// Skeleton variant for loading state
+function EQCardSkeleton({ className }: { className?: string }) {
+  return (
+    <Card className={cn('', className)} data-testid="eq-card-skeleton">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-6 w-40 mb-2" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <div className="text-right">
+            <Skeleton className="h-8 w-16 mb-1" />
+            <Skeleton className="h-3 w-10" />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-2 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="p-4 rounded-lg border">
+              <Skeleton className="h-5 w-20 mb-2" />
+              <Skeleton className="h-2 w-full mb-2" />
+              <Skeleton className="h-3 w-3/4" />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Error variant
+function EQCardError({
+  className,
+  error,
+  onRetry,
+}: {
+  className?: string;
+  error: Error;
+  onRetry?: () => void;
+}) {
+  return (
+    <Card className={cn('', className)} data-testid="eq-card-error">
+      <CardHeader>
+        <CardTitle>感情知性 (EQ) 分析</CardTitle>
+        <CardDescription>読み込みに失敗しました</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-sm text-muted-foreground mb-4">
+          {error.message || 'データの取得中にエラーが発生しました'}
+        </p>
+        {onRetry && (
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            再試行
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function EQCard({ data, className, isLoading, error, onRetry }: EQCardProps) {
+  // Loading state
+  if (isLoading) {
+    return <EQCardSkeleton className={className} />;
+  }
+
+  // Error state
+  if (error) {
+    return <EQCardError className={className} error={error} onRetry={onRetry} />;
+  }
+
+  // Empty state
   if (!data) {
     return (
       <Card className={cn('', className)} data-testid="eq-card-empty">

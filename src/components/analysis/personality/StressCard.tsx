@@ -3,9 +3,10 @@
 // =====================================================
 // Stress Resilience Card
 // Displays pressure handling, recovery, stability, adaptability
+// Variants: Default, Loading (skeleton), Empty, Error
 // =====================================================
 
-import { Zap, RefreshCw, Anchor, Shuffle, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Zap, RefreshCw as RefreshIcon, Anchor, Shuffle, AlertTriangle, CheckCircle, Info, AlertCircle } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -14,12 +15,17 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { PersonalityStress, PersonalityCardBaseProps } from './types';
 import { cn } from '@/lib/utils';
 
 interface StressCardProps extends PersonalityCardBaseProps {
   data: PersonalityStress | null;
+  isLoading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
 const STRESS_DIMENSIONS = {
@@ -30,7 +36,7 @@ const STRESS_DIMENSIONS = {
   },
   recoverySpeed: {
     label: '回復速度',
-    icon: RefreshCw,
+    icon: RefreshIcon,
     description: 'ストレスからの回復速度',
   },
   emotionalStability: {
@@ -69,7 +75,85 @@ const RISK_CONFIG = {
   },
 } as const;
 
-export function StressCard({ data, className }: StressCardProps) {
+// Skeleton variant for loading state
+function StressCardSkeleton({ className }: { className?: string }) {
+  return (
+    <Card className={cn('', className)} data-testid="stress-card-skeleton">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-6 w-36 mb-2" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-6 w-20" />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="p-4 rounded-lg bg-muted/30">
+          <div className="flex items-center justify-between mb-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-8 w-16" />
+          </div>
+          <Skeleton className="h-2 w-full" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="p-3 border rounded-lg space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-2 w-full" />
+              <Skeleton className="h-3 w-3/4" />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Error variant
+function StressCardError({
+  className,
+  error,
+  onRetry,
+}: {
+  className?: string;
+  error: Error;
+  onRetry?: () => void;
+}) {
+  return (
+    <Card className={cn('', className)} data-testid="stress-card-error">
+      <CardHeader>
+        <CardTitle>ストレス耐性分析</CardTitle>
+        <CardDescription>読み込みに失敗しました</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-sm text-muted-foreground mb-4">
+          {error.message || 'データの取得中にエラーが発生しました'}
+        </p>
+        {onRetry && (
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            <RefreshIcon className="h-4 w-4 mr-2" />
+            再試行
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function StressCard({ data, className, isLoading, error, onRetry }: StressCardProps) {
+  // Loading state
+  if (isLoading) {
+    return <StressCardSkeleton className={className} />;
+  }
+
+  // Error state
+  if (error) {
+    return <StressCardError className={className} error={error} onRetry={onRetry} />;
+  }
+
+  // Empty state
   if (!data) {
     return (
       <Card className={cn('', className)} data-testid="stress-card-empty">

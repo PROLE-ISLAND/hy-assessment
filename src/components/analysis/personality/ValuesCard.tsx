@@ -3,9 +3,10 @@
 // =====================================================
 // Values Analysis Card
 // Displays achievement, stability, growth, social contribution, autonomy
+// Variants: Default, Loading (skeleton), Empty, Error
 // =====================================================
 
-import { Trophy, Home, TrendingUp, Heart, Compass } from 'lucide-react';
+import { Trophy, Home, TrendingUp, Heart, Compass, AlertCircle, RefreshCw } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -14,12 +15,17 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { PersonalityValues, PersonalityCardBaseProps } from './types';
 import { cn } from '@/lib/utils';
 
 interface ValuesCardProps extends PersonalityCardBaseProps {
   data: PersonalityValues | null;
+  isLoading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
 const VALUES_CONFIG = {
@@ -60,7 +66,83 @@ const VALUES_CONFIG = {
   },
 } as const;
 
-export function ValuesCard({ data, className }: ValuesCardProps) {
+// Skeleton variant for loading state
+function ValuesCardSkeleton({ className }: { className?: string }) {
+  return (
+    <Card className={cn('', className)} data-testid="values-card-skeleton">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-6 w-28 mb-2" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <Skeleton className="h-6 w-20" />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="p-3 rounded-lg border">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded" />
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-24 mb-2" />
+                  <Skeleton className="h-2 w-full" />
+                  <Skeleton className="h-3 w-3/4 mt-1" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Error variant
+function ValuesCardError({
+  className,
+  error,
+  onRetry,
+}: {
+  className?: string;
+  error: Error;
+  onRetry?: () => void;
+}) {
+  return (
+    <Card className={cn('', className)} data-testid="values-card-error">
+      <CardHeader>
+        <CardTitle>価値観分析</CardTitle>
+        <CardDescription>読み込みに失敗しました</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-sm text-muted-foreground mb-4">
+          {error.message || 'データの取得中にエラーが発生しました'}
+        </p>
+        {onRetry && (
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            再試行
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function ValuesCard({ data, className, isLoading, error, onRetry }: ValuesCardProps) {
+  // Loading state
+  if (isLoading) {
+    return <ValuesCardSkeleton className={className} />;
+  }
+
+  // Error state
+  if (error) {
+    return <ValuesCardError className={className} error={error} onRetry={onRetry} />;
+  }
+
+  // Empty state
   if (!data) {
     return (
       <Card className={cn('', className)} data-testid="values-card-empty">
