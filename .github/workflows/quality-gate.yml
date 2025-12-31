@@ -1,7 +1,12 @@
 # =====================================================
-# 品質ゲート（DoD判定）
-# CI完了後にPRの品質を判定してコメント投稿
+# Quality Gate (DoD判定)
+# 組織の Reusable Workflow を呼び出す薄いラッパー
 # =====================================================
+#
+# ロジックは組織リポジトリで一元管理:
+# PROLE-ISLAND/.github/.github/workflows/reusable-quality-gate.yml
+#
+# CI完了後にPRの品質を判定してコメント投稿
 
 name: 品質ゲート
 
@@ -9,7 +14,6 @@ on:
   workflow_run:
     workflows: [CI]
     types: [completed]
-    # Note: This runs for all branches - the job condition filters to PRs only
 
 permissions:
   pull-requests: write
@@ -19,218 +23,10 @@ permissions:
 
 jobs:
   quality-gate:
-    name: DoD品質判定
-    runs-on: ubuntu-latest
-    if: github.event.workflow_run.event == 'pull_request'
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: PR番号取得
-        id: pr
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const pulls = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              head: `${context.repo.owner}:${context.payload.workflow_run.head_branch}`
-            });
-            if (pulls.data.length > 0) {
-              return pulls.data[0].number;
-            }
-            return null;
-
-      - name: カバレッジレポート取得
-        id: coverage
-        if: steps.pr.outputs.result != 'null'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            // CIワークフローのartifactsを取得
-            try {
-              const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: context.payload.workflow_run.id
-              });
-
-              // カバレッジartifactを探す
-              const coverageArtifact = artifacts.data.artifacts.find(a =>
-                a.name === 'coverage-report' || a.name === 'nextjs-build'
-              );
-
-              if (coverageArtifact) {
-                return { available: true, percentage: 85 }; // 実際はartifactから読む
-              }
-            } catch (e) {
-              console.log('カバレッジ取得スキップ:', e.message);
-            }
-            return { available: false, percentage: 0 };
-
-      - name: CI結果確認
-        id: ci-status
-        run: |
-          if [ "${{ github.event.workflow_run.conclusion }}" == "success" ]; then
-            echo "status=pass" >> $GITHUB_OUTPUT
-            echo "CI成功"
-          else
-            echo "status=fail" >> $GITHUB_OUTPUT
-            echo "CI失敗"
-          fi
-
-      - name: DoD Level判定
-        id: dod
-        if: steps.pr.outputs.result != 'null'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const prNumber = ${{ steps.pr.outputs.result }};
-            const { data: pr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber
-            });
-
-            const body = pr.body || '';
-            let dodLevel = 'Silver'; // デフォルト
-
-            if (body.includes('Gold')) {
-              dodLevel = 'Gold';
-            } else if (body.includes('Bronze')) {
-              dodLevel = 'Bronze';
-            }
-
-            const thresholds = {
-              Bronze: { coverage: 80, label: 'プロトタイプ品質' },
-              Silver: { coverage: 85, label: '開発版品質' },
-              Gold: { coverage: 95, label: '本番品質' }
-            };
-
-            return {
-              level: dodLevel,
-              threshold: thresholds[dodLevel].coverage,
-              label: thresholds[dodLevel].label
-            };
-
-      - name: 品質レポート生成
-        id: report
-        if: steps.pr.outputs.result != 'null'
-        run: |
-          DOD_LEVEL='${{ fromJSON(steps.dod.outputs.result).level }}'
-          DOD_LABEL='${{ fromJSON(steps.dod.outputs.result).label }}'
-          CI_STATUS='${{ steps.ci-status.outputs.status }}'
-
-          cat > quality-report.md << 'REPORT_END'
-          ## 品質ゲートレポート
-
-          ### DoD Level: $DOD_LEVEL ($DOD_LABEL)
-
-          📚 [DoD基準の詳細](https://github.com/PROLE-ISLAND/.github/blob/main/DoD_STANDARDS.md)
-
-          | チェック項目 | 結果 | $DOD_LEVEL基準 |
-          |-------------|------|---------------|
-          REPORT_END
-
-          if [ "$CI_STATUS" == "pass" ]; then
-            echo "| Lint | ✅ 合格 | 警告0 |" >> quality-report.md
-            echo "| 型チェック | ✅ 合格 | エラー0 |" >> quality-report.md
-            echo "| 単体テスト | ✅ 合格 | カバレッジ85%+ |" >> quality-report.md
-            echo "| ビルド | ✅ 合格 | 成功 |" >> quality-report.md
-            echo "" >> quality-report.md
-            echo "### 判定結果: ✅ レビュー可能" >> quality-report.md
-            echo "" >> quality-report.md
-            echo "すべてのチェックに合格しました。" >> quality-report.md
-            echo "" >> quality-report.md
-            echo "#### 次のステップ" >> quality-report.md
-            echo "" >> quality-report.md
-            echo "レビュアーは以下を確認してください:" >> quality-report.md
-            echo "1. PR Governanceのチェック項目" >> quality-report.md
-            echo "2. 変更サマリーのレビュー観点" >> quality-report.md
-            echo "3. コードの品質・可読性" >> quality-report.md
-            echo "" >> quality-report.md
-            echo "📚 **参考**: [コーディング規約](https://github.com/${{ github.repository }}/blob/main/CLAUDE.md#コーディング規約)" >> quality-report.md
-            echo "gate=pass" >> $GITHUB_OUTPUT
-          else
-            echo "| Lint | ❌ 要確認 | 警告0 |" >> quality-report.md
-            echo "| 型チェック | ❌ 要確認 | エラー0 |" >> quality-report.md
-            echo "| 単体テスト | ❌ 要確認 | カバレッジ85%+ |" >> quality-report.md
-            echo "| ビルド | ❌ 要確認 | 成功 |" >> quality-report.md
-            echo "" >> quality-report.md
-            echo "### 判定結果: ❌ 修正が必要" >> quality-report.md
-            echo "" >> quality-report.md
-            echo "CIが失敗しています。" >> quality-report.md
-            echo "" >> quality-report.md
-            echo "#### 修正手順" >> quality-report.md
-            echo "" >> quality-report.md
-            echo "1. [実行ログ](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})を確認" >> quality-report.md
-            echo "2. エラー内容を修正" >> quality-report.md
-            echo "3. 再プッシュでCIを再実行" >> quality-report.md
-            echo "" >> quality-report.md
-            echo "#### よくある修正コマンド" >> quality-report.md
-            echo "" >> quality-report.md
-            echo "\`\`\`bash" >> quality-report.md
-            echo "npm run lint          # Lint確認" >> quality-report.md
-            echo "npx tsc --noEmit      # 型チェック" >> quality-report.md
-            echo "npm run test:run      # テスト実行" >> quality-report.md
-            echo "\`\`\`" >> quality-report.md
-            echo "gate=fail" >> $GITHUB_OUTPUT
-          fi
-
-          # DoD Level を実際の値で置換
-          sed -i "s/\$DOD_LEVEL/${DOD_LEVEL}/g" quality-report.md
-          sed -i "s/\$DOD_LABEL/${DOD_LABEL}/g" quality-report.md
-
-      - name: PRにレポート投稿
-        if: steps.pr.outputs.result != 'null'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const fs = require('fs');
-            const prNumber = ${{ steps.pr.outputs.result }};
-            const report = fs.readFileSync('quality-report.md', 'utf8');
-
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber
-            });
-
-            const botComment = comments.data.find(c =>
-              c.user.type === 'Bot' && c.body.includes('品質ゲートレポート')
-            );
-
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: report
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                body: report
-              });
-            }
-
-      - name: コミットステータス更新
-        if: steps.pr.outputs.result != 'null'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const state = '${{ steps.report.outputs.gate }}' === 'pass' ? 'success' : 'failure';
-            const description = state === 'success'
-              ? 'DoD基準を満たしています'
-              : 'DoD基準を満たしていません';
-
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.payload.workflow_run.head_sha,
-              state: state,
-              description: description,
-              context: '品質ゲート / DoD判定'
-            });
+    uses: PROLE-ISLAND/.github/.github/workflows/reusable-quality-gate.yml@main
+    with:
+      language: 'ja'
+      ci_workflow_name: 'CI'
+      bronze_coverage: 80
+      silver_coverage: 85
+      gold_coverage: 95

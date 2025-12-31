@@ -1,0 +1,28 @@
+# =====================================================
+# Label Protection
+# 組織の Reusable Workflow を呼び出す薄いラッパー
+# =====================================================
+#
+# ロジックは組織リポジトリで一元管理:
+# PROLE-ISLAND/.github/.github/workflows/reusable-label-protection.yml
+
+name: Label Protection
+
+on:
+  issues:
+    types: [unlabeled]
+  pull_request_target:
+    types: [unlabeled]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  protect-labels:
+    uses: PROLE-ISLAND/.github/.github/workflows/reusable-label-protection.yml@main
+    with:
+      language: 'ja'
+      protected_labels: 'needs-triage,blocked,security,P0,needs-template-fix'
+      warn_labels: 'design-review,ready-to-develop,in-progress'
+      authorized_users: 'ryu1aida1126'
