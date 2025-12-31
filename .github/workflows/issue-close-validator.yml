@@ -1,0 +1,120 @@
+# =====================================================
+# Issue Close Validator
+# Ensures issues are closed with proper justification
+# =====================================================
+
+name: Issue Close Validator
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  validate-close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Issue Close
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const closedBy = context.payload.sender.login;
+
+            // Skip for bots
+            if (closedBy.includes('[bot]')) {
+              console.log('Closed by bot, skipping validation');
+              return;
+            }
+
+            // Get issue comments
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+            });
+
+            // Check for close reason in recent comments (within last 5 minutes)
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+            const recentComments = comments.filter(c =>
+              new Date(c.created_at) > fiveMinutesAgo &&
+              c.user.login === closedBy
+            );
+
+            // Valid close patterns
+            const validClosePatterns = [
+              /close[sd]?\s*(by|via|with|in)\s*#\d+/i,  // Closed by PR
+              /duplicate\s*(of)?\s*#\d+/i,              // Duplicate
+              /won'?t\s*fix/i,                          // Won't fix
+              /not\s*a\s*bug/i,                         // Not a bug
+              /completed/i,                             // Completed
+              /resolved/i,                              // Resolved
+              /fixed\s*(by|in|via)?\s*#?\d*/i,         // Fixed
+              /implemented/i,                           // Implemented
+              /cancelled/i,                             // Cancelled
+              /obsolete/i,                              // Obsolete
+              /stale/i,                                 // Stale
+            ];
+
+            const hasValidReason = recentComments.some(c =>
+              validClosePatterns.some(p => p.test(c.body))
+            );
+
+            // Check if closed via PR (has linked PR that was merged)
+            const closedViaPR = issue.state_reason === 'completed';
+
+            if (closedViaPR) {
+              console.log('Issue closed via linked PR merge');
+              return;
+            }
+
+            if (!hasValidReason) {
+              // Reopen the issue and add a comment
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'open'
+              });
+
+              const warningComment = `## ⚠️ Issue Close Validation Failed
+
+このIssueは理由なく閉じられたため、再オープンしました。
+
+### 閉じる際のルール
+
+Issueを閉じる前に、以下のいずれかのコメントを追加してください：
+
+| 理由 | コメント例 |
+|------|-----------|
+| PRでの解決 | \`Closed by #123\` または \`Fixed in #123\` |
+| 重複 | \`Duplicate of #456\` |
+| 対応しない | \`Won't fix: 理由\` |
+| 完了 | \`Completed\` または \`Resolved\` |
+| 廃止 | \`Obsolete: 理由\` |
+| 取り消し | \`Cancelled: 理由\` |
+
+---
+*This is an automated check. 閉じた人: @${closedBy}*`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: warningComment
+              });
+
+              // Add label
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['needs-close-reason']
+              });
+
+              console.log('Issue reopened - no valid close reason found');
+            } else {
+              console.log('Issue closed with valid reason');
+            }

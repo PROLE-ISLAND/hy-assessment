@@ -537,6 +537,33 @@ npm run issue:bug
 npm run issue:feature
 ```
 
+### Issue Template 自動検証（CI）
+
+Issue作成時、GitHub Actionが自動でテンプレート準拠をチェックします。
+
+**検証項目:**
+- タイトルプレフィックス（`[Feature]:` または `[Bug]:`）
+- 必須セクション（Priority, DoD Level, Background, Requirements 等）
+- Figmaリンク（UI機能の場合）
+- バリアントチェックリスト（UI機能の場合）
+
+**検証結果ラベル:**
+
+| ラベル | 意味 |
+|--------|------|
+| `template-valid` | テンプレート準拠OK |
+| `needs-template-fix` | テンプレート修正が必要 |
+| `template-bypass` | 意図的にテンプレートをスキップ（手動付与） |
+
+**テンプレートエラー時:**
+- Issueにコメントでエラー内容が通知される
+- `needs-template-fix` ラベルが自動付与される
+- 修正するまで `ready-to-develop` にならない
+
+**テンプレートを使わずにIssue作成した場合:**
+- 自動検証でエラーになる
+- Web UI または CLI スクリプトを使って再作成が必要
+
 **必須項目（バグ報告）:**
 - 優先度（P0-P3）
 - DoD Level（Bronze/Silver/Gold）
@@ -618,11 +645,48 @@ gh pr create --title "feat: {説明}" --body "closes #{番号}"
 | `design-review` | デザインレビュー待ち | Figma承認まで実装待機 |
 | `design-approved` | デザイン承認済み | 実装開始OK |
 | `no-ui` | UI変更なし | Figma不要、直接開発可能 |
+| `template-valid` | テンプレート準拠OK | 正常に開発可能 |
+| `needs-template-fix` | テンプレート修正必要 | 修正されるまで待機 |
+| `template-bypass` | テンプレート意図的スキップ | 人間が手動付与、チェック無視 |
 
 ### 自動チェック
 
-- ブランチ名が `feature/issue-*` `bugfix/issue-*` `hotfix/issue-*` 形式でない場合、CIで警告
-- PR本文に `closes #` がない場合、品質ゲートで警告
+| チェック | タイミング | 動作 |
+|---------|-----------|------|
+| **Issue作成** | Issue opened/edited | テンプレート準拠チェック、不備時は `needs-template-fix` |
+| **Issue Close** | Issue closed | 理由なしClose時は再オープン + コメント |
+| **ラベル保護** | Label removed | 保護ラベル削除時は自動復元 |
+| **コミットメッセージ** | git commit | Conventional Commits形式強制 (`feat:`, `fix:` 等) |
+| **PR本文** | PR opened/edited | Why必須、リスク評価チェック |
+| **ブランチ名** | PR opened | `feature/issue-*` 形式推奨（警告） |
+| **PRレビュー** | PR merge | 最低1名の承認必須 |
+| **CI** | PR/push | Lint/型/テスト/ビルド必須（Branch Protection）|
+
+### コミットメッセージ形式
+
+```bash
+# 必須形式: type: subject
+feat: 新機能の追加
+fix: バグ修正
+docs: ドキュメント変更
+refactor: リファクタリング
+test: テスト追加
+chore: その他の変更
+ci: CI設定変更
+
+# 例
+feat: 候補者一覧にページネーション追加
+fix: ログインエラー時のリダイレクト修正
+```
+
+### 保護されたラベル
+
+以下のラベルは認可なく削除できません：
+- `needs-triage` - トリアージ完了まで
+- `blocked` - ブロック解除まで
+- `security` - セキュリティ対応完了まで
+- `P0` - クリティカル優先度
+- `needs-template-fix` - テンプレート修正完了まで
 
 ### 並行開発ガイドライン
 

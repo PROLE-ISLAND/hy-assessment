@@ -1,0 +1,197 @@
+# =====================================================
+# Issue Template Validator
+# Ensures issues follow the defined templates
+# =====================================================
+
+name: Issue Template Validator
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  validate-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Issue Format
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || '';
+            const title = issue.title || '';
+            const labels = issue.labels.map(l => l.name);
+
+            // Skip if already has validation label
+            if (labels.includes('template-valid') || labels.includes('template-bypass')) {
+              console.log('Issue already validated or bypassed');
+              return;
+            }
+
+            const errors = [];
+            const warnings = [];
+            let issueType = null;
+            let requiredLabels = [];
+
+            // =====================================================
+            // Determine issue type from title prefix
+            // =====================================================
+            if (title.startsWith('[Feature]:') || title.startsWith('[Feature]')) {
+              issueType = 'feature';
+              requiredLabels = ['feature', 'needs-triage', 'design-review'];
+            } else if (title.startsWith('[Bug]:') || title.startsWith('[Bug]')) {
+              issueType = 'bug';
+              requiredLabels = ['bug', 'needs-triage'];
+            }
+
+            // =====================================================
+            // Validate Feature Request
+            // =====================================================
+            if (issueType === 'feature') {
+              // Required sections
+              const requiredSections = [
+                { name: 'Priority', pattern: /### Priority\s*\n[^\n]+/i },
+                { name: 'DoD Level', pattern: /### DoD Level\s*\n[^\n]+/i },
+                { name: 'Background', pattern: /### Background\s*\n/i },
+                { name: 'Feature Description', pattern: /### Feature Description\s*\n/i },
+                { name: 'Requirements', pattern: /### Requirements\s*\n/i },
+                { name: 'Test Plan', pattern: /### Test Plan\s*\n/i },
+                { name: 'Acceptance Criteria', pattern: /### Acceptance Criteria\s*\n/i },
+              ];
+
+              for (const section of requiredSections) {
+                if (!section.pattern.test(body)) {
+                  errors.push(`❌ Missing required section: **${section.name}**`);
+                }
+              }
+
+              // Check for Figma link in UI features
+              const figmaLinkPattern = /### Figma Mockup Link\s*\n([^\n]+)/i;
+              const figmaMatch = body.match(figmaLinkPattern);
+              const hasBackendOnlyCheck = /This is a backend-only feature/.test(body) &&
+                                          /\[x\]/i.test(body.match(/This is a backend-only feature[^\n]*/)?.[0] || '');
+
+              if (!hasBackendOnlyCheck) {
+                if (!figmaMatch || !figmaMatch[1].includes('figma.com')) {
+                  warnings.push('⚠️ **Figma link missing**: UI features require a Figma mockup link. If this is backend-only, check "This is a backend-only feature" in Design Checklist.');
+                }
+              }
+
+              // Check variant checklist for UI features
+              const variantChecklist = /### Component Variant Checklist/i.test(body);
+              if (!hasBackendOnlyCheck && !variantChecklist) {
+                warnings.push('⚠️ **Variant checklist missing**: UI components should include Default/Loading/Empty/Error variants.');
+              }
+            }
+
+            // =====================================================
+            // Validate Bug Report
+            // =====================================================
+            if (issueType === 'bug') {
+              const requiredSections = [
+                { name: 'Priority', pattern: /### Priority\s*\n[^\n]+/i },
+                { name: 'DoD Level', pattern: /### DoD Level\s*\n[^\n]+/i },
+                { name: 'Bug Description', pattern: /### Bug Description\s*\n/i },
+                { name: 'Steps to Reproduce', pattern: /### Steps to Reproduce\s*\n/i },
+                { name: 'Expected Behavior', pattern: /### Expected Behavior\s*\n/i },
+                { name: 'Affected Files', pattern: /### Affected Files\s*\n/i },
+                { name: 'Test Plan', pattern: /### Test Plan\s*\n/i },
+                { name: 'Acceptance Criteria', pattern: /### Acceptance Criteria\s*\n/i },
+              ];
+
+              for (const section of requiredSections) {
+                if (!section.pattern.test(body)) {
+                  errors.push(`❌ Missing required section: **${section.name}**`);
+                }
+              }
+            }
+
+            // =====================================================
+            // Check if no template was used
+            // =====================================================
+            if (!issueType) {
+              // Check if body looks like it used a template
+              const hasTemplateStructure = /### (Priority|Background|Description|Bug Description)/i.test(body);
+
+              if (!hasTemplateStructure) {
+                errors.push('❌ **Issue does not follow template format.** Please use the issue template when creating issues:');
+                errors.push('  - [Feature Request](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/issues/new?template=feature_request.yml)');
+                errors.push('  - [Bug Report](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/issues/new?template=bug_report.yml)');
+              } else {
+                // Has structure but wrong title prefix
+                errors.push('❌ **Title format incorrect.** Please use `[Feature]: ...` or `[Bug]: ...` prefix.');
+              }
+            }
+
+            // =====================================================
+            // Check labels
+            // =====================================================
+            if (issueType && requiredLabels.length > 0) {
+              const missingLabels = requiredLabels.filter(l => !labels.includes(l));
+              if (missingLabels.length > 0) {
+                // Auto-add missing labels
+                try {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    labels: missingLabels
+                  });
+                  console.log('Added missing labels:', missingLabels);
+                } catch (e) {
+                  console.error('Failed to add labels:', e);
+                }
+              }
+            }
+
+            // =====================================================
+            // Post validation result comment
+            // =====================================================
+            if (errors.length > 0 || warnings.length > 0) {
+              let comment = '## 📋 Issue Template Validation\n\n';
+
+              if (errors.length > 0) {
+                comment += '### Errors (Must Fix)\n\n';
+                comment += errors.join('\n') + '\n\n';
+                comment += '> **Note**: Issues that don\'t follow the template may be closed or require edits before implementation begins.\n\n';
+              }
+
+              if (warnings.length > 0) {
+                comment += '### Warnings\n\n';
+                comment += warnings.join('\n') + '\n\n';
+              }
+
+              comment += '---\n';
+              comment += '*This is an automated check. If this issue intentionally doesn\'t follow the template, add the `template-bypass` label.*';
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: comment
+              });
+
+              // Add needs-template-fix label for errors
+              if (errors.length > 0) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: ['needs-template-fix']
+                });
+              }
+            } else if (issueType) {
+              // All checks passed
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['template-valid']
+              });
+
+              console.log('Issue validation passed');
+            }
