@@ -43,19 +43,29 @@ jobs:
               c.user.login === closedBy
             );
 
-            // Valid close patterns
+            // Valid close patterns (日本語対応)
             const validClosePatterns = [
               /close[sd]?\s*(by|via|with|in)\s*#\d+/i,  // Closed by PR
               /duplicate\s*(of)?\s*#\d+/i,              // Duplicate
+              /重複\s*#?\d+/i,                          // 重複
               /won'?t\s*fix/i,                          // Won't fix
+              /対応しない/i,                            // 対応しない
               /not\s*a\s*bug/i,                         // Not a bug
+              /バグではない/i,                          // バグではない
               /completed/i,                             // Completed
+              /完了/i,                                  // 完了
               /resolved/i,                              // Resolved
-              /fixed\s*(by|in|via)?\s*#?\d*/i,         // Fixed
+              /解決/i,                                  // 解決
+              /fixed\s*(by|in|via)?\s*#?\d*/i,          // Fixed
+              /修正\s*(完了|済み)?/i,                   // 修正完了
               /implemented/i,                           // Implemented
+              /実装\s*(完了|済み)?/i,                   // 実装完了
               /cancelled/i,                             // Cancelled
+              /キャンセル/i,                            // キャンセル
               /obsolete/i,                              // Obsolete
+              /廃止/i,                                  // 廃止
               /stale/i,                                 // Stale
+              /古い/i,                                  // 古い
             ];
 
             const hasValidReason = recentComments.some(c =>
@@ -79,7 +89,7 @@ jobs:
                 state: 'open'
               });
 
-              const warningComment = `## ⚠️ Issue Close Validation Failed
+              const warningComment = `## ⚠️ Issue クローズ検証
 
 このIssueは理由なく閉じられたため、再オープンしました。
 
@@ -89,15 +99,15 @@ Issueを閉じる前に、以下のいずれかのコメントを追加してく
 
 | 理由 | コメント例 |
 |------|-----------|
-| PRでの解決 | \`Closed by #123\` または \`Fixed in #123\` |
-| 重複 | \`Duplicate of #456\` |
-| 対応しない | \`Won't fix: 理由\` |
-| 完了 | \`Completed\` または \`Resolved\` |
-| 廃止 | \`Obsolete: 理由\` |
-| 取り消し | \`Cancelled: 理由\` |
+| PRでの解決 | \`Closed by #123\` または \`#123 で修正\` |
+| 重複 | \`重複 #456\` または \`Duplicate of #456\` |
+| 対応しない | \`対応しない: 理由\` または \`Won't fix\` |
+| 完了 | \`完了\` または \`Completed\` |
+| 廃止 | \`廃止: 理由\` または \`Obsolete\` |
+| キャンセル | \`キャンセル: 理由\` |
 
 ---
-*This is an automated check. 閉じた人: @${closedBy}*`;
+*自動チェックです。閉じた人: @${closedBy}*`;
 
               await github.rest.issues.createComment({
                 owner: context.repo.owner,

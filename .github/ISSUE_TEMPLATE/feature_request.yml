@@ -1,72 +1,116 @@
-name: "Feature Request"
-description: "Propose a new feature with Figma mockup"
-title: "[Feature]: "
+name: "機能要望"
+description: "新機能の提案（Figmaモックアップ必須）"
+title: "[機能]: "
 labels: ["feature", "needs-triage", "design-review"]
 body:
   - type: markdown
     attributes:
       value: |
-        ## Feature Request Template
-        Please fill out the sections below to help us understand your feature request.
+        ## 機能要望テンプレート v2
+
+        📚 参考:
+        - [DoD基準](https://github.com/PROLE-ISLAND/.github/blob/main/DoD_STANDARDS.md)
 
         ### ⚠️ Figma-First ルール
         **UI/UX変更を含む機能は、Figmaモックアップを先に作成してからこのIssueを作成してください。**
-        Figmaリンクがない場合、`design-review` ラベルが付与され、実装は開始されません。
 
+  # ===== 基本情報 =====
   - type: dropdown
     id: priority
     attributes:
-      label: Priority
-      description: How urgent is this feature?
+      label: 優先度
+      description: この機能の緊急度は？
       options:
-        - P1: High (This sprint)
-        - P2: Medium (Next sprint)
-        - P3: Low (Backlog)
+        - P1: 高（今スプリント）
+        - P2: 中（次スプリント）
+        - P3: 低（バックログ）
     validations:
       required: true
 
   - type: dropdown
     id: dod-level
     attributes:
-      label: DoD Level
-      description: Required quality level for this feature
+      label: 品質レベル（DoD）
+      description: この機能に必要な品質基準
       options:
-        - Silver (85% coverage - Recommended)
-        - Bronze (80% coverage - Prototype)
-        - Gold (95% coverage - Production)
+        - Silver（カバレッジ85%・推奨）
+        - Bronze（カバレッジ80%・プロトタイプ）
+        - Gold（カバレッジ95%・本番）
+    validations:
+      required: true
+
+  # ===== 機能説明 =====
+  - type: textarea
+    id: description
+    attributes:
+      label: 機能説明
+      description: この機能で何ができるようになる？
+      placeholder: |
+        例: 候補者の行動特性・ストレス耐性・EQ・価値観を多面的に分析し、
+        より正確な採用判断を可能にする性格検査拡張機能を実装する。
     validations:
       required: true
 
   - type: textarea
     id: background
     attributes:
-      label: Background
-      description: Why is this feature needed? What problem does it solve?
+      label: 背景・動機（Why）
+      description: なぜこの機能が必要？どんな問題を解決する？
       placeholder: |
-        - Current situation: ...
-        - Problem: ...
-        - Expected benefit: ...
+        現状の課題:
+        この機能がもたらすメリット:
+        対象ユーザー:
+    validations:
+      required: true
+
+  # ===== ユースケース定義 =====
+  - type: textarea
+    id: usecase
+    attributes:
+      label: ユースケース定義（Role × Outcome）
+      description: 誰が何を達成する？
+      placeholder: |
+        **Role（誰が）**: 採用担当者
+        **Outcome（何を達成）**: 候補者の多面的な性格特性を評価して採用判断の精度を上げる
+        **Channel（どこから）**: Web
+
+        例: 「採用担当者が候補者の多面的な性格特性を評価して採用判断の精度を上げる」
+    validations:
+      required: true
+
+  # ===== Gold E2E 候補判定 =====
+  - type: dropdown
+    id: gold-e2e
+    attributes:
+      label: Gold E2E 候補か？
+      description: この機能はE2Eテストの最重要対象か？
+      options:
+        - はい（主要フロー・ビジネス影響大）
+        - いいえ（補助機能・影響小）
     validations:
       required: true
 
   - type: textarea
-    id: description
+    id: five-lenses
     attributes:
-      label: Feature Description
-      description: Describe the feature in detail
+      label: 5つのレンズ評価（Gold E2E候補の場合）
+      description: Gold E2E候補の場合のみ記入
       placeholder: |
-        As a [user type], I want to [action] so that [benefit].
-    validations:
-      required: true
+        | レンズ | Yes/No | 根拠 |
+        |--------|--------|------|
+        | 壊れたら困るか？ | Yes/No | ... |
+        | 振る舞いを見てるか？ | Yes/No | ... |
+        | 嘘をついて通れないか？ | Yes/No | ... |
+        | 1文で説明できるか？ | Yes/No | ... |
+        | 無いと何を諦めるか？ | Yes/No | ... |
 
+  # ===== Figma / v0 =====
   - type: input
     id: figma-link
     attributes:
-      label: Figma Mockup Link
+      label: Figmaモックアップ
       description: |
-        **UI機能は必須** - Issue作成前にFigmaを作成してリンクを貼ってください。
-        リンクがない場合、実装は開始されません（design-reviewで保留）。
-        バックエンドのみの機能はスキップ可。
+        **UI機能は必須** - バックエンドのみの場合はスキップ可
       placeholder: "https://www.figma.com/file/..."
     validations:
       required: false
@@ -74,104 +118,145 @@ body:
   - type: input
     id: v0-link
     attributes:
-      label: v0 Generation Link (Optional)
-      description: |
-        v0.devでUIを生成した場合、そのURLを貼ってください。
-        実装時にコードを流用できます。shadcn/ui + Tailwindなのでそのまま使えます。
+      label: v0生成リンク（任意）
+      description: v0.devでUI生成した場合のURL
       placeholder: "https://v0.dev/chat/..."
     validations:
       required: false
 
+  # ===== デザインチェック =====
   - type: checkboxes
     id: figma-checklist
     attributes:
-      label: Design Checklist
-      description: Confirm the following for UI/UX features
+      label: デザインチェックリスト
+      description: UI/UX機能の場合、以下を確認
       options:
-        - label: "Figma mockup created and linked above"
-        - label: "Mobile responsive design considered"
-        - label: "Dark mode colors verified"
-        - label: "Accessibility (contrast, font size) checked"
-        - label: "This is a backend-only feature (no UI changes)"
+        - label: "Figmaモックアップを作成し、上にリンクを貼った"
+        - label: "モバイルレスポンシブ対応を考慮した"
+        - label: "ダークモードの色を確認した"
+        - label: "アクセシビリティ（コントラスト・フォントサイズ）を確認した"
+        - label: "バックエンドのみの機能（UI変更なし）"
 
   - type: checkboxes
     id: variant-checklist
     attributes:
-      label: Component Variant Checklist（UIコンポーネントのバリアント）
-      description: |
-        本番品質のUIには全状態パターンのデザインが必要です。
-        該当するバリアントをv0/Figmaで作成し、リンクに含めてください。
-        バックエンドのみの機能はスキップ可。
+      label: コンポーネントバリアント
+      description: 本番品質のUIには全状態パターンが必要
       options:
-        - label: "⚫ **Default** - 正常データ表示状態"
-        - label: "⚫ **Loading** - データ読み込み中（スケルトンUI/スピナー）"
-        - label: "⚫ **Empty** - データなし状態（「データがありません」等）"
-        - label: "⚫ **Error** - エラー発生時（再試行ボタン付き）"
-        - label: "◯ **Disabled** - 無効状態（操作不可）"
-        - label: "◯ **Success/Warning/Danger** - データパターン別の色分け表示"
-        - label: "△ **Size variants** - サイズ違い（sm/md/lg）"
-        - label: "△ **Hover/Focus/Active** - インタラクション状態"
-        - label: "該当なし（バックエンドのみ/状態変化のないUI）"
+        - label: "⚫ Default - 正常データ表示"
+        - label: "⚫ Loading - スケルトンUI/スピナー"
+        - label: "⚫ Empty - データなし状態"
+        - label: "⚫ Error - エラー + 再試行"
+        - label: "◯ Disabled - 無効状態"
+        - label: "◯ Success/Warning/Danger - 色分け表示"
+        - label: "該当なし（バックエンドのみ）"
+
+  # ===== 影響範囲 =====
+  - type: checkboxes
+    id: affected-scope
+    attributes:
+      label: 影響範囲
+      description: この機能が影響する領域をチェック
+      options:
+        - label: "フロントエンド（コンポーネント）"
+        - label: "バックエンド（API）"
+        - label: "データベース（スキーマ/マイグレーション）"
+        - label: "インフラ（CI/CD、設定）"
 
   - type: textarea
-    id: requirements
+    id: affected-files
     attributes:
-      label: Requirements
-      description: List specific requirements as checkboxes
+      label: 変更予定ファイル
+      description: 変更が必要そうなファイル
       placeholder: |
-        - [ ] Requirement 1
-        - [ ] Requirement 2
-        - [ ] Requirement 3
+        - `src/components/...`
+        - `src/app/api/...`
+        - `supabase/migrations/...`
+
+  - type: textarea
+    id: affected-existing
+    attributes:
+      label: 影響を受ける既存機能
+      description: この変更で影響を受ける既存機能
+      placeholder: |
+        - 検査実施フロー
+        - 結果レポート表示
+        - CSV出力
+
+  # ===== DB/API変更 =====
+  - type: checkboxes
+    id: db-changes
+    attributes:
+      label: データベース変更
+      description: DBスキーマに変更がある場合
+      options:
+        - label: "テーブル追加/変更あり → マイグレーション必須"
+        - label: "RLSポリシー追加/変更あり"
+        - label: "インデックス追加が必要"
+        - label: "DB変更なし"
+
+  - type: checkboxes
+    id: api-changes
+    attributes:
+      label: API変更
+      description: APIに変更がある場合
+      options:
+        - label: "新規エンドポイント追加"
+        - label: "既存エンドポイント変更（破壊的変更の可能性）"
+        - label: "レスポンス形式変更"
+        - label: "API変更なし"
+
+  # ===== 受け入れ条件 =====
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 受け入れ条件
+      description: この機能がいつ完了と言える？フェーズ分けも可
+      placeholder: |
+        ### Phase 1: 基本機能
+        - [ ] 条件1
+        - [ ] 条件2
+        - [ ] テストが追加されている
+
+        ### Phase 2: 拡張機能（任意）
+        - [ ] 条件3
     validations:
       required: true
 
   - type: textarea
     id: test-plan
     attributes:
-      label: Test Plan
-      description: How should this feature be tested?
+      label: テスト計画
+      description: この機能をどうテストする？
       placeholder: |
-        - Unit tests: ...
-        - E2E tests: ...
-        - Manual verification: ...
+        - ユニットテスト:
+        - E2Eテスト:
+        - 手動検証:
     validations:
       required: true
 
-  - type: textarea
-    id: acceptance-criteria
-    attributes:
-      label: Acceptance Criteria
-      description: When is this feature considered complete?
-      placeholder: |
-        - [ ] Criterion 1
-        - [ ] Criterion 2
-        - [ ] All tests pass
-    validations:
-      required: true
-
-  - type: textarea
-    id: affected-files
-    attributes:
-      label: Affected Files (Optional)
-      description: List files that will likely need changes
-      placeholder: |
-        - `src/components/...`
-        - `src/app/...`
-
+  # ===== PR分割 =====
   - type: textarea
     id: subtasks
     attributes:
-      label: Sub-tasks / PR Split Plan（複数コンポーネント時は必須）
+      label: サブタスク / PR分割計画
       description: |
-        **4コンポーネント以上のUI機能は必ず分割してください。**
-        1PR = 1コンポーネントを原則とし、依存順に実装・マージします。
-        推奨: 1PR = 200行以下
+        **4コンポーネント以上は必ず分割** - 1PR = 200行以下推奨
       placeholder: |
         ### PR分割計画
         1. [ ] 共通型定義・ベースコンポーネント
         2. [ ] ComponentA
         3. [ ] ComponentB
-        4. [ ] ComponentC
 
         ### 依存関係
-        - 1 → 2, 3, 4 の順でマージ
+        - 1 → 2, 3 の順でマージ
+
+  # ===== 事前確認 =====
+  - type: checkboxes
+    id: pre-check
+    attributes:
+      label: 事前確認
+      description: Issue作成前の確認事項
+      options:
+        - label: "重複Issueがないことを確認しました"
+          required: true

@@ -32,11 +32,11 @@ jobs:
 
             // Labels that cannot be removed without proper authority
             const protectedLabels = [
-              'needs-triage',      // Triage process must be completed
-              'blocked',           // Must be unblocked by resolving dependency
-              'security',          // Security issues require special handling
-              'P0',                // Critical priority
-              'needs-template-fix', // Template must be fixed first
+              'needs-triage',      // トリアージ完了まで削除不可
+              'blocked',           // ブロック解除まで削除不可
+              'security',          // セキュリティ対応完了まで削除不可
+              'P0',                // クリティカル優先度
+              'needs-template-fix', // テンプレート修正完了まで削除不可
             ];
 
             // Labels that trigger warnings (can be removed but logged)
@@ -70,16 +70,18 @@ jobs:
               });
 
               // Post warning comment
-              const comment = `## ⚠️ Label Protection
+              const comment = `## ⚠️ ラベル保護
 
 \`${removedLabel}\` ラベルは保護されているため、削除できません。
 
 **保護されたラベル一覧:**
-- \`needs-triage\` - トリアージ完了まで削除不可
-- \`blocked\` - ブロック解除まで削除不可
-- \`security\` - セキュリティ対応完了まで削除不可
-- \`P0\` - クリティカル優先度は維持必須
-- \`needs-template-fix\` - テンプレート修正完了まで削除不可
+| ラベル | 理由 |
+|--------|------|
+| \`needs-triage\` | トリアージ完了まで削除不可 |
+| \`blocked\` | ブロック解除まで削除不可 |
+| \`security\` | セキュリティ対応完了まで削除不可 |
+| \`P0\` | クリティカル優先度は維持必須 |
+| \`needs-template-fix\` | テンプレート修正完了まで削除不可 |
 
 ラベルを削除する必要がある場合は、メンテナーに連絡してください。
 
