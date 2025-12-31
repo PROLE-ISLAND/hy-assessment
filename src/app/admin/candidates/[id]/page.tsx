@@ -18,7 +18,13 @@ import {
   judgmentConfig,
   type JudgmentLevel,
 } from '@/lib/design-system';
-import type { AssessmentStatus } from '@/types/database';
+import type {
+  AssessmentStatus,
+  PersonalityBehavioral,
+  PersonalityStress,
+  PersonalityEQ,
+  PersonalityValues,
+} from '@/types/database';
 
 interface CandidateDetail {
   id: string;
@@ -51,6 +57,11 @@ interface AnalysisData {
   summary: string | null;
   recommendation: string | null;
   is_latest: boolean;
+  // Personality analysis fields
+  personality_behavioral: PersonalityBehavioral | null;
+  personality_stress: PersonalityStress | null;
+  personality_eq: PersonalityEQ | null;
+  personality_values: PersonalityValues | null;
 }
 
 function getPositionLabel(value: string): string {
@@ -134,7 +145,10 @@ export default async function CandidateDetailPage({
   if (latestAssessment?.status === 'completed') {
     const { data } = await adminSupabase
       .from('ai_analyses')
-      .select('id, assessment_id, scores, strengths, weaknesses, summary, recommendation, is_latest')
+      .select(`
+        id, assessment_id, scores, strengths, weaknesses, summary, recommendation, is_latest,
+        personality_behavioral, personality_stress, personality_eq, personality_values
+      `)
       .eq('assessment_id', latestAssessment.id)
       .eq('is_latest', true)
       .single<AnalysisData>();
@@ -199,6 +213,14 @@ export default async function CandidateDetailPage({
     completedAt: a.completed_at,
   }));
 
+  // Transform personality analysis data
+  const personalityAnalysisData = analysis ? {
+    behavioral: analysis.personality_behavioral,
+    stress: analysis.personality_stress,
+    eq: analysis.personality_eq,
+    values: analysis.personality_values,
+  } : null;
+
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
@@ -251,6 +273,7 @@ export default async function CandidateDetailPage({
           organizationId={userProfile.organization_id}
           templateId={template?.id || null}
           assessmentHistory={assessmentHistory}
+          personalityAnalysis={personalityAnalysisData}
         />
       </Suspense>
     </div>
