@@ -11,6 +11,9 @@ const E2E_TEST_PASSWORD = process.env.E2E_TEST_PASSWORD || 'E2ETestSecure123!';
 
 test.describe('Authentication Flow @smoke', () => {
   test.describe('Login Page', () => {
+    // Clear storage state for login page tests (need unauthenticated state)
+    test.use({ storageState: { cookies: [], origins: [] } });
+
     test('should display login form with proper elements @smoke', async ({ page }) => {
       await page.goto('/login');
 
@@ -61,8 +64,11 @@ test.describe('Authentication Flow @smoke', () => {
   });
 
   test.describe('Logout Flow', () => {
+    // Clear storage state and perform fresh login for logout test
+    test.use({ storageState: { cookies: [], origins: [] } });
+
     test('should successfully logout', async ({ page }) => {
-      // First login
+      // First login (from unauthenticated state)
       await login(page);
 
       // Find and click logout button (usually in user menu)
@@ -82,6 +88,9 @@ test.describe('Authentication Flow @smoke', () => {
   });
 
   test.describe('Protected Routes @smoke', () => {
+    // Clear storage state for unauthenticated access tests
+    test.use({ storageState: { cookies: [], origins: [] } });
+
     test('should redirect to login when accessing admin without auth @smoke', async ({ page }) => {
       await page.goto('/admin');
 
