@@ -12,7 +12,12 @@ name: Issue Template Validator
 
 on:
   issues:
-    types: [opened, edited, labeled]
+    types: [opened, edited]
+
+# 同一Issueに対する並行実行を防止（最新の実行のみ有効）
+concurrency:
+  group: issue-validator-${{ github.event.issue.number }}
+  cancel-in-progress: true
 
 permissions:
   issues: write
