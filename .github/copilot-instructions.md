@@ -287,78 +287,66 @@ npm run check:gold     # Gold基準（Silver + E2Eテスト）
 
 ---
 
-## Figma-First ワークフロー
+## UI開発ワークフロー（v0 + Vercel Toolbar）
 
-UI/UX変更を含む機能は、**Issue作成前にFigmaでデザインを作成**し、Issueにリンクを含めてから開発を開始する。
+UI/UX変更を含む機能は、**v0でデザインを生成**し、**Vercel Preview + Toolbar**でレビューする。
+
+📚 [UI生成・レビューガイド](https://github.com/PROLE-ISLAND/.github/wiki/UI生成・レビューガイド)
 
 ### フロー図
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Figma-First 開発フロー                        │
+│               v0 + Vercel Toolbar 開発フロー                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  1. Figmaデザイン作成 ← 最初にこれ！                             │
-│     └─ UIモックアップ・画面遷移を作成                            │
-│     └─ チェックリスト確認（レスポンシブ、ダークモード等）         │
+│  1. /ui-generate でv0コンポーネント生成                          │
+│     └─ shadcn/ui + Tailwindで自動生成                           │
+│     └─ バリアント（Default/Loading/Empty/Error）込み             │
 │           │                                                     │
 │           ▼                                                     │
-│  2. Issue作成（Figmaリンク込み）                                 │
-│     └─ Feature Request テンプレート使用                         │
-│     └─ Figmaリンクフィールドに URL を貼付                        │
-│     └─ ラベル: `design-review` 自動付与                         │
+│  2. Feature Flags でバリアント管理                               │
+│     └─ Vercel Toolbarで切り替え可能に設定                        │
 │           │                                                     │
 │           ▼                                                     │
-│  3. デザインレビュー・承認                                       │
-│     └─ レビュアーがFigmaを確認                                   │
-│     └─ 承認後: `design-review` → `design-approved` に変更       │
+│  3. PR作成 → Vercel Preview デプロイ                             │
+│     └─ Preview URLが自動生成                                     │
+│     └─ IssueにPreview URL記載                                    │
 │           │                                                     │
 │           ▼                                                     │
-│  4. 実装開始                                                     │
-│     └─ `ready-to-develop` ラベル付与                            │
-│     └─ Figmaデザインに沿って実装                                 │
+│  4. Vercel Toolbarでレビュー                                     │
+│     └─ バリアント切り替えて全状態確認                            │
+│     └─ a11y監査実行                                              │
+│     └─ コメント・フィードバック                                  │
 │           │                                                     │
 │           ▼                                                     │
-│  5. PR作成 → CI → マージ                                        │
+│  5. 承認 → マージ                                                │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**重要**: Figmaリンクのない UI機能 Issue は `design-review` で保留され、実装は開始されません。
-
 ### デザイン関連ラベル
 
-| ラベル | 色 | 意味 |
-|--------|-----|------|
-| `design-review` | 紫 | デザインレビュー待ち |
-| `design-approved` | 緑 | デザイン承認済み、実装可能 |
-| `no-ui` | グレー | バックエンドのみ、UI変更なし |
+| ラベル | 意味 |
+|--------|------|
+| `design-review` | UI生成待ち / レビュー待ち |
+| `design-approved` | レビュー承認済み、実装可能 |
+| `no-ui` | バックエンドのみ、UI変更なし |
 
-### Figmaモックアップのチェックリスト
+### UI開発チェックリスト
 
-デザイン作成時に確認すること:
-
-**基本チェック:**
-- [ ] モバイルレスポンシブ対応を考慮
-- [ ] ダークモードの色を確認
-- [ ] アクセシビリティ（コントラスト、フォントサイズ）
-- [ ] 既存デザインシステムとの整合性
-
-**バリアントチェック（⚫必須 ◯推奨 △任意）:**
-- [ ] ⚫ Default状態（正常データ表示）
-- [ ] ⚫ Loading状態（スケルトンUI）
-- [ ] ⚫ Empty状態（データなし）
-- [ ] ⚫ Error状態（エラー + 再試行）
-- [ ] ◯ データパターン別表示（成功/警告/危険）
-- [ ] △ Disabled状態（操作不可）
-- [ ] △ インタラクション状態（Hover/Focus）
+- [ ] v0でUIコンポーネントを生成した
+- [ ] Feature Flagsでバリアント管理を設定した
+- [ ] Preview URLでVercel Toolbarが動作する
+- [ ] Toolbarのa11y監査をパスした
+- [ ] Toolbarでバリアントを切り替えてレビュー可能
 
 ### バックエンドのみの機能
 
 UI変更がない場合:
-1. Issueテンプレートで「This is a backend-only feature」にチェック
+1. Issueテンプレートで「バックエンドのみの機能」にチェック
 2. `no-ui` ラベルを付与
-3. Figmaリンクは不要
+3. v0 Link / Preview URL は「N/A」と記入
 4. 直接 `ready-to-develop` へ
 
 ---
@@ -525,9 +513,17 @@ export function ScoreCard({ data, isLoading, error, onRetry }: ScoreCardProps) {
 
 ## Issue駆動開発（Claude Code向け）
 
-### Issue作成（テンプレート準拠）
+### 組織テンプレート継承
 
-**重要**: Issue作成時は必ず専用スクリプトを使用し、テンプレートに準拠すること。
+**重要**: Issueテンプレートは組織リポジトリ（`PROLE-ISLAND/.github`）から継承。
+ローカルテンプレートは削除済み。
+
+📚 参照:
+- [組織テンプレート](https://github.com/PROLE-ISLAND/.github/tree/main/ISSUE_TEMPLATE)
+- [DoD基準](https://github.com/PROLE-ISLAND/.github/blob/main/DoD_STANDARDS.md)
+- [調査スキル活用ガイド](https://github.com/PROLE-ISLAND/.github/wiki/調査スキル活用ガイド)
+
+### Issue作成（テンプレート準拠）
 
 ```bash
 # バグ報告
@@ -537,22 +533,41 @@ npm run issue:bug
 npm run issue:feature
 ```
 
-**必須項目（バグ報告）:**
+### 必須項目（Feature Request）
+
+**📋 事前調査（調査ファースト原則）:**
+- 調査レポートリンク（`/investigate` で作成）
+- 関連する既存システム名
+- 関連仕様書リンク
+- 事前調査チェックリスト
+
+**📝 機能定義:**
 - 優先度（P0-P3）
 - DoD Level（Bronze/Silver/Gold）
-- バグの説明
-- 再現手順（ステップ形式）
-- 影響するファイル
-- テスト方法・検証手順
-- 受け入れ条件
+- 機能説明・背景・動機
+- ユースケース定義（Role × Outcome × Channel）
+- Gold E2E 候補か？（5つのレンズ評価）
 
-**必須項目（機能要望）:**
-- 優先度（P1-P3）
-- DoD Level（Bronze/Silver/Gold）
-- 背景・なぜ必要か
-- 機能の説明
-- 要件（チェックリスト形式）
-- テスト方法
+**🎨 UI開発（UI機能の場合）:**
+- v0 Link（`/ui-generate` で生成）
+- Preview URL（Vercel bot から取得）
+- デザインバリアント数
+- UI開発チェックリスト
+
+**📊 影響範囲:**
+- 変更対象（フロントエンド/バックエンド/DB/インフラ）
+- 変更予定ファイル
+- データベース変更チェック
+- API変更チェック
+
+**✅ 受け入れ条件**
+
+### 必須項目（Bug Report）
+- 優先度（P0-P3）
+- DoD Level
+- バグの説明・再現手順
+- 期待される動作
+- 影響範囲・変更予定ファイル
 - 受け入れ条件
 
 ### 開発開始時の必須手順
