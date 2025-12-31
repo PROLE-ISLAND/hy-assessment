@@ -3,8 +3,8 @@
 // Test template list, detail, version creation, toggle
 // =====================================================
 
-import { test, expect, SELECTORS, login } from './fixtures';
-import { waitForPageReady } from './helpers/deterministic-wait';
+import { test, expect, SELECTORS, login } from '../fixtures';
+import { waitForPageReady } from '../helpers/deterministic-wait';
 
 test.describe('Templates Management', () => {
   test.beforeEach(async ({ page }) => {

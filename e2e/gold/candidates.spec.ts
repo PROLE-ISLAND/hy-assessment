@@ -3,8 +3,8 @@
 // Test candidate list, add, detail, and actions
 // =====================================================
 
-import { test, expect, SELECTORS, navigateToNewCandidateForm } from './fixtures';
-import { waitForPageReady } from './helpers/deterministic-wait';
+import { test, expect, SELECTORS, navigateToNewCandidateForm } from '../fixtures';
+import { waitForPageReady } from '../helpers/deterministic-wait';
 
 test.describe('Candidates Management', () => {
   // Authentication is handled by the setup project via storageState

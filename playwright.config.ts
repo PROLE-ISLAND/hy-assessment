@@ -57,17 +57,50 @@ export default defineConfig({
       testMatch: /auth\.setup\.ts/,
       timeout: 120000, // 2 minutes for cold start
     },
-    // Auth tests - run without storageState (test login/logout/redirect)
+
+    // =====================================================
+    // Gold E2E Tests (5-10 critical business flows)
+    // Run on every deploy, must always pass
+    // =====================================================
     {
-      name: 'auth-tests',
-      testMatch: /01-auth\.spec\.ts/,
+      name: 'gold-auth',
+      testMatch: /gold\/auth\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
-      // No storageState - tests run as unauthenticated user
+      // No storageState - tests login flow
     },
-    // Main tests - depend on setup and use saved auth state
+    {
+      name: 'gold',
+      testDir: './e2e/gold',
+      testIgnore: /auth\.spec\.ts/,  // Auth tests run separately
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+
+    // =====================================================
+    // Integration Tests (Silver level)
+    // More comprehensive testing, run on PR
+    // =====================================================
+    {
+      name: 'integration',
+      testDir: './e2e/integration',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+
+    // =====================================================
+    // Legacy: Full test run (all tests)
+    // For backwards compatibility
+    // =====================================================
     {
       name: 'chromium',
-      testIgnore: /01-auth\.spec\.ts/,  // Skip auth tests in this project
+      testDir: './e2e',
+      testIgnore: [/auth\.setup\.ts/, /gold\/auth\.spec\.ts/],
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/user.json',
