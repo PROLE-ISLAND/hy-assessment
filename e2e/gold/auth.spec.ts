@@ -11,7 +11,7 @@ const E2E_TEST_PASSWORD = process.env.E2E_TEST_PASSWORD || 'E2ETestSecure123!';
 
 test.describe('Authentication Flow', () => {
   test.describe('Login Page', () => {
-    test('should display login form with proper elements', async ({ page }) => {
+    test('should display login form with proper elements @smoke', async ({ page }) => {
       await page.goto('/login');
 
       // Check form elements exist using data-testid
@@ -47,7 +47,7 @@ test.describe('Authentication Flow', () => {
       expect(hasError).toBeTruthy();
     });
 
-    test('should successfully login with valid E2E credentials', async ({ page }) => {
+    test('should successfully login with valid E2E credentials @smoke', async ({ page }) => {
       await page.goto('/login');
 
       await page.fill(SELECTORS.loginEmail, E2E_TEST_EMAIL);
@@ -82,7 +82,7 @@ test.describe('Authentication Flow', () => {
   });
 
   test.describe('Protected Routes', () => {
-    test('should redirect to login when accessing admin without auth', async ({ page }) => {
+    test('should redirect to login when accessing admin without auth @smoke', async ({ page }) => {
       await page.goto('/admin');
 
       // Should redirect to login
