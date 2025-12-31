@@ -157,3 +157,21 @@ body:
       placeholder: |
         - `src/components/...`
         - `src/app/...`
+
+  - type: textarea
+    id: subtasks
+    attributes:
+      label: Sub-tasks / PR Split Plan（複数コンポーネント時は必須）
+      description: |
+        **4コンポーネント以上のUI機能は必ず分割してください。**
+        1PR = 1コンポーネントを原則とし、依存順に実装・マージします。
+        推奨: 1PR = 200行以下
+      placeholder: |
+        ### PR分割計画
+        1. [ ] 共通型定義・ベースコンポーネント
+        2. [ ] ComponentA
+        3. [ ] ComponentB
+        4. [ ] ComponentC
+
+        ### 依存関係
+        - 1 → 2, 3, 4 の順でマージ
