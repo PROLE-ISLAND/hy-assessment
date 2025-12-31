@@ -213,6 +213,27 @@ npm run build          # Next.jsビルド
 - DoD Levelを選択し、チェックリストを確認
 - 未達項目がある場合は理由を記載
 
+### DoD ローカルチェック
+
+PR作成前にローカルで品質基準を確認できるスクリプト:
+
+```bash
+npm run check:bronze   # Bronze基準（lint + 型チェック + テスト + ビルド）
+npm run check:silver   # Silver基準（Bronze + npm audit）
+npm run check:gold     # Gold基準（Silver + E2Eテスト）
+```
+
+| Level | チェック内容 |
+|-------|-------------|
+| Bronze | ESLint, TypeScript型チェック, Vitest（カバレッジ込み）, Next.jsビルド |
+| Silver | Bronze + npm audit (high/critical脆弱性チェック) |
+| Gold | Silver + Playwright E2Eテスト |
+
+**推奨ワークフロー:**
+1. 開発完了 → `npm run check:bronze` で最低基準を確認
+2. PR作成前 → 対象DoDレベルに応じたチェックを実行
+3. CI失敗時 → ローカルで同じチェックを再現してデバッグ
+
 ### 開発フロー
 
 ```

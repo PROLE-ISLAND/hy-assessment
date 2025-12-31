@@ -26,7 +26,11 @@
     "test:load": "k6 run --env LOAD_PROFILE=load load-tests/scenarios/api-load.js",
     "test:load:smoke": "k6 run --env LOAD_PROFILE=smoke load-tests/scenarios/api-load.js",
     "test:load:stress": "k6 run --env LOAD_PROFILE=stress load-tests/scenarios/api-load.js",
-    "test:load:flow": "k6 run load-tests/scenarios/assessment-flow.js"
+    "test:load:flow": "k6 run load-tests/scenarios/assessment-flow.js",
+    "type-check": "tsc --noEmit",
+    "check:bronze": "npm run lint && npm run type-check && npm run test:coverage && npm run build",
+    "check:silver": "npm run check:bronze && npm audit --audit-level=high",
+    "check:gold": "npm run check:silver && npm run test:e2e"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
