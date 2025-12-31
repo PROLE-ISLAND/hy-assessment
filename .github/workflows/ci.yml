@@ -40,6 +40,17 @@ jobs:
       - name: TypeScript型チェック
         run: npx tsc --noEmit
 
+  unused-exports:
+    name: 未使用export検出
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+      - name: 未使用export検出
+        run: npm run check:unused-exports
+        # 警告のみ（エラーで落とさない）- 新規PRで段階的に対応
+        continue-on-error: true
+
   unit-test:
     name: 単体テスト
     runs-on: ubuntu-latest

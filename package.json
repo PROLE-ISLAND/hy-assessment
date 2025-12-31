@@ -30,6 +30,7 @@
     "test:load:stress": "k6 run --env LOAD_PROFILE=stress load-tests/scenarios/api-load.js",
     "test:load:flow": "k6 run load-tests/scenarios/assessment-flow.js",
     "type-check": "tsc --noEmit",
+    "check:unused-exports": "ts-unused-exports tsconfig.json --ignoreFiles='test\\.ts$' --ignoreFiles='spec\\.ts$' --ignoreFiles='__tests__' --ignoreFiles='e2e/' --ignoreFiles='src/types/' --ignoreFiles='page\\.tsx$' --ignoreFiles='layout\\.tsx$' --ignoreFiles='error\\.tsx$' --ignoreFiles='not-found\\.tsx$' --ignoreFiles='route\\.ts$' --ignoreFiles='config\\.ts$' --ignoreFiles='instrumentation\\.ts$' --ignoreFiles='middleware\\.ts$' --ignoreFiles='scripts/' --ignoreFiles='global-error\\.tsx$' --ignoreFiles='global-setup\\.ts$' --ignoreFiles='fixtures\\.ts$' --ignoreFiles='deterministic-wait\\.ts$'",
     "check:bronze": "npm run lint && npm run type-check && npm run test:coverage && npm run build",
     "check:silver": "npm run check:bronze && npm audit --audit-level=high",
     "check:gold": "npm run check:silver && npm run test:e2e:gold"
@@ -101,6 +102,7 @@
     "pg": "^8.16.3",
     "semantic-release": "^24.2.9",
     "tailwindcss": "^4",
+    "ts-unused-exports": "^11.0.1",
     "tsx": "^4.21.0",
     "tw-animate-css": "^1.4.0",
     "typescript": "^5",
