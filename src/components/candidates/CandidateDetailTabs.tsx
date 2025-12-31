@@ -21,7 +21,14 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { IssueAssessmentButton } from '@/components/candidates/IssueAssessmentButton';
 import { AssessmentUrlDisplay } from '@/components/candidates/AssessmentUrlDisplay';
-import { DomainRadarChart, ScoreBarChart } from '@/components/analysis';
+import {
+  DomainRadarChart,
+  ScoreBarChart,
+  BehavioralCard,
+  StressCard,
+  EQCard,
+  ValuesCard,
+} from '@/components/analysis';
 import { DOMAIN_LABELS, DOMAIN_DESCRIPTIONS, type Domain } from '@/lib/analysis';
 import { POSITIONS } from '@/lib/constants/positions';
 import {
@@ -31,7 +38,13 @@ import {
   stateColors,
   type RiskLevel,
 } from '@/lib/design-system';
-import type { AssessmentStatus } from '@/types/database';
+import type {
+  AssessmentStatus,
+  PersonalityBehavioral,
+  PersonalityStress,
+  PersonalityEQ,
+  PersonalityValues,
+} from '@/types/database';
 import type { JudgmentLevel, InterviewPoint } from '@/lib/analysis/judgment';
 
 // Helper function to get position label
@@ -81,6 +94,14 @@ interface JudgmentData {
   color: string;
 }
 
+// Personality analysis data passed from the page component
+interface PersonalityAnalysisData {
+  behavioral: PersonalityBehavioral | null;
+  stress: PersonalityStress | null;
+  eq: PersonalityEQ | null;
+  values: PersonalityValues | null;
+}
+
 interface CandidateDetailTabsProps {
   candidate: CandidateData;
   latestAssessment: AssessmentData | null;
@@ -91,6 +112,7 @@ interface CandidateDetailTabsProps {
   organizationId: string;
   templateId: string | null;
   assessmentHistory: AssessmentData[];
+  personalityAnalysis?: PersonalityAnalysisData | null;
 }
 
 
@@ -133,6 +155,7 @@ export function CandidateDetailTabs({
   organizationId,
   templateId,
   assessmentHistory,
+  personalityAnalysis,
 }: CandidateDetailTabsProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -543,6 +566,32 @@ export function CandidateDetailTabs({
                   <p className="leading-relaxed">{analysis.recommendation}</p>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Personality Analysis Section */}
+            {personalityAnalysis && (
+              personalityAnalysis.behavioral ||
+              personalityAnalysis.stress ||
+              personalityAnalysis.eq ||
+              personalityAnalysis.values
+            ) && (
+              <>
+                <Separator className="my-8" />
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold">性格分析</h2>
+                    <p className="text-muted-foreground">
+                      行動特性・ストレス耐性・感情知性・価値観の4視点から分析
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <BehavioralCard data={personalityAnalysis.behavioral} />
+                    <StressCard data={personalityAnalysis.stress} />
+                    <EQCard data={personalityAnalysis.eq} />
+                    <ValuesCard data={personalityAnalysis.values} />
+                  </div>
+                </div>
+              </>
             )}
           </>
         ) : (

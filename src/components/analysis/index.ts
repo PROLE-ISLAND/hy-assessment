@@ -14,3 +14,11 @@ export { VersionBadge } from './VersionBadge';
 export { AnalysisHistoryTable, type AnalysisHistoryItem } from './AnalysisHistoryTable';
 export { ReanalyzeDialog } from './ReanalyzeDialog';
 export { AnalysisResultsClient } from './AnalysisResultsClient';
+
+// Personality Analysis
+export {
+  BehavioralCard,
+  StressCard,
+  EQCard,
+  ValuesCard,
+} from './personality';

@@ -1,39 +1,22 @@
 // =====================================================
 // Personality Analysis Components
-// Exports for behavioral, stress, EQ, and values analysis
+// Export all personality-related UI components
 // =====================================================
 
-// Components
-export { BehavioralAnalysisCard } from './BehavioralAnalysisCard';
-export { StressResilienceCard } from './StressResilienceCard';
-export { EQAnalysisCard } from './EQAnalysisCard';
-export { ValuesAnalysisCard } from './ValuesAnalysisCard';
-
-// Shared components
-export {
-  PersonalityCardSkeleton,
-  PersonalityCardError,
-  PersonalityCardEmpty,
-  ProgressBar,
-} from './shared';
+export { BehavioralCard } from './BehavioralCard';
+export { StressCard } from './StressCard';
+export { EQCard } from './EQCard';
+export { ValuesCard } from './ValuesCard';
 
 // Types
 export type {
-  BehavioralAnalysisData,
-  BehavioralTrait,
-  StressResilienceData,
-  StressMetric,
-  EQAnalysisData,
-  EQDimension,
-  ValuesAnalysisData,
-  ValueDimension,
-  PersonalityCardProps,
-} from './types';
-
-// Utilities
-export {
-  getScoreLevel,
-  getScoreColorClass,
-  getScoreBadgeClass,
-  getProgressColorClass,
+  PersonalityBehavioral,
+  PersonalityBehavioralTrait,
+  PersonalityStress,
+  PersonalityStressMetric,
+  PersonalityEQ,
+  PersonalityEQDimension,
+  PersonalityValues,
+  PersonalityValueDimension,
+  PersonalityCardBaseProps,
 } from './types';
