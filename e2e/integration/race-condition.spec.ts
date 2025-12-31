@@ -4,7 +4,7 @@
 // =====================================================
 
 import { test, expect } from '@playwright/test';
-import { waitForPageReady } from './helpers/deterministic-wait';
+import { waitForPageReady } from '../helpers/deterministic-wait';
 
 test.describe('Race Condition Prevention', () => {
   test.describe('Form Auto-Save Behavior', () => {

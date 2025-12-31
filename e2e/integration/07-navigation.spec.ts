@@ -3,8 +3,8 @@
 // Test sidebar, header, and overall navigation
 // =====================================================
 
-import { test, expect, SELECTORS, login } from './fixtures';
-import { waitForPageReady } from './helpers/deterministic-wait';
+import { test, expect, SELECTORS, login } from '../fixtures';
+import { waitForPageReady } from '../helpers/deterministic-wait';
 
 test.describe('Navigation', () => {
   test.beforeEach(async ({ page }) => {

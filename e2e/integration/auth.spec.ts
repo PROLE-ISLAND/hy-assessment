@@ -2,7 +2,7 @@
 // E2E Tests: Authentication Flow
 // =====================================================
 
-import { test, expect, SELECTORS } from './fixtures';
+import { test, expect, SELECTORS } from '../fixtures';
 
 test.describe('Authentication', () => {
   test('redirects unauthenticated users to login', async ({ page }) => {

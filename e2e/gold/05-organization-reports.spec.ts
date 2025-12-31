@@ -3,7 +3,7 @@
 // Test organization reports and analytics
 // =====================================================
 
-import { test, expect, SELECTORS } from './fixtures';
+import { test, expect, SELECTORS } from '../fixtures';
 
 test.describe('Reports Page', () => {
   // Authentication is handled by the setup project via storageState

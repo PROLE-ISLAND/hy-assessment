@@ -4,7 +4,7 @@
 // =====================================================
 
 import { test, expect } from '@playwright/test';
-import { waitForPageReady } from './helpers/deterministic-wait';
+import { waitForPageReady } from '../helpers/deterministic-wait';
 
 test.describe('Expired Assessment Token', () => {
   test('shows 404 for non-existent token', async ({ page }) => {

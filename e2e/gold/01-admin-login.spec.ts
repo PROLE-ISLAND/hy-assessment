@@ -3,15 +3,18 @@
 // Test login/logout buttons and navigation
 // =====================================================
 
-import { test, expect, SELECTORS, login } from './fixtures';
+import { test, expect, SELECTORS, login } from '../fixtures';
 
 // E2E credentials from environment
 const E2E_TEST_EMAIL = process.env.E2E_TEST_EMAIL || 'e2e-test@hy-assessment.local';
 const E2E_TEST_PASSWORD = process.env.E2E_TEST_PASSWORD || 'E2ETestSecure123!';
 
-test.describe('Authentication Flow', () => {
+test.describe('Authentication Flow @smoke', () => {
   test.describe('Login Page', () => {
-    test('should display login form with proper elements', async ({ page }) => {
+    // Clear storage state for login page tests (need unauthenticated state)
+    test.use({ storageState: { cookies: [], origins: [] } });
+
+    test('should display login form with proper elements @smoke', async ({ page }) => {
       await page.goto('/login');
 
       // Check form elements exist using data-testid
@@ -47,7 +50,7 @@ test.describe('Authentication Flow', () => {
       expect(hasError).toBeTruthy();
     });
 
-    test('should successfully login with valid E2E credentials', async ({ page }) => {
+    test('should successfully login with valid E2E credentials @smoke', async ({ page }) => {
       await page.goto('/login');
 
       await page.fill(SELECTORS.loginEmail, E2E_TEST_EMAIL);
@@ -61,8 +64,11 @@ test.describe('Authentication Flow', () => {
   });
 
   test.describe('Logout Flow', () => {
+    // Clear storage state and perform fresh login for logout test
+    test.use({ storageState: { cookies: [], origins: [] } });
+
     test('should successfully logout', async ({ page }) => {
-      // First login
+      // First login (from unauthenticated state)
       await login(page);
 
       // Find and click logout button (usually in user menu)
@@ -81,8 +87,11 @@ test.describe('Authentication Flow', () => {
     });
   });
 
-  test.describe('Protected Routes', () => {
-    test('should redirect to login when accessing admin without auth', async ({ page }) => {
+  test.describe('Protected Routes @smoke', () => {
+    // Clear storage state for unauthenticated access tests
+    test.use({ storageState: { cookies: [], origins: [] } });
+
+    test('should redirect to login when accessing admin without auth @smoke', async ({ page }) => {
       await page.goto('/admin');
 
       // Should redirect to login
