@@ -9,6 +9,8 @@ import { type ResponseData } from '@/lib/analysis';
 import {
   analyzeAssessmentFull,
   analyzeAssessmentFullMock,
+  generatePersonalityAnalysis,
+  generatePersonalityAnalysisMock,
 } from '@/lib/analysis/ai-analyzer';
 import { sendAssessmentCompletion, sendReportLink } from '@/lib/email';
 import { nanoid } from 'nanoid';
@@ -61,6 +63,19 @@ export const analyzeAssessmentFunction = inngest.createFunction(
         : await analyzeAssessmentFull(input);
     });
 
+    // Step 2.5: Run personality analysis (Issue #153)
+    const personalityResult = await step.run('run-personality-analysis', async () => {
+      const input = {
+        responses,
+        candidatePosition,
+        scoringResult: analysisResult.scoringResult,
+      };
+
+      return USE_MOCK
+        ? await generatePersonalityAnalysisMock(input)
+        : await generatePersonalityAnalysis(input);
+    });
+
     // Step 3: Save analysis to database
     const savedAnalysis = await step.run('save-analysis', async () => {
       const supabase = createAdminClient();
@@ -98,6 +113,11 @@ export const analyzeAssessmentFunction = inngest.createFunction(
         interview_checks: internalReport.interview_checks,
         candidate_report: candidateReportData,
         report_version: 'v2',
+        // Personality analysis fields (Issue #153)
+        personality_behavioral: personalityResult.behavioral,
+        personality_stress: personalityResult.stress,
+        personality_eq: personalityResult.eq,
+        personality_values: personalityResult.values,
       };
 
       const { data, error } = await supabase
