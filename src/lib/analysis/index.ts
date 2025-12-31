@@ -26,6 +26,12 @@ export {
   type AIAnalysisOutput,
 } from './prompts';
 
+// Personality prompts (types only)
+export {
+  type PersonalityAnalysisInput,
+  type PersonalityAnalysisOutput,
+} from './personality-prompts';
+
 // Note: AI Analyzer exports are NOT included here to avoid server code
 // being traced to client components. Import directly from './ai-analyzer'
 // in server-side code (API routes, Inngest functions, etc.)
