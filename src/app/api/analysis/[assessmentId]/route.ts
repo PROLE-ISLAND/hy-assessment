@@ -9,6 +9,8 @@ import { type ResponseData } from '@/lib/analysis';
 import {
   analyzeAssessmentFull,
   analyzeAssessmentFullMock,
+  generatePersonalityAnalysis,
+  generatePersonalityAnalysisMock,
 } from '@/lib/analysis/ai-analyzer';
 import type { Assessment, Candidate, Person, AIAnalysis } from '@/types/database';
 
@@ -118,12 +120,20 @@ export async function POST(
       ? await analyzeAssessmentFullMock(analysisInput)
       : await analyzeAssessmentFull(analysisInput);
 
+    // 6.5. Run personality analysis
+    const personalityResult = USE_MOCK
+      ? await generatePersonalityAnalysisMock(analysisInput)
+      : await generatePersonalityAnalysis(analysisInput);
+
     // Extract v2 fields (always available in full analysis)
     const { internalReport, candidateReport } = analysisResult;
 
     // Build legacy fields from v2 for backward compatibility
     const legacyStrengths = internalReport.strengths.map((s) => s.behavior);
     const legacyWeaknesses = internalReport.watchouts.map((w) => w.risk);
+
+    // Total tokens used (v2 + personality)
+    const totalTokens = analysisResult.totalTokensUsed + personalityResult.tokensUsed;
 
     // 7. Save to database
     const insertData: Omit<AIAnalysis, 'id' | 'created_at'> = {
@@ -141,7 +151,7 @@ export async function POST(
       recommendation: internalReport.recommendation,
       model_version: analysisResult.modelVersion,
       prompt_version: analysisResult.promptVersion,
-      tokens_used: analysisResult.totalTokensUsed,
+      tokens_used: totalTokens,
       version: 1,
       is_latest: true,
       analyzed_at: new Date().toISOString(),
@@ -152,6 +162,11 @@ export async function POST(
       interview_checks: internalReport.interview_checks,
       candidate_report: candidateReport,
       report_version: 'v2',
+      // v3 personality analysis fields
+      behavioral_analysis: personalityResult.personalityAnalysis.behavioral,
+      stress_resilience: personalityResult.personalityAnalysis.stress,
+      eq_analysis: personalityResult.personalityAnalysis.eq,
+      values_analysis: personalityResult.personalityAnalysis.values,
     };
 
     const { data: savedAnalysis, error: saveError } = await supabase
@@ -368,12 +383,20 @@ export async function PUT(
       ? await analyzeAssessmentFullMock(analysisInput)
       : await analyzeAssessmentFull(analysisInput);
 
+    // Run personality analysis
+    const personalityResult = USE_MOCK
+      ? await generatePersonalityAnalysisMock(analysisInput)
+      : await generatePersonalityAnalysis(analysisInput);
+
     // Extract v2 fields (always available in full analysis)
     const { internalReport, candidateReport } = analysisResult;
 
     // Build legacy fields from v2 for backward compatibility
     const legacyStrengths = internalReport.strengths.map((s) => s.behavior);
     const legacyWeaknesses = internalReport.watchouts.map((w) => w.risk);
+
+    // Total tokens used (v2 + personality)
+    const totalTokens = analysisResult.totalTokensUsed + personalityResult.tokensUsed;
 
     // Save new analysis
     const insertData: Omit<AIAnalysis, 'id' | 'created_at'> = {
@@ -391,7 +414,7 @@ export async function PUT(
       recommendation: internalReport.recommendation,
       model_version: analysisResult.modelVersion,
       prompt_version: analysisResult.promptVersion,
-      tokens_used: analysisResult.totalTokensUsed,
+      tokens_used: totalTokens,
       version: newVersion,
       is_latest: true,
       analyzed_at: new Date().toISOString(),
@@ -402,6 +425,11 @@ export async function PUT(
       interview_checks: internalReport.interview_checks,
       candidate_report: candidateReport,
       report_version: 'v2',
+      // v3 personality analysis fields
+      behavioral_analysis: personalityResult.personalityAnalysis.behavioral,
+      stress_resilience: personalityResult.personalityAnalysis.stress,
+      eq_analysis: personalityResult.personalityAnalysis.eq,
+      values_analysis: personalityResult.personalityAnalysis.values,
     };
 
     const { data: savedAnalysis, error: saveError } = await supabase

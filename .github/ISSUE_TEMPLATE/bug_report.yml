@@ -1,104 +1,106 @@
-name: "Bug Report"
-description: "Report a bug or issue"
-title: "[Bug]: "
+name: "バグ報告"
+description: "バグ・不具合の報告"
+title: "[バグ]: "
 labels: ["bug", "needs-triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        ## Bug Report Template
-        Please provide detailed information to help us reproduce and fix the issue.
+        ## バグ報告テンプレート
+
+        問題の再現・修正に必要な情報を詳しく記入してください。
 
   - type: dropdown
     id: priority
     attributes:
-      label: Priority
-      description: How severe is this bug?
+      label: 優先度
+      description: このバグの深刻度は？
       options:
-        - P0: Critical (Production down)
-        - P1: High (Major feature broken)
-        - P2: Medium (Feature degraded)
-        - P3: Low (Minor issue)
+        - P0: 緊急（本番ダウン）
+        - P1: 高（主要機能が壊れている）
+        - P2: 中（機能が劣化している）
+        - P3: 低（軽微な問題）
     validations:
       required: true
 
   - type: dropdown
     id: dod-level
     attributes:
-      label: DoD Level
-      description: Required quality level for the fix
+      label: 品質レベル（DoD）
+      description: 修正に必要な品質基準
       options:
-        - Silver (85% coverage - Recommended)
-        - Bronze (80% coverage - Quick fix)
-        - Gold (95% coverage - Critical fix)
+        - Silver（カバレッジ85%・推奨）
+        - Bronze（カバレッジ80%・応急処置）
+        - Gold（カバレッジ95%・重要修正）
     validations:
       required: true
 
   - type: textarea
     id: description
     attributes:
-      label: Bug Description
-      description: Clear and concise description of what the bug is
+      label: バグの説明
+      description: どんなバグ？簡潔に説明してください
       placeholder: |
-        What happened? What did you expect to happen?
+        何が起きた？
+        何が起きるべきだった？
     validations:
       required: true
 
   - type: textarea
     id: reproduction
     attributes:
-      label: Steps to Reproduce
-      description: Detailed steps to reproduce the issue
+      label: 再現手順
+      description: バグを再現するための詳細な手順
       placeholder: |
-        1. Go to '...'
-        2. Click on '...'
-        3. Scroll down to '...'
-        4. See error
+        1. ○○ページに移動
+        2. △△ボタンをクリック
+        3. □□までスクロール
+        4. エラーが発生
     validations:
       required: true
 
   - type: input
     id: figma-link
     attributes:
-      label: Figma Link (Optional)
+      label: Figmaリンク（任意）
       description: |
-        If this is a UI bug, link to Figma showing the correct design.
-        Useful for UI/styling issues.
+        UIバグの場合、正しいデザインを示すFigmaへのリンク。
+        UI/スタイリングの問題に便利。
       placeholder: "https://www.figma.com/file/..."
 
   - type: textarea
     id: expected
     attributes:
-      label: Expected Behavior
-      description: What should happen instead?
+      label: 期待される動作
+      description: 本来どうなるべき？
     validations:
       required: true
 
   - type: textarea
     id: screenshots
     attributes:
-      label: Screenshots / Error Logs
-      description: Add screenshots or error messages if applicable
+      label: スクリーンショット / エラーログ
+      description: 該当する場合はスクリーンショットやエラーメッセージを追加
       placeholder: |
-        Paste screenshots or error logs here.
-        Error message: ...
+        スクリーンショットやエラーログをここに貼り付け。
+        エラーメッセージ: ...
 
   - type: textarea
     id: environment
     attributes:
-      label: Environment
-      description: Where did this happen?
+      label: 環境
+      description: どこで発生した？
       placeholder: |
-        - Browser: Chrome 120
+        - ブラウザ: Chrome 120
         - OS: macOS 14
         - URL: https://...
-        - User role: admin / reviewer
+        - ユーザーロール: admin / reviewer
 
   - type: textarea
     id: affected-files
     attributes:
-      label: Affected Files
-      description: Files that likely need to be changed to fix this bug
+      label: 影響するファイル
+      description: このバグを修正するために変更が必要そうなファイル
       placeholder: |
         - `src/components/...`
         - `src/app/api/...`
@@ -108,23 +110,23 @@ body:
   - type: textarea
     id: test-plan
     attributes:
-      label: Test Plan
-      description: How to verify the fix?
+      label: テスト計画
+      description: 修正をどう検証する？
       placeholder: |
-        - [ ] Unit test added
-        - [ ] E2E test added
-        - [ ] Manual verification steps
+        - [ ] ユニットテスト追加
+        - [ ] E2Eテスト追加
+        - [ ] 手動検証手順
     validations:
       required: true
 
   - type: textarea
     id: acceptance-criteria
     attributes:
-      label: Acceptance Criteria
-      description: When is this bug considered fixed?
+      label: 受け入れ条件
+      description: このバグがいつ修正完了と言える？
       placeholder: |
-        - [ ] Bug no longer reproducible
-        - [ ] Tests pass
-        - [ ] No regression
+        - [ ] バグが再現しなくなった
+        - [ ] テストが通る
+        - [ ] 既存機能に影響なし
     validations:
       required: true

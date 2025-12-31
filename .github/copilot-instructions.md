@@ -537,6 +537,34 @@ npm run issue:bug
 npm run issue:feature
 ```
 
+### Issue Template 自動検証（CI）
+
+Issue作成時、GitHub Actionが自動でテンプレート準拠をチェックします。
+
+**検証項目:**
+- タイトルプレフィックス（`[機能]:` または `[バグ]:`）
+- 必須セクション（優先度、品質レベル、背景・動機、ユースケース定義 等）
+- Figmaリンク（UI機能の場合）
+- バリアントチェックリスト（UI機能の場合）
+- 事前確認（重複Issueチェック）
+
+**検証結果ラベル:**
+
+| ラベル | 意味 |
+|--------|------|
+| `template-valid` | テンプレート準拠OK |
+| `needs-template-fix` | テンプレート修正が必要 |
+| `template-bypass` | 意図的にテンプレートをスキップ（手動付与） |
+
+**テンプレートエラー時:**
+- Issueにコメントでエラー内容が通知される
+- `needs-template-fix` ラベルが自動付与される
+- 修正するまで `ready-to-develop` にならない
+
+**テンプレートを使わずにIssue作成した場合:**
+- 自動検証でエラーになる
+- Web UI または CLI スクリプトを使って再作成が必要
+
 **必須項目（バグ報告）:**
 - 優先度（P0-P3）
 - DoD Level（Bronze/Silver/Gold）
@@ -548,12 +576,46 @@ npm run issue:feature
 
 **必須項目（機能要望）:**
 - 優先度（P1-P3）
-- DoD Level（Bronze/Silver/Gold）
-- 背景・なぜ必要か
-- 機能の説明
-- 要件（チェックリスト形式）
-- テスト方法
+- 品質レベル（Bronze/Silver/Gold）
+- 機能説明
+- 背景・動機（Why）
+- ユースケース定義（Role × Outcome）
+- Gold E2E候補判定
+- 影響範囲（フロント/バック/DB/インフラ）
 - 受け入れ条件
+- テスト計画
+- 事前確認（重複Issueチェック）
+
+### ユースケース定義（Role × Outcome）
+
+機能要望には以下の形式でユースケースを定義:
+
+```
+Role（誰が）: 採用担当者
+Outcome（何を達成）: 候補者の性格特性を評価して採用判断の精度を上げる
+Channel（どこから）: Web
+```
+
+### Gold E2E 候補判定（5つのレンズ）
+
+Gold E2E候補（主要フロー・ビジネス影響大）の場合は、5つのレンズで評価:
+
+| レンズ | 評価観点 |
+|--------|----------|
+| 壊れたら困るか？ | ビジネス影響・ユーザー影響 |
+| 振る舞いを見てるか？ | 単体テストでは検出困難か |
+| 嘘をついて通れないか？ | モック/スタブでは不十分か |
+| 1文で説明できるか？ | テスト目的が明確か |
+| 無いと何を諦めるか？ | このテストが無い場合のリスク |
+
+### 影響範囲チェックリスト
+
+```
+フロントエンド（コンポーネント）  → UI変更がある場合
+バックエンド（API）              → エンドポイント追加/変更
+データベース（スキーマ）         → マイグレーション必須
+インフラ（CI/CD、設定）          → 環境変数/設定変更
+```
 
 ### 開発開始時の必須手順
 
@@ -618,11 +680,150 @@ gh pr create --title "feat: {説明}" --body "closes #{番号}"
 | `design-review` | デザインレビュー待ち | Figma承認まで実装待機 |
 | `design-approved` | デザイン承認済み | 実装開始OK |
 | `no-ui` | UI変更なし | Figma不要、直接開発可能 |
+| `template-valid` | テンプレート準拠OK | 正常に開発可能 |
+| `needs-template-fix` | テンプレート修正必要 | 修正されるまで待機 |
+| `template-bypass` | テンプレート意図的スキップ | 人間が手動付与、チェック無視 |
 
 ### 自動チェック
 
-- ブランチ名が `feature/issue-*` `bugfix/issue-*` `hotfix/issue-*` 形式でない場合、CIで警告
-- PR本文に `closes #` がない場合、品質ゲートで警告
+| チェック | タイミング | 動作 |
+|---------|-----------|------|
+| **Issue作成** | Issue opened/edited | テンプレート準拠チェック、不備時は `needs-template-fix` |
+| **Issue Close** | Issue closed | 理由なしClose時は再オープン + コメント |
+| **ラベル保護** | Label removed | 保護ラベル削除時は自動復元 |
+| **コミットメッセージ** | git commit | Conventional Commits形式強制 (`feat:`, `fix:` 等) |
+| **PR本文** | PR opened/edited | Why必須、リスク評価チェック |
+| **ブランチ名** | PR opened | `feature/issue-*` 形式推奨（警告） |
+| **PRレビュー** | PR merge | 最低1名の承認必須 |
+| **CI** | PR/push | Lint/型/テスト/ビルド必須（Branch Protection）|
+
+### コミットメッセージ形式
+
+```bash
+# 必須形式: type: subject
+feat: 新機能の追加
+fix: バグ修正
+docs: ドキュメント変更
+refactor: リファクタリング
+test: テスト追加
+chore: その他の変更
+ci: CI設定変更
+
+# 例
+feat: 候補者一覧にページネーション追加
+fix: ログインエラー時のリダイレクト修正
+```
+
+### 保護されたラベル
+
+以下のラベルは認可なく削除できません：
+- `needs-triage` - トリアージ完了まで
+- `blocked` - ブロック解除まで
+- `security` - セキュリティ対応完了まで
+- `P0` - クリティカル優先度
+- `needs-template-fix` - テンプレート修正完了まで
+
+---
+
+## タスク完了条件（Claude Code必読）
+
+**重要**: 以下の条件を満たすまでタスクは「未完了」。TodoWriteで `completed` にしてはいけない。
+
+### Issue作成
+
+```
+完了条件:
+  1. ✅ gh issue create 成功（Issue番号取得）
+  2. ✅ Issue に template-valid ラベルが付与されている
+  3. ✅ needs-template-fix ラベルが付いていない
+
+検証コマンド:
+  gh issue view {番号} --json labels -q '.labels[].name' | grep -q "template-valid"
+
+未完了時の対応:
+  - needs-template-fix がある → Issue本文を修正して再度検証
+  - template-valid がない → 数秒待って再確認（CI実行中の可能性）
+```
+
+### コミット
+
+```
+完了条件:
+  1. ✅ git commit 成功（exit code 0）
+  2. ✅ コミットハッシュが存在する
+  3. ✅ commitlint エラーが出ていない
+
+検証コマンド:
+  git log -1 --oneline | grep -q "^[a-f0-9]"
+
+未完了時の対応:
+  - commitlint エラー → メッセージを Conventional Commits 形式に修正
+  - pre-commit フック失敗 → lint/format 修正後に再コミット
+```
+
+### PR作成
+
+```
+完了条件:
+  1. ✅ gh pr create 成功（PR番号取得）
+  2. ✅ PR Governance チェック通過（エラーコメントなし）
+  3. ✅ CI（Lint/型/テスト/ビルド）が全て通過
+
+検証コマンド:
+  gh pr checks {番号} --watch  # 全チェック通過まで待機
+  gh pr view {番号} --json statusCheckRollup -q '.statusCheckRollup[] | select(.state != "SUCCESS")'
+
+未完了時の対応:
+  - PR Governance 失敗 → PR本文を修正（Why必須、リスク評価等）
+  - CI失敗 → エラー内容を確認し、コード修正後に再プッシュ
+```
+
+### PRマージ
+
+```
+完了条件:
+  1. ✅ 最低1名のレビュー承認がある
+  2. ✅ 全CIチェック通過
+  3. ✅ コンフリクトなし
+  4. ✅ gh pr merge 成功
+
+検証コマンド:
+  gh pr view {番号} --json reviewDecision,statusCheckRollup,mergeable
+
+未完了時の対応:
+  - レビュー待ち → ユーザーに通知して待機
+  - CI失敗 → 修正して再プッシュ
+  - コンフリクト → リベースして解消
+```
+
+### Issue Close
+
+```
+完了条件:
+  1. ✅ Close理由をコメントに記載済み
+  2. ✅ gh issue close 成功
+  3. ✅ needs-close-reason ラベルが付いていない（自動再オープンされていない）
+
+検証コマンド:
+  gh issue view {番号} --json state,labels -q '{state: .state, labels: [.labels[].name]}'
+
+未完了時の対応:
+  - 自動再オープンされた → Close理由コメントを追加してから再Close
+```
+
+### タスク完了フロー（必須）
+
+```
+1. アクション実行（commit, issue create, pr create 等）
+2. 検証コマンド実行
+3. 結果確認
+   ├─ 成功 → TodoWrite で completed に更新
+   └─ 失敗 → エラー修正 → 1に戻る
+```
+
+**絶対に「試みた」だけで完了にしないこと。検証して成功を確認するまで続ける。**
+
+---
 
 ### 並行開発ガイドライン
 

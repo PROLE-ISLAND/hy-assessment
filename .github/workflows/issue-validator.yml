@@ -1,0 +1,219 @@
+# =====================================================
+# Issue Template Validator v2
+# Ensures issues follow the defined templates
+# =====================================================
+
+name: Issue Template Validator
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  validate-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Issue Format
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || '';
+            const title = issue.title || '';
+            const labels = issue.labels.map(l => l.name);
+
+            // Skip if already has validation label
+            if (labels.includes('template-valid') || labels.includes('template-bypass')) {
+              console.log('Issue already validated or bypassed');
+              return;
+            }
+
+            const errors = [];
+            const warnings = [];
+            let issueType = null;
+            let requiredLabels = [];
+
+            // =====================================================
+            // Determine issue type from title prefix (日本語対応)
+            // =====================================================
+            if (title.startsWith('[機能]:') || title.startsWith('[機能]') ||
+                title.startsWith('[Feature]:') || title.startsWith('[Feature]')) {
+              issueType = 'feature';
+              requiredLabels = ['feature', 'needs-triage', 'design-review'];
+            } else if (title.startsWith('[バグ]:') || title.startsWith('[バグ]') ||
+                       title.startsWith('[Bug]:') || title.startsWith('[Bug]')) {
+              issueType = 'bug';
+              requiredLabels = ['bug', 'needs-triage'];
+            }
+
+            // =====================================================
+            // Validate Feature Request v2 (日本語セクション対応)
+            // =====================================================
+            if (issueType === 'feature') {
+              // Required sections (Japanese primary, English fallback)
+              const requiredSections = [
+                { name: '優先度', pattern: /### (優先度|Priority)\s*\n[^\n]+/i },
+                { name: '品質レベル', pattern: /### (品質レベル（DoD）|DoD Level)\s*\n[^\n]+/i },
+                { name: '機能説明', pattern: /### (機能説明|Feature Description)\s*\n/i },
+                { name: '背景・動機', pattern: /### (背景・動機（Why）|Background)\s*\n/i },
+                { name: 'ユースケース定義', pattern: /### (ユースケース定義（Role × Outcome）|Usecase)\s*\n/i },
+                { name: '受け入れ条件', pattern: /### (受け入れ条件|Acceptance Criteria)\s*\n/i },
+                { name: 'テスト計画', pattern: /### (テスト計画|Test Plan)\s*\n/i },
+              ];
+
+              for (const section of requiredSections) {
+                if (!section.pattern.test(body)) {
+                  errors.push(`❌ 必須セクションがありません: **${section.name}**`);
+                }
+              }
+
+              // Check for pre-check confirmation
+              const hasPreCheck = /重複Issueがないことを確認しました/.test(body) &&
+                                  /\[x\]/i.test(body.match(/重複Issueがないことを確認しました[^\n]*/)?.[0] || '');
+              if (!hasPreCheck) {
+                errors.push('❌ 事前確認がチェックされていません: **重複Issueがないことを確認しました**');
+              }
+
+              // Check for Figma link in UI features
+              const figmaLinkPattern = /### (Figmaモックアップ|Figma Mockup Link)\s*\n([^\n]+)/i;
+              const figmaMatch = body.match(figmaLinkPattern);
+              const hasBackendOnlyCheck = /(バックエンドのみの機能|This is a backend-only feature)/.test(body) &&
+                                          /\[x\]/i.test(body.match(/(バックエンドのみの機能|This is a backend-only feature)[^\n]*/)?.[0] || '');
+
+              if (!hasBackendOnlyCheck) {
+                if (!figmaMatch || !figmaMatch[2].includes('figma.com')) {
+                  warnings.push('⚠️ **Figmaリンクがありません**: UI機能にはFigmaモックアップが必要です。バックエンドのみの場合は「バックエンドのみの機能」にチェックを入れてください。');
+                }
+              }
+
+              // Check variant checklist for UI features
+              const variantChecklist = /### (コンポーネントバリアント|Component Variant Checklist)/i.test(body);
+              if (!hasBackendOnlyCheck && !variantChecklist) {
+                warnings.push('⚠️ **バリアントチェックリストがありません**: UIコンポーネントにはDefault/Loading/Empty/Errorバリアントが必要です。');
+              }
+
+              // Check Gold E2E evaluation
+              const isGoldE2E = /### Gold E2E 候補か？\s*\n\s*はい/i.test(body);
+              const hasFiveLenses = /### 5つのレンズ評価/i.test(body) && /\| レンズ \|/i.test(body);
+              if (isGoldE2E && !hasFiveLenses) {
+                warnings.push('⚠️ **5つのレンズ評価が不完全**: Gold E2E候補の場合は5つのレンズ評価テーブルを記入してください。');
+              }
+
+              // Check affected scope
+              const hasAffectedScope = /### 影響範囲/i.test(body);
+              if (!hasAffectedScope) {
+                warnings.push('⚠️ **影響範囲が未選択**: フロント/バック/DB/インフラの影響範囲をチェックしてください。');
+              }
+            }
+
+            // =====================================================
+            // Validate Bug Report (日本語セクション対応)
+            // =====================================================
+            if (issueType === 'bug') {
+              const requiredSections = [
+                { name: '優先度', pattern: /### (優先度|Priority)\s*\n[^\n]+/i },
+                { name: '品質レベル', pattern: /### (品質レベル（DoD）|DoD Level)\s*\n[^\n]+/i },
+                { name: 'バグの説明', pattern: /### (バグの説明|Bug Description)\s*\n/i },
+                { name: '再現手順', pattern: /### (再現手順|Steps to Reproduce)\s*\n/i },
+                { name: '期待される動作', pattern: /### (期待される動作|Expected Behavior)\s*\n/i },
+                { name: '影響するファイル', pattern: /### (影響するファイル|Affected Files)\s*\n/i },
+                { name: 'テスト計画', pattern: /### (テスト計画|Test Plan)\s*\n/i },
+                { name: '受け入れ条件', pattern: /### (受け入れ条件|Acceptance Criteria)\s*\n/i },
+              ];
+
+              for (const section of requiredSections) {
+                if (!section.pattern.test(body)) {
+                  errors.push(`❌ 必須セクションがありません: **${section.name}**`);
+                }
+              }
+            }
+
+            // =====================================================
+            // Check if no template was used
+            // =====================================================
+            if (!issueType) {
+              // Check if body looks like it used a template
+              const hasTemplateStructure = /### (優先度|Priority|背景|Background|バグの説明|Bug Description)/i.test(body);
+
+              if (!hasTemplateStructure) {
+                errors.push('❌ **Issueがテンプレート形式に従っていません。** Issue作成時はテンプレートを使用してください:');
+                errors.push('  - [機能要望](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/issues/new?template=feature_request.yml)');
+                errors.push('  - [バグ報告](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/issues/new?template=bug_report.yml)');
+              } else {
+                // Has structure but wrong title prefix
+                errors.push('❌ **タイトル形式が正しくありません。** `[機能]: ...` または `[バグ]: ...` プレフィックスを使用してください。');
+              }
+            }
+
+            // =====================================================
+            // Check labels
+            // =====================================================
+            if (issueType && requiredLabels.length > 0) {
+              const missingLabels = requiredLabels.filter(l => !labels.includes(l));
+              if (missingLabels.length > 0) {
+                // Auto-add missing labels
+                try {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    labels: missingLabels
+                  });
+                  console.log('Added missing labels:', missingLabels);
+                } catch (e) {
+                  console.error('Failed to add labels:', e);
+                }
+              }
+            }
+
+            // =====================================================
+            // Post validation result comment
+            // =====================================================
+            if (errors.length > 0 || warnings.length > 0) {
+              let comment = '## 📋 Issueテンプレート検証\n\n';
+
+              if (errors.length > 0) {
+                comment += '### エラー（修正必須）\n\n';
+                comment += errors.join('\n') + '\n\n';
+                comment += '> **注意**: テンプレートに従っていないIssueは、クローズまたは編集が必要になる場合があります。\n\n';
+              }
+
+              if (warnings.length > 0) {
+                comment += '### 警告\n\n';
+                comment += warnings.join('\n') + '\n\n';
+              }
+
+              comment += '---\n';
+              comment += '*これは自動チェックです。意図的にテンプレートをスキップする場合は `template-bypass` ラベルを追加してください。*';
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: comment
+              });
+
+              // Add needs-template-fix label for errors
+              if (errors.length > 0) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: ['needs-template-fix']
+                });
+              }
+            } else if (issueType) {
+              // All checks passed
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['template-valid']
+              });
+
+              console.log('Issue validation passed');
+            }

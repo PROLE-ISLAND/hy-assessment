@@ -21,7 +21,18 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { IssueAssessmentButton } from '@/components/candidates/IssueAssessmentButton';
 import { AssessmentUrlDisplay } from '@/components/candidates/AssessmentUrlDisplay';
-import { DomainRadarChart, ScoreBarChart } from '@/components/analysis';
+import {
+  DomainRadarChart,
+  ScoreBarChart,
+  BehavioralAnalysisCard,
+  StressResilienceCard,
+  EQAnalysisCard,
+  ValuesAnalysisCard,
+  type BehavioralAnalysisData,
+  type StressResilienceData,
+  type EQAnalysisData,
+  type ValuesAnalysisData,
+} from '@/components/analysis';
 import { DOMAIN_LABELS, DOMAIN_DESCRIPTIONS, type Domain } from '@/lib/analysis';
 import { POSITIONS } from '@/lib/constants/positions';
 import {
@@ -71,6 +82,10 @@ interface AnalysisData {
   weaknesses: string[];
   summary: string | null;
   recommendation: string | null;
+  behavioralAnalysis: BehavioralAnalysisData | null;
+  stressResilience: StressResilienceData | null;
+  eqAnalysis: EQAnalysisData | null;
+  valuesAnalysis: ValuesAnalysisData | null;
 }
 
 interface JudgmentData {
@@ -469,6 +484,35 @@ export function CandidateDetailTabs({
                 </CardContent>
               </Card>
             </div>
+
+            {/* Personality Analysis Section */}
+            {(analysis.behavioralAnalysis || analysis.stressResilience || analysis.eqAnalysis || analysis.valuesAnalysis) && (
+              <>
+                <Separator className="my-8" />
+                <div className="space-y-4">
+                  <div className="text-center mb-6">
+                    <h2 className="text-xl font-semibold">パーソナリティ分析</h2>
+                    <p className="text-sm text-muted-foreground">
+                      回答パターンから読み取れる行動特性・価値観の詳細分析
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {analysis.behavioralAnalysis && (
+                      <BehavioralAnalysisCard data={analysis.behavioralAnalysis} />
+                    )}
+                    {analysis.stressResilience && (
+                      <StressResilienceCard data={analysis.stressResilience} />
+                    )}
+                    {analysis.eqAnalysis && (
+                      <EQAnalysisCard data={analysis.eqAnalysis} />
+                    )}
+                    {analysis.valuesAnalysis && (
+                      <ValuesAnalysisCard data={analysis.valuesAnalysis} />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Interview Points */}
             {interviewPoints.length > 0 && (

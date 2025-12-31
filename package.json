@@ -79,6 +79,8 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
     "@playwright/test": "^1.57.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",

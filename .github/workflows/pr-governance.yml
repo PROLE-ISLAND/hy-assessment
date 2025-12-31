@@ -34,10 +34,14 @@ jobs:
           const warnings = [];
 
           // === ブランチ命名規則チェック ===
-          const validBranchPatterns = [
+          // Issue番号必須パターン（機能開発・バグ修正）
+          const issueRequiredPatterns = [
             /^feature\/issue-\d+-/,
             /^bugfix\/issue-\d+-/,
             /^hotfix\/issue-\d+-/,
+          ];
+          // Issue番号不要パターン（メンテナンス系）
+          const maintenancePatterns = [
             /^chore\//,
             /^fix\//,
             /^docs\//,
@@ -46,9 +50,17 @@ jobs:
             /^dependabot\//,
             /^renovate\//,
           ];
-          const isValidBranch = validBranchPatterns.some(p => p.test(branchName));
-          if (!isValidBranch) {
-            warnings.push(`⚠️ **ブランチ名が規約外です**: \`${branchName}\`\n   → 推奨: \`feature/issue-{番号}-{説明}\` 形式`);
+
+          const hasIssueNumber = issueRequiredPatterns.some(p => p.test(branchName));
+          const isMaintenance = maintenancePatterns.some(p => p.test(branchName));
+
+          if (!hasIssueNumber && !isMaintenance) {
+            // 機能開発っぽいのにIssue番号がない場合はエラー
+            if (branchName.startsWith('feature/') || branchName.startsWith('bugfix/') || branchName.startsWith('hotfix/')) {
+              issues.push(`❌ **ブランチ名にIssue番号がありません**: \`${branchName}\`\n\n必須形式: \`feature/issue-{番号}-{説明}\`\n\n例: \`feature/issue-123-add-pagination\`\n\n📋 [Issue一覧](https://github.com/${context.repo.owner}/${context.repo.repo}/issues)`);
+            } else {
+              issues.push(`❌ **ブランチ名が規約外です**: \`${branchName}\`\n\n許可されるプレフィックス:\n- \`feature/issue-{番号}-\` (機能追加)\n- \`bugfix/issue-{番号}-\` (バグ修正)\n- \`hotfix/issue-{番号}-\` (緊急修正)\n- \`chore/\`, \`docs/\`, \`ci/\`, \`deps/\` (メンテナンス)\n\n📚 [開発ルール](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CLAUDE.md)`);
+            }
           }
 
           // === WHY セクションチェック ===
