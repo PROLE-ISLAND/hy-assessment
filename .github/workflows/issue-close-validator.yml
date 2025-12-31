@@ -1,0 +1,23 @@
+# =====================================================
+# Issue Close Validator
+# 組織の Reusable Workflow を呼び出す薄いラッパー
+# =====================================================
+#
+# ロジックは組織リポジトリで一元管理:
+# PROLE-ISLAND/.github/.github/workflows/reusable-issue-close-validator.yml
+
+name: Issue Close Validator
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  validate-close:
+    uses: PROLE-ISLAND/.github/.github/workflows/reusable-issue-close-validator.yml@main
+    with:
+      language: 'ja'
+      reopen_on_invalid: true

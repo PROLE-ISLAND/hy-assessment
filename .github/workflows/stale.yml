@@ -1,7 +1,10 @@
 # =====================================================
-# Stale Issue/PR 自動クローズ
-# 放置されたIssue/PRを警告→クローズ
+# Stale Issues/PRs
+# 組織の Reusable Workflow を呼び出す薄いラッパー
 # =====================================================
+#
+# ロジックは組織リポジトリで一元管理:
+# PROLE-ISLAND/.github/.github/workflows/reusable-stale.yml
 
 name: 🧹 Stale Issues & PRs
 
@@ -17,56 +20,13 @@ permissions:
 
 jobs:
   stale:
-    name: 🧹 Mark Stale
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 🧹 Stale Action
-        uses: actions/stale@v9
-        with:
-          # === Issue設定 ===
-          stale-issue-message: |
-            ⚠️ **このIssueは30日間更新がありません**
-
-            - 引き続き対応が必要な場合はコメントを追加してください
-            - 7日以内にアクティビティがない場合、自動的にクローズされます
-
-            > 作業を再開する場合は `ready-to-develop` ラベルを追加してください
-          stale-issue-label: 'stale'
-          days-before-issue-stale: 30
-          days-before-issue-close: 7
-          close-issue-message: |
-            🔒 **このIssueは自動クローズされました**
-
-            37日間更新がなかったため、自動的にクローズしました。
-            引き続き対応が必要な場合は、再度Issueをオープンしてください。
-
-          # === PR設定 ===
-          stale-pr-message: |
-            ⚠️ **このPRは14日間更新がありません**
-
-            - レビュー待ちの場合はレビュアーをメンションしてください
-            - 作業中の場合はコメントを追加してください
-            - 7日以内にアクティビティがない場合、自動的にクローズされます
-          stale-pr-label: 'stale'
-          days-before-pr-stale: 14
-          days-before-pr-close: 7
-          close-pr-message: |
-            🔒 **このPRは自動クローズされました**
-
-            21日間更新がなかったため、自動的にクローズしました。
-            引き続き作業を行う場合は、再度PRをオープンしてください。
-
-          # === 除外設定 ===
-          # これらのラベルが付いているIssue/PRはstaleにしない
-          exempt-issue-labels: 'P0: Critical,P1: High,blocked,in-progress,decision'
-          exempt-pr-labels: 'blocked,in-progress'
-
-          # これらのラベルが付いたらstaleラベルを削除
-          labels-to-remove-when-unstale: 'stale'
-
-          # ドラフトPRはstaleにしない
-          exempt-draft-pr: true
-
-          # 操作数の上限
-          operations-per-run: 100
+    uses: PROLE-ISLAND/.github/.github/workflows/reusable-stale.yml@main
+    with:
+      language: 'ja'
+      days_before_issue_stale: 30
+      days_before_issue_close: 7
+      days_before_pr_stale: 14
+      days_before_pr_close: 7
+      exempt_issue_labels: 'P0: Critical,P1: High,blocked,in-progress,decision'
+      exempt_pr_labels: 'blocked,in-progress'
+      operations_per_run: 100

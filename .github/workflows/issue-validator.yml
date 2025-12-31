@@ -1,0 +1,28 @@
+# =====================================================
+# Issue Template Validator
+# 組織の Reusable Workflow を呼び出す薄いラッパー
+# =====================================================
+#
+# ロジックは組織リポジトリで一元管理:
+# PROLE-ISLAND/.github/.github/workflows/reusable-issue-validator.yml
+#
+# カスタマイズ: with セクションのパラメータを変更
+
+name: Issue Template Validator
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  validate:
+    uses: PROLE-ISLAND/.github/.github/workflows/reusable-issue-validator.yml@main
+    with:
+      language: 'ja'
+      require_figma: true
+      require_variant_checklist: true
+      feature_labels: 'feature,needs-triage,design-review'
+      bug_labels: 'bug,needs-triage'
