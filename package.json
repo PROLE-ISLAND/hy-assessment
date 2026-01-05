@@ -100,7 +100,7 @@
     "jsdom": "^27.4.0",
     "lint-staged": "^16.2.7",
     "pg": "^8.16.3",
-    "semantic-release": "^24.2.9",
+    "semantic-release": "^25.0.2",
     "tailwindcss": "^4",
     "ts-unused-exports": "^11.0.1",
     "tsx": "^4.21.0",
