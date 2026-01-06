@@ -28,6 +28,9 @@ test.describe('GS-HY-002: 候補者登録→検査リンク発行', () => {
     await page.fill(SELECTORS.candidateName, testCandidate.name);
     await page.fill(SELECTORS.candidateEmail, testCandidate.email);
 
+    // When: 希望職種を選択（必須項目）
+    await page.click('label[for="account_manager"]');
+
     // When: 登録ボタンをクリック
     await page.click(SELECTORS.candidateSubmit);
 
