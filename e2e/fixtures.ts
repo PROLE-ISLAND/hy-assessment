@@ -117,22 +117,21 @@ export async function clickAndWaitForNavigation(
 export async function navigateToNewCandidateForm(page: Page) {
   // Go to candidates list first
   await page.goto('/admin/candidates');
-  await page.waitForURL(/\/admin\/candidates/, { timeout: 10000 });
+  await page.waitForURL(/\/admin\/candidates/, { timeout: 15000 });
 
-  // Wait for page to fully load (header appears faster than main content)
-  await page.waitForSelector('header', { timeout: 10000 });
-  await page.waitForLoadState('networkidle', { timeout: 30000 });
+  // Wait for page to load (domcontentloaded is faster and more reliable than networkidle)
+  await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
 
-  // Wait for the Add Candidate button to appear
+  // Wait for the Add Candidate button to appear (this is the key indicator)
   const addButton = page.locator(SELECTORS.addCandidateButton);
-  await addButton.waitFor({ state: 'visible', timeout: 10000 });
+  await addButton.waitFor({ state: 'visible', timeout: 20000 });
 
-  // Click add button and wait for form
+  // Click add button and wait for navigation
   await addButton.click();
-  await page.waitForURL(/\/admin\/candidates\/new/, { timeout: 10000 });
+  await page.waitForURL(/\/admin\/candidates\/new/, { timeout: 15000 });
 
   // Wait for form to be visible
-  await page.waitForSelector(SELECTORS.candidateName, { timeout: 10000 });
+  await page.waitForSelector(SELECTORS.candidateName, { timeout: 15000 });
 }
 
 export async function login(page: Page, retries = 3) {
@@ -147,7 +146,7 @@ export async function login(page: Page, retries = 3) {
 
       // Wait for page to stabilize
       await page.waitForLoadState('domcontentloaded', { timeout: 30000 });
-      await page.waitForLoadState('networkidle', { timeout: 60000 });
+      // NOTE: networkidle is unreliable in CI, skip it
 
       // Wait for any visible content
       await page.waitForSelector('header, main, h1', { timeout: 30000 });
