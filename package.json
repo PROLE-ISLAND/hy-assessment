@@ -73,9 +73,9 @@
     "react-hook-form": "^7.70.0",
     "recharts": "^3.6.0",
     "resend": "^6.6.0",
-    "survey-core": "^2.5.3",
-    "survey-creator-core": "^2.5.3",
-    "survey-creator-react": "^2.5.3",
+    "survey-core": "^2.5.4",
+    "survey-creator-core": "^2.5.4",
+    "survey-creator-react": "^2.5.4",
     "survey-react-ui": "^2.5.1",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.2.1"
