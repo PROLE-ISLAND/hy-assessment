@@ -5,8 +5,20 @@
 
 import { test, expect, SELECTORS, login } from '../fixtures';
 import { waitForPageReady } from '../helpers/deterministic-wait';
+import { getTestFixtures, hasTestFixtures, type TestFixtures } from '../helpers/test-data-manager';
+
+let fixtures: TestFixtures | null = null;
 
 test.describe('Analysis Results', () => {
+  test.beforeAll(async () => {
+    if (hasTestFixtures()) {
+      fixtures = getTestFixtures();
+      console.log(`[AnalysisTests] Loaded fixtures: assessment=${fixtures.assessment.id}`);
+    } else {
+      console.warn('[AnalysisTests] No fixtures found - some tests may be skipped');
+    }
+  });
+
   test.beforeEach(async ({ page }) => {
     // Login using helper
     await login(page);
@@ -41,29 +53,10 @@ test.describe('Analysis Results', () => {
   });
 
   test.describe('Analysis Detail Page', () => {
-    let assessmentUrl: string | null = null;
-
-    test.beforeEach(async ({ page }) => {
-      // Navigate to first assessment with analysis
-      await page.goto('/admin/assessments');
-      await waitForPageReady(page);
-
-      const assessmentRows = await page.locator(SELECTORS.tableRow).count();
-      if (assessmentRows > 0) {
-        const detailLink = page.locator('tbody tr').first().locator('a:has-text("詳細")');
-        if (await detailLink.isVisible()) {
-          await detailLink.click();
-          await page.waitForURL(/\/admin\/assessments\/[a-zA-Z0-9-]+/, { timeout: 10000 });
-          assessmentUrl = page.url();
-        }
-      }
-    });
-
+    // Tests use fixtures for direct navigation instead of runtime detection
     test('should display analysis result tabs or no-analysis state', async ({ page }) => {
-      if (!assessmentUrl) {
-        test.skip();
-        return;
-      }
+      test.skip(!fixtures, 'Test fixtures not available');
+      const assessmentUrl = `/admin/assessments/${fixtures!.assessment.id}`;
 
       await page.goto(assessmentUrl);
       await waitForPageReady(page);
@@ -87,10 +80,8 @@ test.describe('Analysis Results', () => {
     });
 
     test('should switch between tabs correctly', async ({ page }) => {
-      if (!assessmentUrl) {
-        test.skip();
-        return;
-      }
+      test.skip(!fixtures, 'Test fixtures not available');
+      const assessmentUrl = `/admin/assessments/${fixtures!.assessment.id}`;
 
       await page.goto(assessmentUrl);
       await waitForPageReady(page);
@@ -105,10 +96,8 @@ test.describe('Analysis Results', () => {
     });
 
     test('should have PDF download button', async ({ page }) => {
-      if (!assessmentUrl) {
-        test.skip();
-        return;
-      }
+      test.skip(!fixtures, 'Test fixtures not available');
+      const assessmentUrl = `/admin/assessments/${fixtures!.assessment.id}`;
 
       await page.goto(assessmentUrl);
       await waitForPageReady(page);
@@ -120,10 +109,8 @@ test.describe('Analysis Results', () => {
     });
 
     test('should have re-analysis button', async ({ page }) => {
-      if (!assessmentUrl) {
-        test.skip();
-        return;
-      }
+      test.skip(!fixtures, 'Test fixtures not available');
+      const assessmentUrl = `/admin/assessments/${fixtures!.assessment.id}`;
 
       await page.goto(assessmentUrl);
       await waitForPageReady(page);
@@ -135,10 +122,8 @@ test.describe('Analysis Results', () => {
     });
 
     test('should open re-analysis dialog when clicking button', async ({ page }) => {
-      if (!assessmentUrl) {
-        test.skip();
-        return;
-      }
+      test.skip(!fixtures, 'Test fixtures not available');
+      const assessmentUrl = `/admin/assessments/${fixtures!.assessment.id}`;
 
       await page.goto(assessmentUrl);
       await waitForPageReady(page);
@@ -153,10 +138,8 @@ test.describe('Analysis Results', () => {
     });
 
     test('should have cancel button in re-analysis dialog', async ({ page }) => {
-      if (!assessmentUrl) {
-        test.skip();
-        return;
-      }
+      test.skip(!fixtures, 'Test fixtures not available');
+      const assessmentUrl = `/admin/assessments/${fixtures!.assessment.id}`;
 
       await page.goto(assessmentUrl);
       await waitForPageReady(page);
@@ -178,10 +161,8 @@ test.describe('Analysis Results', () => {
     });
 
     test('should display score charts', async ({ page }) => {
-      if (!assessmentUrl) {
-        test.skip();
-        return;
-      }
+      test.skip(!fixtures, 'Test fixtures not available');
+      const assessmentUrl = `/admin/assessments/${fixtures!.assessment.id}`;
 
       await page.goto(assessmentUrl);
       await waitForPageReady(page);
