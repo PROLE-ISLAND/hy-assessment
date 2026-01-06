@@ -7,140 +7,16 @@
  * @see docs/requirements/issue-178-e2e-factory-base.md
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
-// Database型はe2eから直接参照できないため、必要最小限の型を定義
-// Phase 2でより詳細な型定義を追加予定
-export interface Database {
-  public: {
-    Tables: {
-      persons: {
-        Row: {
-          id: string;
-          organization_id: string;
-          name: string;
-          email: string;
-          created_at: string;
-          updated_at: string;
-          deleted_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          name: string;
-          email: string;
-          created_at?: string;
-          updated_at?: string;
-          deleted_at?: string | null;
-        };
-      };
-      candidates: {
-        Row: {
-          id: string;
-          organization_id: string;
-          person_id: string;
-          position: string | null;
-          desired_positions: string[];
-          notes: string | null;
-          created_at: string;
-          updated_at: string;
-          deleted_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          person_id: string;
-          position?: string | null;
-          desired_positions?: string[];
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          deleted_at?: string | null;
-        };
-      };
-      assessments: {
-        Row: {
-          id: string;
-          organization_id: string;
-          candidate_id: string;
-          template_id: string | null;
-          token: string;
-          status: 'pending' | 'in_progress' | 'completed' | 'expired';
-          progress: Record<string, unknown>;
-          expires_at: string;
-          completed_at: string | null;
-          created_at: string;
-          updated_at: string;
-          deleted_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          candidate_id: string;
-          template_id?: string | null;
-          token: string;
-          status?: 'pending' | 'in_progress' | 'completed' | 'expired';
-          progress?: Record<string, unknown>;
-          expires_at: string;
-          completed_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          deleted_at?: string | null;
-        };
-      };
-      ai_analyses: {
-        Row: {
-          id: string;
-          organization_id: string;
-          assessment_id: string;
-          model: string;
-          prompt_version: string;
-          result: Record<string, unknown>;
-          tokens_used: number;
-          processing_time_ms: number;
-          created_at: string;
-          deleted_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          assessment_id: string;
-          model: string;
-          prompt_version: string;
-          result: Record<string, unknown>;
-          tokens_used?: number;
-          processing_time_ms?: number;
-          created_at?: string;
-          deleted_at?: string | null;
-        };
-      };
-      report_shares: {
-        Row: {
-          id: string;
-          analysis_id: string;
-          token: string;
-          expires_at: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          analysis_id: string;
-          token: string;
-          expires_at: string;
-          created_at?: string;
-        };
-      };
-      assessment_templates: {
-        Row: {
-          id: string;
-          organization_id: string;
-          name: string;
-          created_at: string;
-        };
-      };
-    };
-  };
-}
+/**
+ * E2Eテスト用のSupabase Admin Client型
+ *
+ * E2Eテストではランタイム動作が重要なため、
+ * 厳密な型チェックよりも柔軟性を優先
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AdminSupabaseClient = ReturnType<typeof createClient<any>>;
 
 /**
  * Supabase Admin Clientを作成
@@ -152,7 +28,7 @@ export interface Database {
  * @returns Supabase Admin Client
  * @throws Error 環境変数が設定されていない場合
  */
-export function createAdminSupabase(): SupabaseClient<Database> {
+export function createAdminSupabase(): AdminSupabaseClient {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -171,7 +47,7 @@ export function createAdminSupabase(): SupabaseClient<Database> {
     );
   }
 
-  return createClient<Database>(supabaseUrl, serviceRoleKey, {
+  return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
