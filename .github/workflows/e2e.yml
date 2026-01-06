@@ -92,6 +92,12 @@ jobs:
     name: Gold E2Eテスト実行
     runs-on: ubuntu-latest
     needs: check-env
+    # check-envと同じ条件（スキップ時にcancelledにならないように）
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dod:gold'))
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
