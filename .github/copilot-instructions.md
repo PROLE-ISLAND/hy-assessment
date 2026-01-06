@@ -354,67 +354,112 @@ npm run check:gold     # Gold基準（Silver + E2Eテスト）
 
 ---
 
-## UI開発ワークフロー（v0 + Vercel Toolbar）
+## UI開発ワークフロー（v0 スキル統合）
 
-UI/UX変更を含む機能は、**v0でデザインを生成**し、**Vercel Preview + Toolbar**でレビューする。
+UI/UX変更を含む機能は、**V0スキル**を使用してコンポーネント生成・検証・承認を行う。
 
 📚 [UI生成・レビューガイド](https://github.com/PROLE-ISLAND/.github/wiki/UI生成・レビューガイド)
 
-### フロー図
+### V0 スキル一覧
+
+| スキル | 用途 | 実行タイミング |
+|--------|------|---------------|
+| `/v0-generate` | MCP v0ツールでUIコンポーネント生成 | /req Step 4.5.1 |
+| `/v0-validate` | バリアント・a11y検証、E2Eテスト生成 | /req Step 4.5.2 |
+| `/design-approve` | デザイン承認、ラベル管理 | /req Step 4.5.3 |
+
+### ワークフロー図
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│               v0 + Vercel Toolbar 開発フロー                     │
+│                   V0 スキル統合ワークフロー                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  1. /ui-generate でv0コンポーネント生成                          │
-│     └─ shadcn/ui + Tailwindで自動生成                           │
-│     └─ バリアント（Default/Loading/Empty/Error）込み             │
+│  /req Phase 4.3（UI設計）完了後                                  │
 │           │                                                     │
 │           ▼                                                     │
-│  2. Feature Flags でバリアント管理                               │
-│     └─ Vercel Toolbarで切り替え可能に設定                        │
+│  1. /v0-generate でコンポーネント生成                            │
+│     └─ MCP v0ツール使用（mcp__v0__createChat）                  │
+│     └─ 全4バリアント（Default/Loading/Empty/Error）             │
+│     └─ data-testid命名規則適用                                  │
+│     └─ V0 Link記録                                              │
 │           │                                                     │
 │           ▼                                                     │
-│  3. PR作成 → Vercel Preview デプロイ                             │
-│     └─ Preview URLが自動生成                                     │
-│     └─ IssueにPreview URL記載                                    │
+│  2. /v0-validate で検証                                          │
+│     └─ バリアント完備チェック                                   │
+│     └─ data-testid付与確認                                      │
+│     └─ デザインシステム準拠確認                                 │
+│     └─ a11y基本チェック                                         │
+│     └─ E2Eテスト生成（オプション）                              │
 │           │                                                     │
 │           ▼                                                     │
-│  4. Vercel Toolbarでレビュー                                     │
-│     └─ バリアント切り替えて全状態確認                            │
-│     └─ a11y監査実行                                              │
-│     └─ コメント・フィードバック                                  │
+│  3. Vercel Preview確認                                           │
+│     └─ Preview URLでUI確認                                      │
+│     └─ Vercel Toolbar a11y監査                                  │
 │           │                                                     │
 │           ▼                                                     │
-│  5. 承認 → マージ                                                │
+│  4. /design-approve でデザイン承認                               │
+│     └─ チェックリスト確認                                       │
+│     └─ design-approved ラベル付与                               │
+│     └─ design-review ラベル削除                                 │
+│           │                                                     │
+│           ▼                                                     │
+│  5. /dev で実装PR作成                                            │
+│     └─ V0 Link参照して実装                                      │
+│     └─ 生成E2Eテスト活用                                        │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### デザイン関連ラベル
 
-| ラベル | 意味 |
-|--------|------|
-| `design-review` | UI生成待ち / レビュー待ち |
-| `design-approved` | レビュー承認済み、実装可能 |
-| `no-ui` | バックエンドのみ、UI変更なし |
+| ラベル | 意味 | 付与タイミング |
+|--------|------|---------------|
+| `design-review` | UI生成待ち / レビュー待ち | /v0-generate 後 |
+| `design-approved` | レビュー承認済み、実装可能 | /design-approve 後 |
+| `no-ui` | バックエンドのみ、UI変更なし | 手動付与 |
 
 ### UI開発チェックリスト
 
-- [ ] v0でUIコンポーネントを生成した
-- [ ] Feature Flagsでバリアント管理を設定した
-- [ ] Preview URLでVercel Toolbarが動作する
-- [ ] Toolbarのa11y監査をパスした
-- [ ] Toolbarでバリアントを切り替えてレビュー可能
+- [ ] `/v0-generate` でコンポーネント生成済み
+- [ ] V0 Linkが要件定義PRに記録されている
+- [ ] `/v0-validate` で全項目パス
+- [ ] Vercel Preview URLで目視確認済み
+- [ ] Vercel Toolbar a11y監査パス
+- [ ] `/design-approve` で承認済み（`design-approved` ラベル）
+
+### /req との統合
+
+V0ワークフローは `/req` の Step 4.5 として統合されている：
+
+```
+/req 実行
+├─ Phase 1-4: 調査・要件・品質・技術設計
+├─ Step 4.5: V0 UIワークフロー ← ここでV0スキル実行
+│      ├─ /v0-generate
+│      ├─ /v0-validate
+│      └─ /design-approve
+├─ Phase 5: テスト設計
+└─ PR作成
+```
+
+### /dev での参照
+
+`/dev` 実行時、以下のV0情報を参照：
+
+| 情報 | 参照先 | 用途 |
+|------|--------|------|
+| V0 Link | Step 4.5.1 | UI実装の参照元 |
+| V0検証結果 | Step 4.5.2 | バリアント・a11y実装確認 |
+| 生成E2Eテスト | Step 4.5.2 | E2Eテストベース |
 
 ### バックエンドのみの機能
 
 UI変更がない場合:
 1. Issueテンプレートで「バックエンドのみの機能」にチェック
 2. `no-ui` ラベルを付与
-3. v0 Link / Preview URL は「N/A」と記入
-4. 直接 `ready-to-develop` へ
+3. V0スキルはスキップ
+4. 直接 `/dev` へ
 
 ---
 
