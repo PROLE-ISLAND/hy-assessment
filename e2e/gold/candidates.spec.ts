@@ -5,10 +5,22 @@
 
 import { test, expect, SELECTORS, navigateToNewCandidateForm } from '../fixtures';
 import { waitForPageReady } from '../helpers/deterministic-wait';
+import { getTestFixtures, hasTestFixtures, type TestFixtures } from '../helpers/test-data-manager';
+
+let fixtures: TestFixtures | null = null;
 
 test.describe('Candidates Management', () => {
   // Authentication is handled by the setup project via storageState
   // No need for login in beforeEach
+
+  test.beforeAll(async () => {
+    if (hasTestFixtures()) {
+      fixtures = getTestFixtures();
+      console.log(`[CandidatesTests] Loaded fixtures: candidate=${fixtures.candidate.id}`);
+    } else {
+      console.warn('[CandidatesTests] No fixtures found - some tests will use fallback');
+    }
+  });
 
   test.describe('Candidates List Page', () => {
     test('should navigate to candidates page', async ({ page }) => {
@@ -164,18 +176,33 @@ test.describe('Candidates Management', () => {
 
   test.describe('Candidate Detail Page', () => {
     test('should display candidate information', async ({ page }) => {
-      await page.goto('/admin/candidates');
-      await waitForPageReady(page);
-
-      const candidateRows = await page.locator(SELECTORS.tableRow).count();
-      if (candidateRows > 0) {
-        const detailButton = page.locator('[data-testid^="candidate-detail-"]').first();
-        await detailButton.click();
-        await page.waitForURL(/\/admin\/candidates\/[a-zA-Z0-9-]+/, { timeout: 10000 });
-
-        // Should display candidate info
+      // Use fixtures for direct navigation, fall back to runtime detection
+      if (fixtures) {
+        await page.goto(`/admin/candidates/${fixtures.candidate.id}`);
+        await waitForPageReady(page);
         await expect(page.getByRole('heading')).toBeVisible();
+      } else {
+        // Fallback: runtime detection
+        await page.goto('/admin/candidates');
+        await waitForPageReady(page);
+
+        const candidateRows = await page.locator(SELECTORS.tableRow).count();
+        if (candidateRows > 0) {
+          const detailButton = page.locator('[data-testid^="candidate-detail-"]').first();
+          await detailButton.click();
+          await page.waitForURL(/\/admin\/candidates\/[a-zA-Z0-9-]+/, { timeout: 10000 });
+
+          // Should display candidate info
+          await expect(page.getByRole('heading')).toBeVisible();
+        }
       }
+    });
+
+    test('should show candidate name from fixtures', async ({ page }) => {
+      test.skip(!fixtures, 'Test fixtures not available');
+      await page.goto(`/admin/candidates/${fixtures!.candidate.id}`);
+      await waitForPageReady(page);
+      await expect(page.getByText(fixtures!.candidate.name)).toBeVisible();
     });
   });
 });
