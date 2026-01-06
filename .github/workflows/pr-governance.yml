@@ -24,6 +24,8 @@ permissions:
 
 jobs:
   governance:
+    # type:requirements ラベル付きPRはスキップ（要件定義PRは異なる構造を持つため）
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'type:requirements') }}
     uses: PROLE-ISLAND/.github/.github/workflows/reusable-pr-governance.yml@main
     with:
       language: 'ja'
