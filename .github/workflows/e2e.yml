@@ -3,7 +3,7 @@
 # dod:gold ラベル駆動でGold E2Eテストを実行
 #
 # トリガー:
-#   - PR: dod:gold ラベル付与時のみ
+#   - PR: dod:gold ラベル付与時のみ実行
 #   - push: mainブランチへのマージ時（常に実行）
 #   - schedule: 毎日9:00 JST
 #   - workflow_dispatch: 手動実行
