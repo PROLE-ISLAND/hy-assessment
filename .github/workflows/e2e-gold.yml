@@ -57,23 +57,15 @@ jobs:
           # 手動実行は常に実行
           echo "run_gold=true" >> $GITHUB_OUTPUT
 
-  # Gold E2Eテスト
+  # Gold E2Eテスト（認証セットアップ + 全6テスト一括実行）
+  # Note: マトリックス実行ではなく一括実行に変更
+  # 理由: Playwrightのproject依存関係（setup -> chromium）を正しく機能させるため
   e2e-gold:
-    name: Gold E2E (${{ matrix.spec }})
+    name: Gold E2E（全6テスト）
     needs: should-run
     if: needs.should-run.outputs.run_gold == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        spec:
-          - GS-HY-001-admin-login
-          - GS-HY-002-candidate-registration
-          - GS-HY-003-assessment-completion
-          - GS-HY-004-analysis-result-view
-          - GS-HY-005-report-sharing
-          - GS-HY-006-candidate-report-view
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v6
@@ -89,10 +81,22 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - name: Gold E2Eテスト実行 - ${{ matrix.spec }}
+      - name: Gold E2Eテスト実行（全6テスト）
         run: |
-          echo "🥇 Running Gold E2E: ${{ matrix.spec }}"
-          npx playwright test e2e/gold/${{ matrix.spec }}.spec.ts --reporter=list
+          echo "🥇 Running all Gold E2E tests..."
+          echo ""
+          echo "📋 テスト一覧:"
+          echo "  - GS-HY-001: 管理者ログイン"
+          echo "  - GS-HY-002: 候補者登録→検査リンク発行"
+          echo "  - GS-HY-003: 検査回答→完了"
+          echo "  - GS-HY-004: 分析結果閲覧"
+          echo "  - GS-HY-005: レポート共有"
+          echo "  - GS-HY-006: 候補者レポート閲覧"
+          echo ""
+          # 認証セットアップを先に実行（project依存関係により自動）
+          # --project=chromium で認証必要なテストを実行
+          # セットアップは dependencies: ['setup'] により自動実行される
+          npx playwright test e2e/gold/ --reporter=list
         env:
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
           E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
@@ -108,7 +112,7 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: gold-e2e-report-${{ matrix.spec }}
+          name: gold-e2e-report
           path: playwright-report/
           retention-days: 30
 
@@ -116,7 +120,7 @@ jobs:
         uses: actions/upload-artifact@v6
         if: failure()
         with:
-          name: gold-e2e-screenshots-${{ matrix.spec }}
+          name: gold-e2e-screenshots
           path: test-results/
           retention-days: 7
 
