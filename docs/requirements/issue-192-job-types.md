@@ -294,11 +294,11 @@ CREATE POLICY "Admins can delete job types" ON job_types
 
 | 項目 | 値 |
 |------|-----|
-| **v0 Link** | https://v0.app/chat/eVWQ1bhjePV |
-| **デモURL** | https://demo-kzmp6dny0ctarlg2i2x7.vusercontent.net |
+| **v0 Link** | https://v0.app/chat/r7x2imPOhiz |
+| **デモURL** | https://demo-kzmpnj2bqd2uqw6vu0s3.vusercontent.net |
 
-> ⚠️ **注意**: V0生成済みUIはBig5スライダーベース。
-> GFD-Gateドメインスライダーへの修正が必要
+> ✅ **GFD-Gateドメインベース**のUIを新規生成済み。
+> 5ドメインスライダー + パーソナリティ要件（DISC/ストレス/EQ/価値観）対応
 
 #### UI修正案（GFD-Gateドメインベース）
 
