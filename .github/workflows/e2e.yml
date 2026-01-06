@@ -1,20 +1,20 @@
 # =====================================================
-# E2Eテスト ワークフロー
-# Playwright E2Eテストを実行
-# トリガー: PR（スモークテスト）、mainへのpush、手動実行、定期実行
+# Gold E2Eテスト ワークフロー
+# dod:gold ラベル駆動でGold E2Eテストを実行
+#
+# トリガー:
+#   - PR: dod:gold ラベル付与時のみ実行
+#   - push: mainブランチへのマージ時（常に実行）
+#   - schedule: 毎日9:00 JST
+#   - workflow_dispatch: 手動実行
 # =====================================================
 
-name: E2Eテスト
+name: Gold E2Eテスト
 
 on:
   pull_request:
     branches: [main]
-    # 重いテストなのでコア変更時のみ実行
-    paths:
-      - 'src/**'
-      - 'e2e/**'
-      - 'package*.json'
-      - 'playwright.config.ts'
+    types: [opened, synchronize, reopened, labeled]
   push:
     branches: [main]
   workflow_dispatch:
@@ -22,10 +22,10 @@ on:
       test_mode:
         description: 'テストモード'
         required: false
-        default: 'full'
+        default: 'gold'
         type: choice
         options:
-          - full
+          - gold
           - smoke
   schedule:
     # Run daily at 9:00 JST (0:00 UTC)
@@ -40,11 +40,64 @@ env:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
-  e2e:
-    name: E2Eテスト実行
+  # =====================================================
+  # 環境変数チェック - 必須Secretsの確認
+  # =====================================================
+  check-env:
+    name: 環境変数チェック
     runs-on: ubuntu-latest
+    # PRの場合: dod:gold ラベル必須
+    # push/schedule/dispatch: 常に実行
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dod:gold'))
+    outputs:
+      secrets_valid: ${{ steps.check.outputs.valid }}
+    steps:
+      - name: 必須Secrets確認
+        id: check
+        run: |
+          MISSING=""
+          if [ -z "${{ secrets.E2E_TEST_EMAIL }}" ]; then
+            MISSING="$MISSING E2E_TEST_EMAIL"
+          fi
+          if [ -z "${{ secrets.E2E_TEST_PASSWORD }}" ]; then
+            MISSING="$MISSING E2E_TEST_PASSWORD"
+          fi
+          if [ -z "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" ]; then
+            MISSING="$MISSING NEXT_PUBLIC_SUPABASE_URL"
+          fi
+          if [ -z "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
+            MISSING="$MISSING NEXT_PUBLIC_SUPABASE_ANON_KEY"
+          fi
+
+          if [ -n "$MISSING" ]; then
+            echo "::error::以下の必須Secretsが未設定です:$MISSING"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          echo "valid=true" >> $GITHUB_OUTPUT
+          echo "✅ 全ての必須Secretsが設定されています"
+
+  # =====================================================
+  # Gold E2Eテスト実行
+  # =====================================================
+  gold-e2e:
+    name: Gold E2Eテスト実行
+    runs-on: ubuntu-latest
+    needs: check-env
+    # check-envと同じ条件（スキップ時にcancelledにならないように）
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dod:gold'))
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
@@ -60,15 +113,15 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - name: E2Eテスト実行
+      - name: Gold E2Eテスト実行
+        id: e2e
         run: |
-          # PRの場合はスモークテスト（認証とヘルスチェックのみ）
-          if [[ "${{ github.event_name }}" == "pull_request" ]] || [[ "${{ inputs.test_mode }}" == "smoke" ]]; then
+          if [[ "${{ inputs.test_mode }}" == "smoke" ]]; then
             echo "🔥 Running smoke tests only"
             npx playwright test --grep "@smoke" --reporter=list
           else
-            echo "🔬 Running full E2E tests"
-            npm run test:e2e
+            echo "🥇 Running Gold E2E tests"
+            npx playwright test e2e/gold/ --reporter=list
           fi
         env:
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
@@ -98,7 +151,97 @@ jobs:
         if: failure()
         run: |
           if [ -f "test-results/results.json" ]; then
-            echo "## E2Eエラー分析" >> $GITHUB_STEP_SUMMARY
+            echo "## Gold E2Eエラー分析" >> $GITHUB_STEP_SUMMARY
             npx tsx scripts/error-detector.ts --github test-results/results.json >> $GITHUB_STEP_SUMMARY || true
           fi
 
+      - name: PR失敗通知コメント
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## ❌ Gold E2Eテストが失敗しました
+
+            ### 概要
+            Gold E2Eテスト（\`e2e/gold/\`）の実行中にエラーが発生しました。
+
+            ### 確認手順
+            1. [ワークフローログ](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) を確認
+            2. Artifactsから \`playwright-report\` と \`playwright-screenshots\` をダウンロード
+            3. エラー内容を修正してプッシュ
+
+            ### 失敗したテスト
+            詳細は Job Summary の「Gold E2Eエラー分析」セクションを参照してください。
+
+            ---
+            <sub>🤖 Gold E2Eテストワークフローによる自動通知</sub>`;
+
+            // 既存の失敗コメントを検索
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const existingComment = comments.find(c =>
+              c.body.includes('Gold E2Eテストが失敗しました') &&
+              c.user.type === 'Bot'
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: PR成功通知コメント
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## ✅ Gold E2Eテストが成功しました
+
+            Gold E2Eテスト（\`e2e/gold/\`）が正常に完了しました。
+
+            [テストレポート](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) で詳細を確認できます。
+
+            ---
+            <sub>🤖 Gold E2Eテストワークフローによる自動通知</sub>`;
+
+            // 既存の成功/失敗コメントを検索して削除
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const existingComment = comments.find(c =>
+              (c.body.includes('Gold E2Eテストが失敗しました') || c.body.includes('Gold E2Eテストが成功しました')) &&
+              c.user.type === 'Bot'
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
