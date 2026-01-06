@@ -9,6 +9,7 @@
  */
 
 import { test, expect, SELECTORS, navigateToNewCandidateForm } from '../fixtures';
+import { waitForPageReady } from '../helpers/deterministic-wait';
 
 test.describe('GS-HY-002: 候補者登録→検査リンク発行', () => {
   // 認証済み状態を使用（setup プロジェクトで作成）
@@ -38,14 +39,14 @@ test.describe('GS-HY-002: 候補者登録→検査リンク発行', () => {
 
     // Then: 候補者一覧ページで新規候補者を確認
     await page.goto('/admin/candidates');
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
+    await waitForPageReady(page);
     await expect(page.locator(`text=${testCandidate.name}`)).toBeVisible({ timeout: 10000 });
   });
 
   test('必須項目が空の場合はエラーが表示される', async ({ page }) => {
     // Given: 候補者追加ページにアクセス
     await page.goto('/admin/candidates/new');
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
+    await waitForPageReady(page);
 
     // When: 何も入力せずに登録ボタンをクリック
     const submitButton = page.locator(SELECTORS.candidateSubmit);

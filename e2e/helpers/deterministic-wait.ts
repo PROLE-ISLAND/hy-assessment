@@ -15,8 +15,8 @@ export async function waitForPageReady(page: Page): Promise<void> {
   // Wait for DOM content to be loaded
   await page.waitForLoadState('domcontentloaded');
 
-  // Wait for network to be idle (no pending requests)
-  await page.waitForLoadState('networkidle');
+  // NOTE: networkidle is unreliable in CI due to background API calls
+  // Instead, we wait for hydration and loading indicators to complete
 
   // Wait for Next.js hydration to complete
   await page.waitForFunction(() => {
@@ -155,7 +155,8 @@ export async function waitForNavigation(
   options?: { timeout?: number; waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' }
 ): Promise<void> {
   const timeout = options?.timeout ?? 30000;
-  const waitUntil = options?.waitUntil ?? 'networkidle';
+  // NOTE: networkidle is unreliable in CI, use domcontentloaded as default
+  const waitUntil = options?.waitUntil ?? 'domcontentloaded';
 
   await Promise.all([
     page.waitForLoadState(waitUntil, { timeout }),
