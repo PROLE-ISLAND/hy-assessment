@@ -2,7 +2,7 @@
 
 // =====================================================
 // Prompt Edit Form Component
-// Form for editing prompt content and settings
+// Form for editing prompt content and settings with tabs
 // =====================================================
 
 import { useState } from 'react';
@@ -27,9 +27,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Edit,
+  Eye,
+  History,
+} from 'lucide-react';
 import { PromptEditor } from './PromptEditor';
+import { PromptPreview } from './PromptPreview';
+import { VersionHistory } from './VersionHistory';
 import type { PromptTemplate, PromptKey } from '@/types/database';
 
 // Labels for prompt keys
@@ -56,6 +66,7 @@ export function PromptEditForm({ prompt, isNew = false }: PromptEditFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('edit');
 
   // Form state
   const [name, setName] = useState(prompt.name);
@@ -66,6 +77,7 @@ export function PromptEditForm({ prompt, isNew = false }: PromptEditFormProps) {
   const [temperature, setTemperature] = useState(prompt.temperature);
   const [maxTokens, setMaxTokens] = useState(prompt.max_tokens);
   const [key, setKey] = useState<PromptKey>(prompt.key);
+  const [changeSummary, setChangeSummary] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,21 +85,12 @@ export function PromptEditForm({ prompt, isNew = false }: PromptEditFormProps) {
     setError(null);
 
     try {
-      const supabase = createClient();
-
       if (isNew) {
-        // Create new prompt
-        const { data: userData } = await supabase.auth.getUser();
-        const { data: dbUser } = await supabase
-          .from('users')
-          .select('organization_id')
-          .eq('id', userData.user?.id || '')
-          .single<{ organization_id: string }>();
-
-        const { error: insertError } = await supabase
-          .from('prompt_templates' as 'users')  // Type cast for new table
-          .insert({
-            organization_id: dbUser?.organization_id,
+        // Create new prompt (existing logic)
+        const response = await fetch('/api/prompts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             key,
             name,
             description: description || null,
@@ -96,28 +99,36 @@ export function PromptEditForm({ prompt, isNew = false }: PromptEditFormProps) {
             model,
             temperature,
             max_tokens: maxTokens,
-            is_active: false,
-            is_default: false,
-            created_by: userData.user?.id,
-          } as never);
+          }),
+        });
 
-        if (insertError) throw insertError;
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || '作成に失敗しました');
+        }
       } else {
-        // Update existing prompt
-        const { error: updateError } = await supabase
-          .from('prompt_templates' as 'users')  // Type cast for new table
-          .update({
+        // Update existing prompt via API
+        const response = await fetch(`/api/prompts/${prompt.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             name,
             description: description || null,
-            version,
             content,
             model,
             temperature,
             max_tokens: maxTokens,
-          } as never)
-          .eq('id', prompt.id);
+            changeSummary: changeSummary || null,
+          }),
+        });
 
-        if (updateError) throw updateError;
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || '更新に失敗しました');
+        }
+
+        // Clear change summary after successful save
+        setChangeSummary('');
       }
 
       router.push('/admin/prompts');
@@ -142,9 +153,16 @@ export function PromptEditForm({ prompt, isNew = false }: PromptEditFormProps) {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {isNew ? 'プロンプト作成' : 'プロンプト編集'}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight">
+                {isNew ? 'プロンプト作成' : 'プロンプト編集'}
+              </h1>
+              {!isNew && (
+                <Badge variant="outline" className="font-mono">
+                  {version}
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground">
               {isNew ? '新しいプロンプトを作成します' : `${prompt.name} を編集中`}
             </p>
@@ -171,136 +189,187 @@ export function PromptEditForm({ prompt, isNew = false }: PromptEditFormProps) {
         </div>
       )}
 
-      {/* Basic Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>基本情報</CardTitle>
-          <CardDescription>プロンプトの識別情報を設定します</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">プロンプト名</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="例: カスタムシステムプロンプト"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="version">バージョン</Label>
-              <Input
-                id="version"
-                value={version}
-                onChange={(e) => setVersion(e.target.value)}
-                placeholder="例: v1.0.0"
-                required
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">説明</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="このプロンプトの目的や変更点を記述..."
-              rows={2}
-            />
-          </div>
-          {isNew && (
-            <div className="space-y-2">
-              <Label htmlFor="key">プロンプトタイプ</Label>
-              <Select value={key} onValueChange={(v) => setKey(v as PromptKey)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(PROMPT_KEY_LABELS) as PromptKey[]).map((k) => (
-                    <SelectItem key={k} value={k}>
-                      {PROMPT_KEY_LABELS[k]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      {/* Tabs for Edit / Preview / History */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="edit" className="flex items-center gap-2">
+            <Edit className="h-4 w-4" />
+            編集
+          </TabsTrigger>
+          <TabsTrigger value="preview" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            プレビュー
+          </TabsTrigger>
+          {!isNew && (
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              履歴
+            </TabsTrigger>
           )}
-        </CardContent>
-      </Card>
+        </TabsList>
 
-      {/* Prompt Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>プロンプト内容</CardTitle>
-          <CardDescription>
-            AI分析で使用されるプロンプトテキストを編集します
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <PromptEditor
-            value={content}
-            onChange={setContent}
-            height="500px"
-          />
-        </CardContent>
-      </Card>
+        {/* Edit Tab */}
+        <TabsContent value="edit" className="space-y-6">
+          {/* Basic Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle>基本情報</CardTitle>
+              <CardDescription>プロンプトの識別情報を設定します</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="name">プロンプト名</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="例: カスタムシステムプロンプト"
+                    required
+                  />
+                </div>
+                {isNew && (
+                  <div className="space-y-2">
+                    <Label htmlFor="version">バージョン</Label>
+                    <Input
+                      id="version"
+                      value={version}
+                      onChange={(e) => setVersion(e.target.value)}
+                      placeholder="例: v1.0.0"
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">説明</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="このプロンプトの目的や変更点を記述..."
+                  rows={2}
+                />
+              </div>
+              {!isNew && (
+                <div className="space-y-2">
+                  <Label htmlFor="changeSummary">変更内容（履歴用）</Label>
+                  <Input
+                    id="changeSummary"
+                    value={changeSummary}
+                    onChange={(e) => setChangeSummary(e.target.value)}
+                    placeholder="例: 分析観点を追加"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    この変更の概要を入力してください（変更履歴に表示されます）
+                  </p>
+                </div>
+              )}
+              {isNew && (
+                <div className="space-y-2">
+                  <Label htmlFor="key">プロンプトタイプ</Label>
+                  <Select value={key} onValueChange={(v) => setKey(v as PromptKey)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(PROMPT_KEY_LABELS) as PromptKey[]).map((k) => (
+                        <SelectItem key={k} value={k}>
+                          {PROMPT_KEY_LABELS[k]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-      {/* AI Parameters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>AIパラメータ</CardTitle>
-          <CardDescription>
-            OpenAI API呼び出し時のパラメータを設定します
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="model">モデル</Label>
-              <Select value={model} onValueChange={setModel}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {AVAILABLE_MODELS.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxTokens">最大トークン数</Label>
-              <Input
-                id="maxTokens"
-                type="number"
-                value={maxTokens}
-                onChange={(e) => setMaxTokens(parseInt(e.target.value) || 1500)}
-                min={100}
-                max={4096}
+          {/* Prompt Content */}
+          <Card>
+            <CardHeader>
+              <CardTitle>プロンプト内容</CardTitle>
+              <CardDescription>
+                AI分析で使用されるプロンプトテキストを編集します
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PromptEditor
+                value={content}
+                onChange={setContent}
+                height="500px"
               />
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>Temperature: {temperature}</Label>
-              <span className="text-sm text-muted-foreground">
-                低い値 = 一貫性重視、高い値 = 創造性重視
-              </span>
-            </div>
-            <Slider
-              value={[temperature]}
-              onValueChange={(v) => setTemperature(v[0])}
-              min={0}
-              max={1}
-              step={0.1}
-            />
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+
+          {/* AI Parameters */}
+          <Card>
+            <CardHeader>
+              <CardTitle>AIパラメータ</CardTitle>
+              <CardDescription>
+                OpenAI API呼び出し時のパラメータを設定します
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="model">モデル</Label>
+                  <Select value={model} onValueChange={setModel}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_MODELS.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxTokens">最大トークン数</Label>
+                  <Input
+                    id="maxTokens"
+                    type="number"
+                    value={maxTokens}
+                    onChange={(e) => setMaxTokens(parseInt(e.target.value) || 1500)}
+                    min={100}
+                    max={4096}
+                  />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Temperature: {temperature}</Label>
+                  <span className="text-sm text-muted-foreground">
+                    低い値 = 一貫性重視、高い値 = 創造性重視
+                  </span>
+                </div>
+                <Slider
+                  value={[temperature]}
+                  onValueChange={(v) => setTemperature(v[0])}
+                  min={0}
+                  max={1}
+                  step={0.1}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Preview Tab */}
+        <TabsContent value="preview">
+          <PromptPreview content={content} />
+        </TabsContent>
+
+        {/* History Tab */}
+        {!isNew && (
+          <TabsContent value="history">
+            <VersionHistory promptId={prompt.id} currentVersion={version} />
+          </TabsContent>
+        )}
+      </Tabs>
     </form>
   );
 }
