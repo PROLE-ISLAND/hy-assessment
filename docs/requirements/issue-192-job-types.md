@@ -1,3 +1,9 @@
+# Issue #192: [Phase 1] 職種マスター設定機能 - 実装計画
+
+> **Phase 1 of 4**: 配属先推薦機能（親Issue #149）
+
+---
+
 ## 1. 調査レポート
 
 **調査レポートリンク**: 親Issue #149 で調査済み
@@ -113,24 +119,70 @@
 | **誰が使うか（Who）** | 人事担当者（Admin/Recruiter）+ 候補者（パーソナリティ検査受験） |
 | **何を達成するか（What）** | 4カテゴリ検査で直接測定 + 職種ごとの理想プロファイルでマッチング |
 
-### 2.2 ユースケース定義
+### 2.2 ユースケース定義（Role × Outcome）
 
-| UC-ID | Role | Outcome | 説明 |
-|-------|------|---------|------|
-| UC-JOB-ADMIN-LIST-WEB | Admin | 職種一覧を確認する | 職種一覧画面表示 |
-| UC-JOB-ADMIN-CREATE-WEB | Admin | 職種を新規作成する | 職種追加ダイアログ |
-| UC-JOB-ADMIN-UPDATE-WEB | Admin | 職種プロファイルを編集する | 理想スコア・重みの変更 |
-| UC-JOB-ADMIN-DELETE-WEB | Admin | 職種を削除する | 論理削除 |
-| UC-PERSONALITY-CANDIDATE-TAKE-WEB | Candidate | パーソナリティ検査を受験する | 67問複合検査 |
-| UC-PERSONALITY-ADMIN-VIEW-WEB | Admin | パーソナリティ結果を確認する | 4カテゴリプロファイル表示 |
+| UC-ID | Role | Outcome | Channel | 説明 |
+|-------|------|---------|---------|------|
+| UC-JOB-ADMIN-LIST-WEB | Admin | 職種一覧を確認する | WEB | 職種一覧画面表示 |
+| UC-JOB-ADMIN-CREATE-WEB | Admin | 職種を新規作成する | WEB | 職種追加ダイアログ |
+| UC-JOB-ADMIN-UPDATE-WEB | Admin | 職種プロファイルを編集する | WEB | 理想スコア・重みの変更 |
+| UC-JOB-ADMIN-DELETE-WEB | Admin | 職種を削除する | WEB | 論理削除 |
+| UC-PERSONALITY-CANDIDATE-TAKE-WEB | Candidate | パーソナリティ検査を受験する | WEB | 67問複合検査 |
+| UC-PERSONALITY-ADMIN-VIEW-WEB | Admin | パーソナリティ結果を確認する | WEB | 4カテゴリプロファイル表示 |
+
+### 2.3 Role × Value マトリクス
+
+| Role | 提供する価値 | 受け取る価値 | 関連Outcome |
+|------|-------------|-------------|-------------|
+| Admin | 職種設定・検査結果分析 | 配属判断の根拠データ | LIST, CREATE, UPDATE, DELETE, VIEW |
+| Candidate | 検査回答 | — | TAKE |
+| System | データ処理・スコアリング | — | 全UC |
+
+### 2.4 カバレッジマトリクス（MECE証明）
+
+| Role＼Outcome | LIST | CREATE | UPDATE | DELETE | TAKE | VIEW |
+|---------------|:----:|:------:|:------:|:------:|:----:|:----:|
+| Admin | ✅ Silver | ✅ Silver | ✅ Silver | ✅ Silver | — | ✅ Silver |
+| Candidate | — | — | — | — | ✅ Silver | — |
+
+### 2.5 入力ソースチェックリスト（要件網羅性証明）
+
+| 入力ソース | 確認状態 | 抽出UC数 | 備考 |
+|-----------|---------|---------|------|
+| FEATURES.md / 機能一覧 | ✅ | 2 | 職種マスター、パーソナリティ検査 |
+| ルーティング定義（app/構造） | ✅ | 3 | /admin/settings, /assessment, /admin/candidates |
+| DBスキーマ（主要テーブル） | ✅ | 2 | job_types, personality_assessments |
+| 既存テストファイル | N/A | 0 | 新規機能 |
+| Issue/PR履歴 | ✅ | 1 | #149 配属先推薦機能 |
+
+### 2.6 外部整合性チェック
+
+- [x] 親Issue #149 の要件と整合している
+- [x] 既存検査（GFD-Gate）との併存設計を確認
+- [x] 組織設定画面の拡張パターンと整合している
+- [x] 候補者詳細画面の拡張パターンと整合している
 
 ---
 
 ## 3. Phase 3: 品質基準
 
-### 3.1 DoD Level: Silver
+### 3.1 DoD Level 選択
 
-**選定理由**: 後続Phase（マッチングアルゴリズム）の基盤となるため、Silver品質を担保。
+- [ ] Bronze (27観点: 80%カバレッジ)
+- [x] Silver (31観点: 85%カバレッジ) ← 選択
+- [ ] Gold (19観点: 95%カバレッジ)
+
+**選定理由**: 後続Phase（マッチングアルゴリズム #193）の基盤となるため、Silver品質を担保。特にDB設計の品質がPhase 2-4全体に影響する。
+
+### 3.2 Pre-mortem（失敗シナリオ）
+
+| # | 失敗シナリオ | 発生確率 | 対策 | 確認方法 |
+|---|-------------|---------|------|---------|
+| 1 | **RLSポリシー漏れ** - 他組織の職種・検査結果が見える | 中 | organization_id必須、全クエリにRLS適用 | 統合テストで他組織アクセス検証 |
+| 2 | **スコアリング計算誤り** - 4カテゴリの計算ロジックバグ | 中 | 各カテゴリの計算を独立関数化、境界値テスト | 単体テストで全パターン検証 |
+| 3 | **検査途中離脱** - 67問で離脱率増加 | 高 | 進捗バー表示、自動保存、セクション分割 | E2Eで離脱→復帰フロー検証 |
+| 4 | **理想プロファイル未設定** - 職種登録時にプロファイル未入力 | 中 | デフォルト値設定、バリデーション警告 | フォームバリデーションテスト |
+| 5 | **マイグレーション失敗** - 本番環境でのテーブル作成失敗 | 低 | ローカル→Staging→本番の段階デプロイ | Staging環境で事前検証 |
 
 ---
 
@@ -144,6 +196,24 @@
 |-----------|------|------------|
 | job_types | 職種マスター（4カテゴリ理想プロファイル） | organization_id ベース |
 | personality_assessments | パーソナリティ検査結果（4カテゴリ） | organization_id ベース |
+
+#### CRUD操作マトリクス
+
+| テーブル | Create | Read | Update | Delete | 担当API |
+|---------|:------:|:----:|:------:|:------:|---------|
+| job_types | ✅ | ✅ | ✅ | ✅（論理削除） | POST/GET/PUT/DELETE `/api/settings/job-types` |
+| personality_assessments | ✅ | ✅ | ❌ | ❌ | POST/GET `/api/assessments/personality` |
+
+#### RLSテスト観点
+
+| ポリシー名 | 対象操作 | 許可条件 | テストケース |
+|-----------|---------|---------|-------------|
+| job_types_select | SELECT | auth.uid() in org_users | 自組織の職種のみ取得可能 |
+| job_types_insert | INSERT | is_admin(auth.uid()) | 管理者のみ作成可能 |
+| job_types_update | UPDATE | is_admin(auth.uid()) | 管理者のみ更新可能 |
+| job_types_delete | DELETE | is_admin(auth.uid()) | 管理者のみ削除可能 |
+| personality_select | SELECT | auth.uid() in org_users | 自組織の結果のみ取得可能 |
+| personality_insert | INSERT | true (検査システム経由) | 検査完了時に自動作成 |
 
 #### 4.1.1 職種マスタースキーマ（4カテゴリ対応）
 
@@ -193,6 +263,21 @@ CREATE TABLE job_types (
 
     UNIQUE(organization_id, name)
 );
+
+-- RLSポリシー
+ALTER TABLE job_types ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY job_types_select ON job_types FOR SELECT
+    USING (organization_id IN (SELECT organization_id FROM users WHERE id = auth.uid()));
+
+CREATE POLICY job_types_insert ON job_types FOR INSERT
+    WITH CHECK (organization_id IN (SELECT organization_id FROM users WHERE id = auth.uid() AND role = 'admin'));
+
+CREATE POLICY job_types_update ON job_types FOR UPDATE
+    USING (organization_id IN (SELECT organization_id FROM users WHERE id = auth.uid() AND role = 'admin'));
+
+CREATE POLICY job_types_delete ON job_types FOR DELETE
+    USING (organization_id IN (SELECT organization_id FROM users WHERE id = auth.uid() AND role = 'admin'));
 ```
 
 #### 4.1.2 パーソナリティ検査結果スキーマ
@@ -236,6 +321,15 @@ CREATE TABLE personality_assessments (
 
     UNIQUE(candidate_id)
 );
+
+-- RLSポリシー
+ALTER TABLE personality_assessments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY personality_select ON personality_assessments FOR SELECT
+    USING (organization_id IN (SELECT organization_id FROM users WHERE id = auth.uid()));
+
+CREATE POLICY personality_insert ON personality_assessments FOR INSERT
+    WITH CHECK (true);  -- 検査システム経由で挿入
 ```
 
 #### 職種プロファイル例
@@ -249,56 +343,241 @@ CREATE TABLE personality_assessments (
 
 ### 4.2 API設計
 
-| Method | Path | 説明 |
-|--------|------|------|
-| GET | `/api/settings/job-types` | 職種一覧取得 |
-| POST | `/api/settings/job-types` | 職種作成 |
-| PUT | `/api/settings/job-types/:id` | 職種更新 |
-| DELETE | `/api/settings/job-types/:id` | 職種削除 |
-| GET | `/api/assessments/personality/template` | 検査テンプレート取得 |
-| POST | `/api/assessments/personality/:candidateId` | 検査結果保存 |
-| GET | `/api/candidates/:id/personality` | 候補者パーソナリティ取得 |
+| Method | Path | 説明 | 認証 |
+|--------|------|------|------|
+| GET | `/api/settings/job-types` | 職種一覧取得 | 必要 |
+| POST | `/api/settings/job-types` | 職種作成 | 必要（Admin） |
+| PUT | `/api/settings/job-types/:id` | 職種更新 | 必要（Admin） |
+| DELETE | `/api/settings/job-types/:id` | 職種削除 | 必要（Admin） |
+| GET | `/api/assessments/personality/template` | 検査テンプレート取得 | 不要 |
+| POST | `/api/assessments/personality/:candidateId` | 検査結果保存 | 不要（トークン認証） |
+| GET | `/api/candidates/:id/personality` | 候補者パーソナリティ取得 | 必要 |
+
+#### エラーハンドリング設計
+
+| API | エラーケース | HTTPステータス | レスポンス |
+|-----|------------|--------------|-----------|
+| POST /api/settings/job-types | バリデーションエラー | 400 | `{ error: "validation_error", details: {...} }` |
+| POST /api/settings/job-types | 認証エラー | 401 | `{ error: "unauthorized" }` |
+| POST /api/settings/job-types | 権限エラー（非Admin） | 403 | `{ error: "forbidden" }` |
+| POST /api/settings/job-types | 重複職種名 | 409 | `{ error: "duplicate_name" }` |
+| GET /api/settings/job-types/:id | 存在しない | 404 | `{ error: "not_found" }` |
+| POST /api/assessments/personality | トークン無効 | 401 | `{ error: "invalid_token" }` |
+| POST /api/assessments/personality | 既に受験済み | 409 | `{ error: "already_completed" }` |
+
+#### 非機能要件（API）
+
+| 観点 | 要件 | 検証方法 |
+|------|------|---------|
+| **レート制限** | 60回/min | 負荷テストで確認 |
+| **タイムアウト** | 30秒 | 負荷テストで確認 |
+| **最大ペイロード** | 1MB | 境界値テストで確認 |
+| **リトライポリシー** | 3回、1秒間隔 | 障害注入テストで確認 |
 
 ### 4.3 UI設計
 
-| 画面名 | パス | 説明 |
-|-------|------|------|
-| 職種設定 | /admin/settings/job-types | 職種一覧・CRUD（4タブ） |
-| パーソナリティ検査 | /assessment/personality/:token | 候補者向け67問検査 |
-| 結果表示 | /admin/candidates/:id | パーソナリティタブ追加 |
+#### 画面一覧
 
-#### V0 UIリンク
+| 画面名 | パス | コンポーネント | 説明 |
+|-------|------|---------------|------|
+| 職種設定 | /admin/settings/job-types | JobTypesSettings | 職種一覧・CRUD（4タブ） |
+| パーソナリティ検査 | /assessment/personality/:token | PersonalityAssessment | 候補者向け67問検査 |
+| 結果表示 | /admin/candidates/:id | CandidatePersonalityTab | パーソナリティタブ追加 |
 
-| 項目 | URL |
+#### V0リンク・プレビュー
+
+| 項目 | 値 |
 |------|-----|
-| **V0 Chat（DISC版）** | https://v0.app/chat/dKKC2svn36k |
-| **Demo** | https://demo-kzmiiguzj97ageuvaxx2.vusercontent.net |
+| **V0 Link** | https://v0.app/chat/dKKC2svn36k |
+| **Preview URL** | https://demo-kzmiiguzj97ageuvaxx2.vusercontent.net |
+
+#### バリアント実装チェック
+
+| コンポーネント | Default | Loading | Empty | Error |
+|---------------|:-------:|:-------:|:-----:|:-----:|
+| JobTypesList | [ ] | [ ] | [ ] | [ ] |
+| JobTypeForm | [ ] | [ ] | — | [ ] |
+| PersonalityAssessment | [ ] | [ ] | — | [ ] |
+| PersonalityResults | [ ] | [ ] | [ ] | [ ] |
+
+#### data-testid命名規則
+
+```
+data-testid="job-type-list"                 # 職種一覧
+data-testid="job-type-row-{id}"             # 職種行
+data-testid="job-type-create-button"        # 作成ボタン
+data-testid="job-type-edit-button-{id}"     # 編集ボタン
+data-testid="job-type-delete-button-{id}"   # 削除ボタン
+data-testid="job-type-form"                 # フォーム
+data-testid="job-type-name-input"           # 名前入力
+data-testid="disc-tab"                      # DISCタブ
+data-testid="stress-tab"                    # ストレスタブ
+data-testid="eq-tab"                        # EQタブ
+data-testid="values-tab"                    # 価値観タブ
+data-testid="personality-question-{n}"      # 検査質問
+data-testid="personality-progress"          # 進捗バー
+data-testid="personality-submit"            # 送信ボタン
+```
+
+#### 画面遷移図（State Machine）
+
+```mermaid
+stateDiagram-v2
+    [*] --> 職種一覧
+    職種一覧 --> 職種作成ダイアログ: 「追加」クリック
+    職種作成ダイアログ --> 職種一覧: 保存/キャンセル
+    職種一覧 --> 職種編集ダイアログ: 「編集」クリック
+    職種編集ダイアログ --> 職種一覧: 保存/キャンセル
+    職種一覧 --> 削除確認ダイアログ: 「削除」クリック
+    削除確認ダイアログ --> 職種一覧: 確認/キャンセル
+
+    [*] --> 検査開始画面
+    検査開始画面 --> DISC質問: 開始
+    DISC質問 --> ストレス質問: 24問完了
+    ストレス質問 --> EQ質問: 12問完了
+    EQ質問 --> 価値観質問: 16問完了
+    価値観質問 --> 検査完了画面: 15問完了
+    検査完了画面 --> [*]
+```
+
+| 遷移元 | 遷移先 | トリガー | 条件 | テストケース |
+|-------|-------|---------|------|-------------|
+| 職種一覧 | 職種作成ダイアログ | 追加ボタンクリック | Admin権限 | ダイアログ表示確認 |
+| 職種編集ダイアログ | 職種一覧 | 保存ボタンクリック | バリデーション通過 | 一覧に反映確認 |
+| DISC質問 | ストレス質問 | 24問回答完了 | 全問回答済み | 自動遷移確認 |
+| 検査完了画面 | — | — | — | 完了メッセージ表示 |
+
+### 4.4 変更ファイル一覧
+
+| ファイルパス | 変更種別 | 概要 |
+|-------------|---------|------|
+| `supabase/migrations/xxx_create_job_types.sql` | 新規 | job_typesテーブル作成 |
+| `supabase/migrations/xxx_create_personality_assessments.sql` | 新規 | personality_assessmentsテーブル作成 |
+| `src/types/database.types.ts` | 修正 | 型定義追加 |
+| `src/app/api/settings/job-types/route.ts` | 新規 | 職種CRUD API |
+| `src/app/api/settings/job-types/[id]/route.ts` | 新規 | 職種個別API |
+| `src/app/api/assessments/personality/route.ts` | 新規 | 検査テンプレートAPI |
+| `src/app/api/assessments/personality/[candidateId]/route.ts` | 新規 | 検査結果保存API |
+| `src/app/api/candidates/[id]/personality/route.ts` | 新規 | 候補者パーソナリティ取得API |
+| `src/app/admin/settings/job-types/page.tsx` | 新規 | 職種設定ページ |
+| `src/components/settings/JobTypesList.tsx` | 新規 | 職種一覧コンポーネント |
+| `src/components/settings/JobTypeForm.tsx` | 新規 | 職種フォームコンポーネント |
+| `src/app/assessment/personality/[token]/page.tsx` | 新規 | パーソナリティ検査ページ |
+| `src/components/assessment/PersonalityAssessment.tsx` | 新規 | 検査コンポーネント |
+| `src/components/candidates/PersonalityTab.tsx` | 新規 | 結果表示タブ |
+| `src/lib/assessments/personality-scoring.ts` | 新規 | スコアリングロジック |
+| `src/lib/templates/personality-questions.ts` | 新規 | 検査質問テンプレート |
 
 ---
 
-## 5. 受け入れ条件
+## 5. Phase 5: テスト設計
+
+### 5.1 Gold E2E候補評価（4つのレンズ）
+
+| レンズ | 質問 | 回答 |
+|--------|------|------|
+| 行動フォーカス | 実装ではなくユーザー目標を検証しているか？ | はい（職種設定・検査完了） |
+| 欺瞞耐性 | モック/スタブでは通過できないか？ | はい（DB・API統合必須） |
+| 明確な失敗説明 | 失敗理由を1文で説明できるか？ | はい |
+| リスク明示 | このテストがないと何を犠牲にするか説明できるか？ | はい（配属推薦基盤） |
+
+**結論**: Silver E2E対象（Gold候補ではないが統合テスト必須）
+
+### 5.2 単体テスト設計
+
+| 対象関数/コンポーネント | テストケース | 期待結果 |
+|----------------------|------------|---------|
+| `calculateDiscScores()` | 正常系: 24問全回答 | D/I/S/C各スコア算出 |
+| `calculateDiscScores()` | 境界値: 全問同一選択 | スコア偏り検出 |
+| `calculateStressScore()` | 正常系: 12問全回答 | 総合スコア + リスクレベル |
+| `calculateStressScore()` | 境界値: 70点境界 | リスクレベル判定確認 |
+| `calculateEqScore()` | 正常系: 16問全回答 | 4指標スコア算出 |
+| `calculateValuesScore()` | 正常系: 15問ランキング | 5価値観スコア + 主要価値観 |
+| `JobTypeForm` | バリデーション: 名前空 | エラー表示 |
+| `JobTypeForm` | バリデーション: 重み合計 > 1 | 警告表示 |
+
+### 5.3 統合テスト設計
+
+#### 5.3.1 DB統合テスト
+
+| テスト対象 | テスト内容 | 前提条件 | 期待結果 |
+|-----------|-----------|---------|---------|
+| job_types Create | 職種作成 | Admin認証済み | 201 + DB反映 |
+| job_types Read | 職種一覧取得 | 認証済み | 200 + 自組織のみ |
+| job_types Update | 職種更新 | Admin認証済み | 200 + 更新反映 |
+| job_types Delete | 職種論理削除 | Admin認証済み | 200 + deleted_at設定 |
+| job_types RLS | 他組織アクセス | 他組織ユーザー | 空配列（アクセス不可） |
+| personality Create | 検査結果保存 | トークン有効 | 201 + 全スコア保存 |
+| personality Read | 結果取得 | 認証済み | 200 + 4カテゴリ全て |
+
+#### 5.3.2 API統合テスト
+
+| テスト対象 | テスト内容 | 入力 | 期待結果 |
+|-----------|-----------|------|---------|
+| 認証フロー | 未認証アクセス | Authヘッダーなし | 401 Unauthorized |
+| 権限チェック | 非Adminが職種作成 | 一般ユーザートークン | 403 Forbidden |
+| バリデーション | 不正スコア値 | ideal_dominance: 150 | 400 + エラー詳細 |
+| 重複チェック | 同名職種作成 | 既存名と同一 | 409 Conflict |
+| トークン検証 | 無効トークンで検査 | 期限切れトークン | 401 Invalid Token |
+
+#### 5.3.3 UI統合テスト（E2E）
+
+| テスト対象 | テスト内容 | 操作 | 期待結果 |
+|-----------|-----------|------|---------|
+| 職種CRUD | 作成→編集→削除 | フォーム操作 | 一覧に反映 |
+| 検査フロー | 67問完了 | 全質問回答 | 完了画面表示 |
+| 離脱→復帰 | 途中離脱→再開 | ブラウザ閉じ→再アクセス | 途中から再開 |
+| 結果表示 | 4カテゴリ表示 | 候補者詳細→タブ | 全スコア表示 |
+
+### 5.4 トレーサビリティ（UC → テスト追跡）
+
+| UC-ID | テスト種別 | テストファイル | CI Stage |
+|-------|----------|---------------|----------|
+| UC-JOB-ADMIN-LIST-WEB | E2E | job-types.spec.ts | Silver |
+| UC-JOB-ADMIN-CREATE-WEB | E2E | job-types.spec.ts | Silver |
+| UC-JOB-ADMIN-UPDATE-WEB | E2E | job-types.spec.ts | Silver |
+| UC-JOB-ADMIN-DELETE-WEB | E2E | job-types.spec.ts | Silver |
+| UC-PERSONALITY-CANDIDATE-TAKE-WEB | E2E | personality-assessment.spec.ts | Silver |
+| UC-PERSONALITY-ADMIN-VIEW-WEB | E2E | personality-results.spec.ts | Silver |
+
+---
+
+## 6. 受け入れ条件
 
 ### データベース
 - [ ] job_types テーブル作成（4カテゴリ理想プロファイル）
 - [ ] personality_assessments テーブル作成
-- [ ] CHECK制約・RLS設定
+- [ ] CHECK制約・RLSポリシー設定
+- [ ] マイグレーション成功（Staging環境）
+
+### API
+- [ ] 職種マスターCRUD API（4エンドポイント）
+- [ ] パーソナリティ検査API（2エンドポイント）
+- [ ] 候補者パーソナリティ取得API
+- [ ] エラーハンドリング実装
 
 ### 検査
 - [ ] 検査テンプレート（67問）作成
 - [ ] 4カテゴリスコアリングロジック実装
-
-### API
-- [ ] 職種マスターCRUD API
-- [ ] パーソナリティ検査API
+- [ ] 自動保存・離脱復帰機能
 
 ### UI
-- [ ] 職種設定画面（4タブ）
-- [ ] パーソナリティ検査画面
+- [ ] 職種設定画面（4タブ切り替え）
+- [ ] パーソナリティ検査画面（進捗バー付き）
 - [ ] 候補者詳細パーソナリティタブ
+- [ ] 全バリアント実装（Default/Loading/Empty/Error）
+
+### テスト
+- [ ] 単体テスト（スコアリングロジック）
+- [ ] 統合テスト（DB・API）
+- [ ] E2E テスト（Silver）
 
 ---
 
-## 6. 依存関係
+## 7. 依存関係
+
+**先行（このPRの前提）:**
+- なし（Phase 1 = 最初の実装）
 
 **後続（このPRに依存）:**
 - #193 Phase 2 マッチングアルゴリズム
@@ -306,4 +585,21 @@ CREATE TABLE personality_assessments (
 - #195 Phase 4 部署推薦機能
 
 **マージ順序:**
-#192 → #193 → #194 → #195
+```
+#192 (Phase 1: 職種マスター)
+  → #193 (Phase 2: マッチングアルゴリズム)
+  → #194 (Phase 3: 配属推薦UI)
+  → #195 (Phase 4: 部署推薦)
+```
+
+---
+
+## 8. 実装PR分割計画
+
+Phase 1 は以下のPRに分割して実装:
+
+| PR | ブランチ | 内容 | 依存 |
+|----|---------|------|------|
+| PR1 | `feature/issue-192-db` | DB: マイグレーション + RLS | なし |
+| PR2 | `feature/issue-192-api` | API: 職種CRUD + 検査API | PR1 |
+| PR3 | `feature/issue-192-ui` | UI: 職種設定 + 検査画面 + 結果表示 | PR2 |
