@@ -6,6 +6,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { PromptEditForm } from '@/components/prompts/PromptEditForm';
+import { VersionHistory } from '@/components/prompts/VersionHistory';
 import type { PromptTemplate } from '@/types/database';
 
 interface PromptEditPageProps {
@@ -57,6 +58,7 @@ export default async function PromptEditPage({ params }: PromptEditPageProps) {
   return (
     <div className="space-y-6">
       <PromptEditForm prompt={prompt} />
+      <VersionHistory promptId={prompt.id} currentVersion={prompt.version} />
     </div>
   );
 }
