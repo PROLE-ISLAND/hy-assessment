@@ -3,16 +3,22 @@
 // =====================================================
 // Prompt Preview Component
 // Shows prompt with sample data applied
+// Variants: Default, Loading, Empty, Error
 // =====================================================
 
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, CheckCircle, FileText, RefreshCw } from 'lucide-react';
 
 interface PromptPreviewProps {
   content: string;
   sampleData?: Record<string, string>;
+  isLoading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
 // Default sample data for preview
@@ -37,18 +43,104 @@ const DEFAULT_SAMPLE_DATA: Record<string, string> = {
 // Variable pattern: {{variable_name}}
 const VARIABLE_PATTERN = /\{\{([^}]+)\}\}/g;
 
+// Loading Skeleton Component
+function PromptPreviewSkeleton() {
+  return (
+    <div className="space-y-4" data-testid="prompt-preview-skeleton">
+      <Card>
+        <CardHeader className="pb-3">
+          <Skeleton className="h-4 w-32" />
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-6 w-20" />
+            <Skeleton className="h-6 w-28" />
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-3">
+          <Skeleton className="h-4 w-48" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[200px] w-full" />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-3">
+          <Skeleton className="h-4 w-36" />
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Empty State Component
+function PromptPreviewEmpty() {
+  return (
+    <Card data-testid="prompt-preview-empty">
+      <CardContent className="flex flex-col items-center justify-center py-12">
+        <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-medium mb-2">プロンプト内容がありません</h3>
+        <p className="text-sm text-muted-foreground text-center">
+          編集タブでプロンプト内容を入力してください
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Error State Component
+function PromptPreviewError({
+  error,
+  onRetry,
+}: {
+  error: Error;
+  onRetry?: () => void;
+}) {
+  return (
+    <Card data-testid="prompt-preview-error">
+      <CardContent className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <h3 className="text-lg font-medium mb-2">プレビューの読み込みに失敗しました</h3>
+        <p className="text-sm text-muted-foreground text-center mb-4">
+          {error.message || 'エラーが発生しました'}
+        </p>
+        {onRetry && (
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            再試行
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function PromptPreview({
   content,
   sampleData = DEFAULT_SAMPLE_DATA,
+  isLoading,
+  error,
+  onRetry,
 }: PromptPreviewProps) {
+  // All hooks must be called before any early returns
   // Extract all variables from content
   const variables = useMemo(() => {
+    if (!content) return [];
     const matches = [...content.matchAll(VARIABLE_PATTERN)];
     return [...new Set(matches.map((m) => m[1].trim()))];
   }, [content]);
 
   // Apply sample data to content
   const previewContent = useMemo(() => {
+    if (!content) return '';
     let result = content;
     for (const [key, value] of Object.entries(sampleData)) {
       const pattern = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g');
@@ -59,6 +151,7 @@ export function PromptPreview({
 
   // Check which variables are resolved
   const unresolvedVariables = useMemo(() => {
+    if (!previewContent) return [];
     const matches = [...previewContent.matchAll(VARIABLE_PATTERN)];
     return [...new Set(matches.map((m) => m[1].trim()))];
   }, [previewContent]);
@@ -67,8 +160,23 @@ export function PromptPreview({
     (v) => !unresolvedVariables.includes(v)
   );
 
+  // Handle loading state
+  if (isLoading) {
+    return <PromptPreviewSkeleton />;
+  }
+
+  // Handle error state
+  if (error) {
+    return <PromptPreviewError error={error} onRetry={onRetry} />;
+  }
+
+  // Handle empty state
+  if (!content || content.trim() === '') {
+    return <PromptPreviewEmpty />;
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="prompt-preview">
       {/* Variable Status */}
       <Card>
         <CardHeader className="pb-3">
