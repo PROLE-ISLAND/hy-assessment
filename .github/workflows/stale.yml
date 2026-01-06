@@ -6,7 +6,7 @@
 # ロジックは組織リポジトリで一元管理:
 # PROLE-ISLAND/.github/.github/workflows/reusable-stale.yml
 
-name: 🧹 Stale Issues & PRs
+name: 🧹 古いIssue/PR処理
 
 on:
   schedule:

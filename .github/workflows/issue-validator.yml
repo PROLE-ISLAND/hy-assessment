@@ -8,7 +8,7 @@
 #
 # カスタマイズ: with セクションのパラメータを変更
 
-name: Issue Template Validator
+name: Issueテンプレート検証
 
 on:
   issues:

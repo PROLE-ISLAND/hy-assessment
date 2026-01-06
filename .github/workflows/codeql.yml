@@ -3,7 +3,7 @@
 # 静的セキュリティ解析（SAST）
 # =====================================================
 
-name: CodeQL
+name: セキュリティ分析
 
 on:
   push:
@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze
+    name: コード分析
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

@@ -12,7 +12,7 @@
 # - 変更サマリー生成
 # - UIコンポーネントバリアントチェック
 
-name: 🛡️ PR Governance
+name: 🛡️ PRガバナンス
 
 on:
   pull_request:

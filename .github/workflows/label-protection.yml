@@ -6,7 +6,7 @@
 # ロジックは組織リポジトリで一元管理:
 # PROLE-ISLAND/.github/.github/workflows/reusable-label-protection.yml
 
-name: Label Protection
+name: ラベル保護
 
 on:
   issues:
