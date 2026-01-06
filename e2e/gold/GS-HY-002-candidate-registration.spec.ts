@@ -29,10 +29,27 @@ test.describe('GS-HY-002: 候補者登録→検査リンク発行', () => {
     await page.fill(SELECTORS.candidateEmail, testCandidate.email);
 
     // When: 希望職種を選択（必須項目）
-    await page.click('label[for="account_manager"]');
+    // Note: Radix UI Checkboxはbutton要素として実装されている
+    const checkbox = page.locator('#account_manager');
+    await checkbox.waitFor({ state: 'visible', timeout: 5000 });
+    await checkbox.click();
+
+    // 選択されたことを確認
+    await expect(checkbox).toHaveAttribute('data-state', 'checked', { timeout: 5000 });
 
     // When: 登録ボタンをクリック
     await page.click(SELECTORS.candidateSubmit);
+
+    // Wait for form processing (check for button loading state)
+    await page.waitForLoadState('domcontentloaded');
+
+    // Check for error message first
+    const errorElement = page.locator('[class*="destructive"]');
+    const hasError = await errorElement.isVisible().catch(() => false);
+    if (hasError) {
+      const errorText = await errorElement.textContent();
+      throw new Error(`候補者登録でエラー発生: ${errorText}`);
+    }
 
     // Then: 成功（候補者一覧にリダイレクト or 成功メッセージ）
     await Promise.race([
