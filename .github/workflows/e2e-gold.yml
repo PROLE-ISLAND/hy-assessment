@@ -93,10 +93,9 @@ jobs:
           echo "  - GS-HY-005: レポート共有"
           echo "  - GS-HY-006: 候補者レポート閲覧"
           echo ""
-          # 認証セットアップを先に実行（project依存関係により自動）
-          # --project=chromium で認証必要なテストを実行
-          # セットアップは dependencies: ['setup'] により自動実行される
-          npx playwright test e2e/gold/ --reporter=list
+          # --project=gold で Gold E2Eテストのみを実行
+          # dependencies: ['setup'] により認証セットアップが先に実行される
+          npx playwright test --project=gold --reporter=list
         env:
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
           E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}

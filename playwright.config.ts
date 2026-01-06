@@ -57,17 +57,57 @@ export default defineConfig({
       testMatch: /auth\.setup\.ts/,
       timeout: 120000, // 2 minutes for cold start
     },
-    // Auth tests - run without storageState (test login/logout/redirect)
+
+    // =====================================================
+    // Gold E2E Tests (6 critical business flows)
+    // GS-HY-001 〜 GS-HY-006
+    // Run on every deploy, must always pass
+    // =====================================================
+    {
+      name: 'gold',
+      testDir: './e2e/gold',
+      use: {
+        ...devices['Desktop Chrome'],
+        // GS-HY-001はtest.use()で明示的にstorageStateを無効化
+        // 他のテストはsetupで作成されたuser.jsonを使用
+        storageState: 'e2e/.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+
+    // =====================================================
+    // Integration Tests (Silver level)
+    // More comprehensive testing, run on PR
+    // =====================================================
+    {
+      name: 'integration',
+      testDir: './e2e/integration',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+
+    // =====================================================
+    // Auth tests - run without storageState
+    // Tests login/logout/redirect flows
+    // =====================================================
     {
       name: 'auth-tests',
       testMatch: /01-auth\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
       // No storageState - tests run as unauthenticated user
     },
-    // Main tests - depend on setup and use saved auth state
+
+    // =====================================================
+    // Legacy: Full test run (all tests except gold and setup)
+    // For backwards compatibility
+    // =====================================================
     {
       name: 'chromium',
-      testIgnore: /01-auth\.spec\.ts/,  // Skip auth tests in this project
+      testDir: './e2e',
+      testIgnore: [/auth\.setup\.ts/, /gold\//, /integration\//],
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/user.json',
