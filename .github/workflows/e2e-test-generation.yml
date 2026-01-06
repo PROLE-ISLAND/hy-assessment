@@ -1,0 +1,443 @@
+name: 🤖 E2Eテスト生成
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'テスト生成対象'
+        required: false
+        default: 'auto-detect'
+        type: choice
+        options:
+          - auto-detect
+          - smoke
+          - auth
+          - crud
+          - navigation
+
+env:
+  NODE_VERSION: '18'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  analyze-changes:
+    name: 🔍 変更分析
+    runs-on: ubuntu-latest
+    outputs:
+      test_targets: ${{ steps.analyze.outputs.test_targets }}
+      has_ui_changes: ${{ steps.analyze.outputs.has_ui_changes }}
+      has_api_changes: ${{ steps.analyze.outputs.has_api_changes }}
+      changed_files: ${{ steps.analyze.outputs.changed_files }}
+      project_type: ${{ steps.analyze.outputs.project_type }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Analyze changed files
+        id: analyze
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | tr '\n' ' ')
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~5...HEAD | tr '\n' ' ')
+          fi
+
+          echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+
+          # Detect UI changes
+          HAS_UI_CHANGES="false"
+          if echo "$CHANGED_FILES" | grep -qE "(components|pages|app)/.*\.(tsx?|jsx?)"; then
+            HAS_UI_CHANGES="true"
+          fi
+          echo "has_ui_changes=$HAS_UI_CHANGES" >> $GITHUB_OUTPUT
+
+          # Detect API changes
+          HAS_API_CHANGES="false"
+          if echo "$CHANGED_FILES" | grep -qE "(api|routes|lib)/.*\.(ts|py)"; then
+            HAS_API_CHANGES="true"
+          fi
+          echo "has_api_changes=$HAS_API_CHANGES" >> $GITHUB_OUTPUT
+
+          # Detect project type
+          PROJECT_TYPE="generic"
+          if [ -f "playwright.config.ts" ]; then
+            PROJECT_TYPE="playwright-ready"
+          fi
+          if [ -f "e2e/fixtures.ts" ]; then
+            PROJECT_TYPE="e2e-structured"
+          fi
+          echo "project_type=$PROJECT_TYPE" >> $GITHUB_OUTPUT
+
+          # Determine test targets based on changed paths
+          TARGETS=""
+
+          # Auth related
+          if echo "$CHANGED_FILES" | grep -qE "(auth|login|session)"; then
+            TARGETS="$TARGETS auth"
+          fi
+
+          # CRUD/Data related
+          if echo "$CHANGED_FILES" | grep -qE "(candidates|users|items|products)"; then
+            TARGETS="$TARGETS crud"
+          fi
+
+          # Navigation related
+          if echo "$CHANGED_FILES" | grep -qE "(nav|sidebar|header|layout)"; then
+            TARGETS="$TARGETS navigation"
+          fi
+
+          # Form related
+          if echo "$CHANGED_FILES" | grep -qE "(form|input|dialog|modal)"; then
+            TARGETS="$TARGETS forms"
+          fi
+
+          # Workflow related
+          if echo "$CHANGED_FILES" | grep -q "workflow"; then
+            TARGETS="$TARGETS workflow"
+          fi
+
+          # Default if no specific targets
+          if [ -z "$TARGETS" ]; then
+            TARGETS="smoke"
+          fi
+
+          echo "test_targets=$TARGETS" >> $GITHUB_OUTPUT
+          echo "📊 Detected test targets: $TARGETS"
+          echo "📁 Changed files: $CHANGED_FILES"
+          echo "🏗️ Project type: $PROJECT_TYPE"
+
+  generate-tests:
+    name: 🧪 E2Eテスト生成
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    if: needs.analyze-changes.outputs.has_ui_changes == 'true' || github.event_name == 'workflow_dispatch'
+    outputs:
+      generated_count: ${{ steps.generate.outputs.generated_count }}
+      test_files: ${{ steps.generate.outputs.test_files }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v6
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 🔧 Install Playwright
+        run: |
+          npm install -g playwright
+          npx playwright install chromium
+
+      - name: 🤖 Generate E2E test suggestions
+        id: generate
+        run: |
+          mkdir -p generated-tests
+          TARGETS="${{ needs.analyze-changes.outputs.test_targets }}"
+          PROJECT_TYPE="${{ needs.analyze-changes.outputs.project_type }}"
+          CHANGED="${{ needs.analyze-changes.outputs.changed_files }}"
+
+          # Generate suggestion markdown
+          cat > generated-tests/test-suggestions.md << 'EOF'
+          # 🤖 E2E Test Generation Suggestions
+
+          Based on the changed files, here are the recommended E2E tests:
+
+          ## Detected Changes
+          EOF
+
+          echo "- Files: $CHANGED" >> generated-tests/test-suggestions.md
+          echo "- Targets: $TARGETS" >> generated-tests/test-suggestions.md
+          echo "- Project Type: $PROJECT_TYPE" >> generated-tests/test-suggestions.md
+          echo "" >> generated-tests/test-suggestions.md
+
+          GENERATED_COUNT=0
+          TEST_FILES=""
+
+          for target in $TARGETS; do
+            case $target in
+              auth)
+                cat > generated-tests/auth.spec.ts << 'TESTEOF'
+          // Generated E2E Test - Authentication
+          // Based on: Organization E2E Testing Standard
+
+          import { test, expect } from '@playwright/test';
+
+          test.describe('Authentication - Generated Tests', () => {
+            test('should redirect unauthenticated user to login', async ({ page }) => {
+              await page.goto('/admin');
+              await expect(page).toHaveURL(/\/(login|signin|auth)/);
+            });
+
+            test('should show login form', async ({ page }) => {
+              await page.goto('/login');
+              await expect(page.locator('[data-testid="login-email"], input[type="email"]')).toBeVisible();
+              await expect(page.locator('[data-testid="login-password"], input[type="password"]')).toBeVisible();
+              await expect(page.locator('[data-testid="login-submit"], button[type="submit"]')).toBeVisible();
+            });
+
+            test('should show error for invalid credentials', async ({ page }) => {
+              await page.goto('/login');
+              await page.fill('[data-testid="login-email"], input[type="email"]', 'invalid@example.com');
+              await page.fill('[data-testid="login-password"], input[type="password"]', 'wrongpassword');
+              await page.click('[data-testid="login-submit"], button[type="submit"]');
+              await expect(page.locator('[data-testid="login-error"], [role="alert"]')).toBeVisible();
+            });
+          });
+          TESTEOF
+                GENERATED_COUNT=$((GENERATED_COUNT + 1))
+                TEST_FILES="$TEST_FILES auth.spec.ts"
+                ;;
+
+              crud)
+                cat > generated-tests/crud.spec.ts << 'TESTEOF'
+          // Generated E2E Test - CRUD Operations
+          // Based on: Organization E2E Testing Standard
+
+          import { test, expect } from '@playwright/test';
+
+          test.describe('CRUD Operations - Generated Tests', () => {
+            test('should display list view', async ({ page }) => {
+              await page.goto('/');
+              await expect(page.locator('table, [data-testid="list-view"], ul')).toBeVisible();
+            });
+
+            test('should have add/create button', async ({ page }) => {
+              await page.goto('/');
+              await expect(
+                page.locator('[data-testid*="add"], [data-testid*="create"], button:has-text("追加"), button:has-text("新規")')
+              ).toBeVisible();
+            });
+
+            test('should navigate to create form', async ({ page }) => {
+              await page.goto('/');
+              await page.click('[data-testid*="add"], [data-testid*="create"], button:has-text("追加"), button:has-text("新規")');
+              await expect(page.locator('form, [data-testid="create-form"]')).toBeVisible();
+            });
+          });
+          TESTEOF
+                GENERATED_COUNT=$((GENERATED_COUNT + 1))
+                TEST_FILES="$TEST_FILES crud.spec.ts"
+                ;;
+
+              navigation)
+                cat > generated-tests/navigation.spec.ts << 'TESTEOF'
+          // Generated E2E Test - Navigation
+          // Based on: Organization E2E Testing Standard
+
+          import { test, expect } from '@playwright/test';
+
+          test.describe('Navigation - Generated Tests', () => {
+            test('should have working navigation', async ({ page }) => {
+              await page.goto('/');
+              await expect(page.locator('nav, [data-testid="sidebar"], [data-testid="header"]')).toBeVisible();
+            });
+
+            test('should navigate between pages', async ({ page }) => {
+              await page.goto('/');
+              const navLinks = page.locator('nav a, [data-testid^="nav-"]');
+              const count = await navLinks.count();
+              expect(count).toBeGreaterThan(0);
+            });
+          });
+          TESTEOF
+                GENERATED_COUNT=$((GENERATED_COUNT + 1))
+                TEST_FILES="$TEST_FILES navigation.spec.ts"
+                ;;
+
+              forms)
+                cat > generated-tests/forms.spec.ts << 'TESTEOF'
+          // Generated E2E Test - Forms
+          // Based on: Organization E2E Testing Standard
+
+          import { test, expect } from '@playwright/test';
+
+          test.describe('Forms - Generated Tests', () => {
+            test('should have form validation', async ({ page }) => {
+              await page.goto('/');
+              // Click submit without filling required fields
+              const submitBtn = page.locator('button[type="submit"]');
+              if (await submitBtn.isVisible()) {
+                await submitBtn.click();
+                // Should show validation errors
+                await expect(page.locator('[aria-invalid="true"], .error, [data-testid*="error"]')).toBeVisible();
+              }
+            });
+          });
+          TESTEOF
+                GENERATED_COUNT=$((GENERATED_COUNT + 1))
+                TEST_FILES="$TEST_FILES forms.spec.ts"
+                ;;
+
+              workflow)
+                cat > generated-tests/workflow.spec.ts << 'TESTEOF'
+          // Generated E2E Test - Workflow
+          // Based on: Organization E2E Testing Standard
+
+          import { test, expect } from '@playwright/test';
+
+          test.describe('Workflow - Generated Tests', () => {
+            test('should display workflow canvas', async ({ page }) => {
+              await page.goto('/workflow-editor');
+              await expect(page.locator('[data-testid="workflow-canvas"], .react-flow')).toBeVisible();
+            });
+
+            test('should have node panel', async ({ page }) => {
+              await page.goto('/workflow-editor');
+              await expect(page.locator('[data-testid="node-panel"], .node-panel')).toBeVisible();
+            });
+
+            test('should have save functionality', async ({ page }) => {
+              await page.goto('/workflow-editor');
+              await expect(page.locator('[data-testid="save-button"], button:has-text("保存")')).toBeVisible();
+            });
+          });
+          TESTEOF
+                GENERATED_COUNT=$((GENERATED_COUNT + 1))
+                TEST_FILES="$TEST_FILES workflow.spec.ts"
+                ;;
+
+              smoke|*)
+                cat > generated-tests/smoke.spec.ts << 'TESTEOF'
+          // Generated E2E Test - Smoke Test
+          // Based on: Organization E2E Testing Standard
+
+          import { test, expect } from '@playwright/test';
+
+          test.describe('Smoke Tests - Generated', () => {
+            test('should load home page', async ({ page }) => {
+              await page.goto('/');
+              await expect(page).toHaveTitle(/.+/);
+            });
+
+            test('should have no console errors', async ({ page }) => {
+              const errors: string[] = [];
+              page.on('console', msg => {
+                if (msg.type() === 'error') {
+                  errors.push(msg.text());
+                }
+              });
+
+              await page.goto('/');
+              await page.waitForLoadState('networkidle');
+
+              expect(errors).toHaveLength(0);
+            });
+
+            test('should have accessible main content', async ({ page }) => {
+              await page.goto('/');
+              await expect(page.locator('main, [role="main"], #main')).toBeVisible();
+            });
+          });
+          TESTEOF
+                GENERATED_COUNT=$((GENERATED_COUNT + 1))
+                TEST_FILES="$TEST_FILES smoke.spec.ts"
+                ;;
+            esac
+          done
+
+          echo "generated_count=$GENERATED_COUNT" >> $GITHUB_OUTPUT
+          echo "test_files=$TEST_FILES" >> $GITHUB_OUTPUT
+
+          echo "📊 Generated $GENERATED_COUNT test files"
+          ls -la generated-tests/
+
+      - name: 📤 Upload generated tests
+        uses: actions/upload-artifact@v6
+        with:
+          name: generated-e2e-tests
+          path: generated-tests/
+          retention-days: 7
+
+  comment-pr:
+    name: 💬 PRにコメント
+    runs-on: ubuntu-latest
+    needs: [analyze-changes, generate-tests]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: 📥 Download generated tests
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-e2e-tests
+          path: generated-tests/
+
+      - name: 💬 Post PR Comment
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+
+            const targets = '${{ needs.analyze-changes.outputs.test_targets }}';
+            const generatedCount = '${{ needs.generate-tests.outputs.generated_count }}' || '0';
+            const testFiles = '${{ needs.generate-tests.outputs.test_files }}' || '';
+            const hasUiChanges = '${{ needs.analyze-changes.outputs.has_ui_changes }}';
+            const hasApiChanges = '${{ needs.analyze-changes.outputs.has_api_changes }}';
+            const projectType = '${{ needs.analyze-changes.outputs.project_type }}';
+
+            const body = `## 🤖 E2E Test Generation Results
+
+            ### 📊 Analysis Summary
+            | 項目 | 結果 |
+            |------|------|
+            | UI変更 | ${hasUiChanges === 'true' ? '✅ あり' : '❌ なし'} |
+            | API変更 | ${hasApiChanges === 'true' ? '✅ あり' : '❌ なし'} |
+            | プロジェクトタイプ | \`${projectType}\` |
+            | 検出ターゲット | \`${targets}\` |
+            | 生成テスト数 | **${generatedCount}** files |
+
+            ### 📁 Generated Test Files
+            ${testFiles.split(' ').filter(f => f).map(f => `- \`generated-tests/${f}\``).join('\n') || '- なし'}
+
+            ### 💡 Recommendations
+            Based on **Organization E2E Testing Standard**:
+            - Add \`data-testid\` attributes to new UI components
+            - Follow Arrange-Act-Assert pattern in tests
+            - Use storage state for authenticated tests
+            - Keep selectors in centralized fixtures
+
+            ### 📥 Download Tests
+            Generated tests are available as workflow artifacts. You can:
+            1. Download from **Actions → This run → Artifacts**
+            2. Copy to your \`e2e/\` directory
+            3. Customize and run with \`npx playwright test\`
+
+            ---
+            <sub>🤖 Generated by Organization E2E Test Generation Workflow</sub>`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const existingComment = comments.find(c =>
+              c.body.includes('🤖 E2E Test Generation Results') &&
+              c.user.type === 'Bot'
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body
+              });
+              console.log('Updated existing comment');
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+              console.log('Created new comment');
+            }
