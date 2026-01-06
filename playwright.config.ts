@@ -50,12 +50,26 @@ export default defineConfig({
   },
 
   projects: [
-    // Setup project - runs first to authenticate
+    // =====================================================
+    // Setup Projects (run in order: setup → data-setup)
+    // =====================================================
+
+    // Auth setup - runs first to authenticate
     // Needs longer timeout for Vercel Preview cold starts
     {
       name: 'setup',
       testMatch: /auth\.setup\.ts/,
       timeout: 120000, // 2 minutes for cold start
+    },
+
+    // Data setup - creates test data using factories
+    // Runs after auth setup, before tests
+    // @see Issue #180 - Phase 3: セットアップ統合
+    {
+      name: 'data-setup',
+      testMatch: /setup\/data\.setup\.ts/,
+      dependencies: ['setup'],
+      timeout: 60000, // 1 minute for data creation
     },
 
     // =====================================================
@@ -76,7 +90,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/user.json',
       },
-      dependencies: ['setup'],
+      dependencies: ['setup', 'data-setup'],
     },
 
     // =====================================================
@@ -90,7 +104,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/user.json',
       },
-      dependencies: ['setup'],
+      dependencies: ['setup', 'data-setup'],
     },
 
     // =====================================================
@@ -100,12 +114,24 @@ export default defineConfig({
     {
       name: 'chromium',
       testDir: './e2e',
-      testIgnore: [/auth\.setup\.ts/, /gold\/auth\.spec\.ts/],
+      testIgnore: [/auth\.setup\.ts/, /gold\/auth\.spec\.ts/, /setup\/data\.(setup|teardown)\.ts/],
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/user.json',
       },
-      dependencies: ['setup'],
+      dependencies: ['setup', 'data-setup'],
+    },
+
+    // =====================================================
+    // Cleanup Project - runs after all tests
+    // Cleans up test data created by data-setup
+    // @see Issue #180 - Phase 3: セットアップ統合
+    // =====================================================
+    {
+      name: 'cleanup',
+      testMatch: /setup\/data\.teardown\.ts/,
+      dependencies: ['gold', 'integration'],
+      timeout: 60000, // 1 minute for cleanup
     },
   ],
 
