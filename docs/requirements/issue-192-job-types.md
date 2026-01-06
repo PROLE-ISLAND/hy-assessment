@@ -9,36 +9,58 @@
 | 既存システム名 | HY Assessment 組織設定機能 |
 | エントリーポイント | UI: `/admin/settings/` / API: `/api/settings/` |
 | 主要データモデル | organizations, users, candidates, ai_analyses |
-| キーファイル（3-10） | `src/lib/analysis/types.ts`, `src/lib/templates/gfd-gate-v1.ts`, `src/lib/analysis/personality-prompts.ts` |
-| 拡張ポイント | 設定画面に新規カード追加、新規APIルート追加 |
+| キーファイル | `src/lib/analysis/personality-prompts.ts`, `src/lib/templates/gfd-gate-v1.ts` |
+| 拡張ポイント | 設定画面に新規カード追加、新規APIルート追加、検査テンプレート追加 |
 | 破壊ポイント | RLSポリシー設計ミス → データ漏洩リスク |
-| やりたいこと（1行） | 職種マスターを作成し、GFD-Gateドメインの重み付けを設定可能にする |
+| やりたいこと（1行） | 職種マスターを作成し、直接測定DISCスコアで配属マッチングを実現する |
 
 ### 設計方針の決定
 
-**選択したアプローチ**: **GFD-Gateドメイン重み付け + パーソナリティ要件**
+**選択したアプローチ**: **検査分割 + DISC直接測定 + 理想プロファイル**
 
-#### システム調査結果
+| 検討アプローチ | 採否 | 理由 |
+|---------------|------|------|
+| GFD-Gateドメイン重み | ❌ | リスク評価向き、職種適性には不向き |
+| パーソナリティ分析（AI推定） | ❌ | GFD-Gateからの間接推定で精度に課題 |
+| **DISC直接測定 + 理想プロファイル** | ✅ | 専用質問で直接測定、精度向上 |
 
-システムはBig5を使用**していません**。以下の独自指標を使用:
+### 検査アーキテクチャ（分割設計）
 
-| カテゴリ | 指標 | 説明 |
-|---------|------|------|
-| **GFD-Gate 6ドメイン** | GOV | ガバナンス適合（ルール遵守、責任感、誠実性） |
-| | CONFLICT | 対立処理（意見表明、エスカレーション） |
-| | REL | 対人態度（敬意、フィードバック受容性） |
-| | COG | 認知スタイル（被害者意識、感情的反応の低さ） |
-| | WORK | 業務遂行（勤勉さ、計画性、学習意欲） |
-| | VALID | 妥当性（回答の一貫性と信頼性） |
-| **パーソナリティ分析** | DISC | dominance, influence, steadiness, conscientiousness |
-| | ストレス耐性 | pressureHandling, recoverySpeed, emotionalStability, adaptability |
-| | EQ | selfAwareness, selfManagement, socialAwareness, relationshipManagement |
-| | 価値観 | achievement, stability, growth, socialContribution, autonomy |
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    検査システム                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  【検査1】GFD-Gate検査（既存・変更なし）                      │
+│  ├─ 目的: リスク評価・適合性判定                            │
+│  ├─ 質問: 46 Likert + 6 SJT + 1 自由記述                   │
+│  ├─ 時間: 15-20分                                          │
+│  └─ 出力: 6ドメインスコア（GOV/CONFLICT/REL/COG/WORK/VALID）│
+│                                                             │
+│  【検査2】DISC検査（新規追加）★ このIssueのスコープ         │
+│  ├─ 目的: 職務適性・配属マッチング                          │
+│  ├─ 質問: 24問（DISC特化・強制選択式）                      │
+│  ├─ 時間: 5-8分                                            │
+│  └─ 出力: DISCスコア（D/I/S/C 各0-100）                    │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  【職種マスタ設定】★ このIssueのスコープ                    │
+│  ├─ DISC理想プロファイル（D/I/S/C 理想値 + 重み）           │
+│  ├─ 重視する価値観（選択式）                                │
+│  └─ マッチング計算: 重み付きDISCスコア距離                  │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**設計根拠**:
-- 実際に測定しているデータ（GFD-Gateドメイン）を使用
-- Big5への変換不要（科学的整合性）
-- 既存の全候補者データで即座に利用可能
+### DISC理論について
+
+| 因子 | 名称 | 行動特性 | 高スコアの特徴 |
+|------|------|----------|---------------|
+| **D** | Dominance（主導性） | 結果志向、決断力、競争心 | リーダーシップ、目標達成志向 |
+| **I** | Influence（影響力） | 社交性、説得力、楽観性 | コミュニケーション、チームビルディング |
+| **S** | Steadiness（安定性） | 協調性、忍耐力、支援志向 | サポート、継続性、安定した業務 |
+| **C** | Conscientiousness（慎重性） | 分析力、正確性、質への拘り | 品質管理、専門性、正確な業務 |
 
 ---
 
@@ -48,42 +70,31 @@
 
 | 項目 | 内容 |
 |------|------|
-| **なぜ必要か（Why）** | 配属推薦機能の基盤として「職種ごとのドメイン重み付け」を定義する必要がある |
-| **誰が使うか（Who）** | 人事担当者（Admin/Recruiter） |
-| **何を達成するか（What）** | 組織ごとにカスタマイズ可能な職種マスターを設定・管理できる |
+| **なぜ必要か（Why）** | 配属推薦の精度向上のため、DISC直接測定と理想プロファイル設定が必要 |
+| **誰が使うか（Who）** | 人事担当者（Admin/Recruiter）+ 候補者（DISC検査受験） |
+| **何を達成するか（What）** | DISC検査で直接測定 + 職種ごとの理想プロファイルでマッチング |
 
 ### 2.2 ユースケース定義（Role × Outcome）
 
 | UC-ID | Role | Outcome | Channel | 説明 |
 |-------|------|---------|---------|------|
+| **職種マスタ管理** |
 | UC-JOB-ADMIN-LIST-WEB | Admin | 職種一覧を確認する | WEB | 職種一覧画面表示 |
 | UC-JOB-ADMIN-CREATE-WEB | Admin | 職種を新規作成する | WEB | 職種追加ダイアログから登録 |
-| UC-JOB-ADMIN-UPDATE-WEB | Admin | 職種プロファイルを編集する | WEB | ドメイン重み・要件の変更 |
+| UC-JOB-ADMIN-UPDATE-WEB | Admin | 職種プロファイルを編集する | WEB | 理想スコア・重みの変更 |
 | UC-JOB-ADMIN-DELETE-WEB | Admin | 職種を削除する | WEB | 論理削除（ソフトデリート） |
 | UC-JOB-RECRUITER-LIST-WEB | Recruiter | 職種一覧を確認する | WEB | 閲覧のみ（編集不可） |
+| **DISC検査** |
+| UC-DISC-CANDIDATE-TAKE-WEB | Candidate | DISC検査を受験する | WEB | 24問の強制選択式検査 |
+| UC-DISC-ADMIN-VIEW-WEB | Admin | DISC結果を確認する | WEB | 候補者詳細でDISCプロファイル表示 |
 
-### 2.3 Role × Value マトリクス
-
-| Role | 提供する価値 | 受け取る価値 | 関連Outcome |
-|------|-------------|-------------|-------------|
-| Admin | 職種プロファイル設定 | 配属推薦の参考情報 | LIST, CREATE, UPDATE, DELETE |
-| Recruiter | — | 職種一覧の閲覧 | LIST |
-| System | データ永続化 | — | — |
-
-### 2.4 カバレッジマトリクス（MECE証明）
-
-| Role＼Outcome | LIST | CREATE | UPDATE | DELETE |
-|---------------|------|--------|--------|--------|
-| Admin | ✅ Gold | 🟡 Silver | 🟡 Silver | 🟡 Silver |
-| Recruiter | 🟡 Silver | — (権限なし) | — (権限なし) | — (権限なし) |
-| Viewer | — (アクセス不可) | — | — | — |
-
-### 2.5 外部整合性チェック
+### 2.3 外部整合性チェック
 
 - [x] 既存設定画面（`/admin/settings/`）のUI/UXパターンに準拠
 - [x] 既存RLSポリシーパターン（`organization_id`ベース）に準拠
 - [x] 既存API設計パターン（Zod バリデーション、エラーレスポンス形式）に準拠
-- [x] 既存スコアリングシステム（GFD-Gateドメイン）との整合性
+- [x] 既存検査テンプレート（`src/lib/templates/gfd-gate-v1.ts`）との構造整合性
+- [x] 既存候補者フロー（GFD-Gate → 分析）への追加検査挿入
 
 ---
 
@@ -95,16 +106,16 @@
 - [x] Silver (31観点: 85%カバレッジ)
 - [ ] Gold (19観点: 95%カバレッジ)
 
-**選定理由**: 新規マスターテーブル＋CRUD APIの基盤機能。後続Phase（マッチングアルゴリズム）の基盤となるため、Silver品質を担保。
+**選定理由**: 新規検査テンプレート + 職種マスター + CRUD APIの基盤機能。後続Phase（マッチングアルゴリズム）の基盤となるため、Silver品質を担保。
 
 ### 3.2 Pre-mortem（失敗シナリオ）
 
 | # | 失敗シナリオ | 発生確率 | 対策 | 確認方法 |
 |---|-------------|---------|------|---------|
 | 1 | RLS設定ミスで他組織のデータが見える | 中 | 既存RLSパターン踏襲 + 統合テスト | RLS境界テストケース実施 |
-| 2 | weight値の不正値が保存される | 高 | CHECK制約 + Zodバリデーション | 境界値テスト |
-| 3 | ソフトデリート後のデータが一覧に表示される | 中 | `deleted_at IS NULL` 条件 | E2Eテスト |
-| 4 | 同一組織内で職種名が重複登録される | 低 | ユニーク制約 | 重複テスト |
+| 2 | 理想スコア/重みの不正値が保存される | 高 | CHECK制約 + Zodバリデーション | 境界値テスト |
+| 3 | DISC検査とGFD-Gateの結果紐付けミス | 中 | candidate_idで関連付け、整合性チェック | 統合テスト |
+| 4 | 強制選択式のUI/UXが分かりにくい | 中 | 既存SurveyJS機能活用 + ユーザビリティテスト | E2Eテスト |
 
 ---
 
@@ -116,9 +127,10 @@
 
 | テーブル名 | 用途 | RLSポリシー |
 |-----------|------|------------|
-| job_types | 職種マスター | organization_id ベース |
+| job_types | 職種マスター（DISC理想プロファイル） | organization_id ベース |
+| disc_assessments | DISC検査結果 | organization_id ベース |
 
-#### スキーマ定義（GFD-Gateドメインベース）
+#### 4.1.1 職種マスタースキーマ
 
 ```sql
 CREATE TABLE job_types (
@@ -127,24 +139,38 @@ CREATE TABLE job_types (
     name VARCHAR(100) NOT NULL,
     description TEXT,
 
-    -- GFD-Gate 6ドメインの重み（0.0-1.0）
-    -- 高い重みほど、そのドメインのスコアがマッチングに強く影響
-    weight_gov DECIMAL(3,2) NOT NULL DEFAULT 0.5 CHECK (weight_gov BETWEEN 0.0 AND 1.0),
-    weight_conflict DECIMAL(3,2) NOT NULL DEFAULT 0.5 CHECK (weight_conflict BETWEEN 0.0 AND 1.0),
-    weight_rel DECIMAL(3,2) NOT NULL DEFAULT 0.5 CHECK (weight_rel BETWEEN 0.0 AND 1.0),
-    weight_cog DECIMAL(3,2) NOT NULL DEFAULT 0.5 CHECK (weight_cog BETWEEN 0.0 AND 1.0),
-    weight_work DECIMAL(3,2) NOT NULL DEFAULT 0.5 CHECK (weight_work BETWEEN 0.0 AND 1.0),
+    -- =====================================================
+    -- DISC理想プロファイル
+    -- ideal_*: 理想スコア（0-100）、NULLの場合は考慮しない
+    -- weight_*: 重み（0.0-1.0）、マッチング計算時の重要度
+    -- =====================================================
 
-    -- パーソナリティ要件（オプション）
-    -- DISCタイプ: 'high-D', 'high-I', 'high-S', 'high-C', 'balanced', null
-    required_disc_type VARCHAR(20) CHECK (required_disc_type IN ('high-D', 'high-I', 'high-S', 'high-C', 'balanced') OR required_disc_type IS NULL),
-    -- 最低ストレス耐性スコア（0-100）
-    min_stress_score INTEGER CHECK (min_stress_score IS NULL OR min_stress_score BETWEEN 0 AND 100),
-    -- 最低EQスコア（0-100）
-    min_eq_score INTEGER CHECK (min_eq_score IS NULL OR min_eq_score BETWEEN 0 AND 100),
-    -- 重視する価値観: '達成志向', '安定志向', '成長志向', '社会貢献志向', '自律志向', null
-    primary_value VARCHAR(50) CHECK (primary_value IN ('達成志向', '安定志向', '成長志向', '社会貢献志向', '自律志向') OR primary_value IS NULL),
+    -- Dominance（主導性）: 結果志向、決断力、競争心
+    ideal_dominance INTEGER CHECK (ideal_dominance IS NULL OR ideal_dominance BETWEEN 0 AND 100),
+    weight_dominance DECIMAL(3,2) DEFAULT 0.5 CHECK (weight_dominance BETWEEN 0.0 AND 1.0),
 
+    -- Influence（影響力）: 社交性、説得力、楽観性
+    ideal_influence INTEGER CHECK (ideal_influence IS NULL OR ideal_influence BETWEEN 0 AND 100),
+    weight_influence DECIMAL(3,2) DEFAULT 0.5 CHECK (weight_influence BETWEEN 0.0 AND 1.0),
+
+    -- Steadiness（安定性）: 協調性、忍耐力、支援志向
+    ideal_steadiness INTEGER CHECK (ideal_steadiness IS NULL OR ideal_steadiness BETWEEN 0 AND 100),
+    weight_steadiness DECIMAL(3,2) DEFAULT 0.5 CHECK (weight_steadiness BETWEEN 0.0 AND 1.0),
+
+    -- Conscientiousness（慎重性）: 分析力、正確性、質への拘り
+    ideal_conscientiousness INTEGER CHECK (ideal_conscientiousness IS NULL OR ideal_conscientiousness BETWEEN 0 AND 100),
+    weight_conscientiousness DECIMAL(3,2) DEFAULT 0.5 CHECK (weight_conscientiousness BETWEEN 0.0 AND 1.0),
+
+    -- =====================================================
+    -- 価値観（参考情報）
+    -- =====================================================
+
+    -- 重視する価値観（複数選択可）
+    preferred_values TEXT[] DEFAULT '{}',
+
+    -- =====================================================
+    -- メタデータ
+    -- =====================================================
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -179,32 +205,155 @@ CREATE POLICY "Admins can delete job types" ON job_types
     FOR DELETE USING (organization_id = public.get_organization_id());
 ```
 
-#### GFD-Gateドメインの説明
+#### 4.1.2 DISC検査結果スキーマ
 
-| ドメイン | 日本語名 | 説明 | 重みが高い職種例 |
-|---------|---------|------|----------------|
-| GOV | ガバナンス適合 | ルール遵守、責任感、誠実性 | 経理、法務、品質管理 |
-| CONFLICT | 対立処理 | 意見表明と適切なエスカレーション | 管理職、プロジェクトリーダー |
-| REL | 対人態度 | 他者への敬意とフィードバック受容性 | 営業、カスタマーサポート |
-| COG | 認知スタイル | 被害者意識の低さ、感情的安定性 | 全職種で重要 |
-| WORK | 業務遂行 | 勤勉さ、計画性、学習意欲 | エンジニア、研究職 |
+```sql
+CREATE TABLE disc_assessments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    candidate_id UUID NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
 
-#### CRUD操作マトリクス
+    -- =====================================================
+    -- DISCスコア（直接測定結果）
+    -- 各因子: 0-100のスコア
+    -- =====================================================
 
-| テーブル | Create | Read | Update | Delete | 担当API |
-|---------|:------:|:----:|:------:|:------:|---------|
-| job_types | ✅ | ✅ | ✅ | ✅ (論理) | POST/GET/PUT/DELETE /api/settings/job-types |
+    dominance_score INTEGER NOT NULL CHECK (dominance_score BETWEEN 0 AND 100),
+    influence_score INTEGER NOT NULL CHECK (influence_score BETWEEN 0 AND 100),
+    steadiness_score INTEGER NOT NULL CHECK (steadiness_score BETWEEN 0 AND 100),
+    conscientiousness_score INTEGER NOT NULL CHECK (conscientiousness_score BETWEEN 0 AND 100),
 
-#### RLSテスト観点
+    -- =====================================================
+    -- DISCプロファイルタイプ（自動計算）
+    -- =====================================================
 
-| ポリシー名 | 対象操作 | 許可条件 | テストケース |
-|-----------|---------|---------|-------------|
-| job_types_select | SELECT | organization_id = get_organization_id() AND deleted_at IS NULL | 他組織データ非表示、削除済み非表示 |
-| job_types_insert | INSERT | organization_id = get_organization_id() | 自組織のみ作成可能 |
-| job_types_update | UPDATE | organization_id = get_organization_id() | 自組織のみ更新可能 |
-| job_types_delete | DELETE | organization_id = get_organization_id() | 自組織のみ削除可能 |
+    -- 主要因子（最高スコアの因子）: 'D', 'I', 'S', 'C'
+    primary_factor CHAR(1) NOT NULL CHECK (primary_factor IN ('D', 'I', 'S', 'C')),
 
-### 4.2 API設計
+    -- プロファイルパターン（上位2因子）: 'DI', 'DC', 'ID', 'IS', 'SC', 'SD', etc.
+    profile_pattern VARCHAR(4) NOT NULL,
+
+    -- =====================================================
+    -- 検査メタデータ
+    -- =====================================================
+
+    -- 回答データ（JSON）: 各質問への回答記録
+    responses JSONB NOT NULL DEFAULT '{}',
+
+    -- 検査完了時刻
+    completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    -- 検査所要時間（秒）
+    duration_seconds INTEGER,
+
+    -- =====================================================
+    -- メタデータ
+    -- =====================================================
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    -- 候補者ごとに1件のみ（再検査時は更新）
+    UNIQUE(candidate_id)
+);
+
+-- インデックス
+CREATE INDEX idx_disc_assessments_organization ON disc_assessments(organization_id);
+CREATE INDEX idx_disc_assessments_candidate ON disc_assessments(candidate_id);
+
+-- RLS
+ALTER TABLE disc_assessments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view disc assessments in their org" ON disc_assessments
+    FOR SELECT USING (organization_id = public.get_organization_id());
+
+CREATE POLICY "System can insert disc assessments" ON disc_assessments
+    FOR INSERT WITH CHECK (organization_id = public.get_organization_id());
+
+CREATE POLICY "System can update disc assessments" ON disc_assessments
+    FOR UPDATE USING (organization_id = public.get_organization_id())
+    WITH CHECK (organization_id = public.get_organization_id());
+```
+
+#### 職種プロファイル例
+
+| 職種 | D理想 | I理想 | S理想 | C理想 | D重み | I重み | S重み | C重み | 価値観 |
+|------|-------|-------|-------|-------|-------|-------|-------|-------|--------|
+| 営業職 | 70 | 80 | 50 | 40 | 0.6 | 0.9 | 0.4 | 0.3 | 達成志向 |
+| エンジニア | 50 | 40 | 60 | 80 | 0.5 | 0.4 | 0.5 | 0.9 | 成長志向, 自律志向 |
+| CS | 40 | 70 | 80 | 60 | 0.4 | 0.7 | 0.9 | 0.6 | 社会貢献志向 |
+| 管理職 | 80 | 70 | 50 | 60 | 0.9 | 0.7 | 0.5 | 0.6 | 達成志向 |
+
+### 4.2 DISC検査設計
+
+#### 4.2.1 質問形式（強制選択式）
+
+DISC検査は「強制選択式（Forced-Choice）」を採用:
+
+```
+各質問で4つの記述から、
+「最も自分に当てはまる」ものを1つ
+「最も自分に当てはまらない」ものを1つ
+選択する
+
+例: 質問1
+┌─────────────────────────────────────────────────────────────┐
+│ 以下の記述から、最も当てはまるもの（M）と                      │
+│ 最も当てはまらないもの（L）を選んでください                   │
+├─────────────────────────────────────────────────────────────┤
+│  [ ] (D) 困難な状況でも諦めずに結果を出す                    │
+│  [ ] (I) 周囲を巻き込んで楽しい雰囲気を作る                  │
+│  [ ] (S) チームメンバーをサポートし安定を保つ                │
+│  [ ] (C) 正確な分析に基づいて慎重に判断する                  │
+├─────────────────────────────────────────────────────────────┤
+│ 最も当てはまる: [D]  最も当てはまらない: [S]                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 4.2.2 スコアリングロジック
+
+```typescript
+// 24問 × 2回答（Most/Least）= 48ポイント配分
+// Most選択: +2ポイント
+// Least選択: -1ポイント
+// 未選択: 0ポイント
+
+// 各因子の生スコア範囲: -24 〜 +48
+// 正規化: 0-100スケール
+
+function calculateDISCScore(responses: Response[]): DISCScores {
+  const raw = { D: 0, I: 0, S: 0, C: 0 };
+
+  for (const r of responses) {
+    raw[r.mostLike] += 2;
+    raw[r.leastLike] -= 1;
+  }
+
+  // 正規化（-24〜48 → 0〜100）
+  const normalize = (score: number) =>
+    Math.round(((score + 24) / 72) * 100);
+
+  return {
+    dominance: normalize(raw.D),
+    influence: normalize(raw.I),
+    steadiness: normalize(raw.S),
+    conscientiousness: normalize(raw.C),
+  };
+}
+```
+
+#### 4.2.3 DISC質問テンプレート（24問）
+
+質問は以下のカテゴリからバランスよく配置:
+
+| カテゴリ | 質問数 | 測定内容 |
+|---------|--------|---------|
+| 仕事への取り組み方 | 6問 | タスク vs 人間関係志向 |
+| コミュニケーション | 6問 | 主張性 vs 受容性 |
+| 意思決定スタイル | 6問 | スピード vs 正確性 |
+| ストレス下の行動 | 6問 | 支配 vs 順応 |
+
+### 4.3 API設計
+
+#### 4.3.1 職種マスターAPI
 
 | Method | Path | 説明 | 認証 |
 |--------|------|------|------|
@@ -213,6 +362,14 @@ CREATE POLICY "Admins can delete job types" ON job_types
 | PUT | `/api/settings/job-types/:id` | 職種更新 | 必要（Admin） |
 | DELETE | `/api/settings/job-types/:id` | 職種削除（論理） | 必要（Admin） |
 
+#### 4.3.2 DISC検査API
+
+| Method | Path | 説明 | 認証 |
+|--------|------|------|------|
+| GET | `/api/assessments/disc/template` | DISC検査テンプレート取得 | 必要 |
+| POST | `/api/assessments/disc/:candidateId` | DISC検査結果保存 | 必要 |
+| GET | `/api/candidates/:id/disc` | 候補者DISC結果取得 | 必要 |
+
 #### リクエスト/レスポンス例
 
 **POST /api/settings/job-types**
@@ -220,234 +377,206 @@ CREATE POLICY "Admins can delete job types" ON job_types
 {
   "name": "営業職",
   "description": "顧客折衝・提案営業を担当",
-  "weights": {
-    "gov": 0.4,
-    "conflict": 0.6,
-    "rel": 0.9,
-    "cog": 0.7,
-    "work": 0.5
+  "disc": {
+    "dominance": { "ideal": 70, "weight": 0.6 },
+    "influence": { "ideal": 80, "weight": 0.9 },
+    "steadiness": { "ideal": 50, "weight": 0.4 },
+    "conscientiousness": { "ideal": 40, "weight": 0.3 }
   },
-  "requirements": {
-    "disc_type": "high-I",
-    "min_stress_score": 60,
-    "min_eq_score": 70,
-    "primary_value": "達成志向"
+  "preferred_values": ["達成志向"]
+}
+```
+
+**POST /api/assessments/disc/:candidateId**
+```json
+{
+  "responses": [
+    { "questionId": "q1", "mostLike": "I", "leastLike": "C" },
+    { "questionId": "q2", "mostLike": "D", "leastLike": "S" }
+  ],
+  "durationSeconds": 420
+}
+```
+
+**GET /api/candidates/:id/disc**
+```json
+{
+  "disc": {
+    "dominance": 65,
+    "influence": 78,
+    "steadiness": 45,
+    "conscientiousness": 52,
+    "primaryFactor": "I",
+    "profilePattern": "ID",
+    "completedAt": "2026-01-07T10:30:00Z"
   }
 }
 ```
 
-**GET /api/settings/job-types**
-```json
-{
-  "job_types": [
-    {
-      "id": "uuid",
-      "name": "営業職",
-      "description": "顧客折衝・提案営業を担当",
-      "weights": {
-        "gov": 0.4,
-        "conflict": 0.6,
-        "rel": 0.9,
-        "cog": 0.7,
-        "work": 0.5
-      },
-      "requirements": {
-        "disc_type": "high-I",
-        "min_stress_score": 60,
-        "min_eq_score": 70,
-        "primary_value": "達成志向"
-      },
-      "is_active": true,
-      "created_at": "2026-01-07T00:00:00Z"
-    }
-  ]
-}
-```
+### 4.4 UI設計
 
-#### エラーハンドリング設計
-
-| API | エラーケース | HTTPステータス | レスポンス |
-|-----|------------|--------------|-----------|
-| POST /api/settings/job-types | バリデーションエラー | 400 | `{ error: "validation_error", details: {...} }` |
-| POST /api/settings/job-types | 認証エラー | 401 | `{ error: "unauthorized" }` |
-| POST /api/settings/job-types | 権限エラー（非Admin） | 403 | `{ error: "forbidden" }` |
-| POST /api/settings/job-types | 名前重複 | 409 | `{ error: "duplicate_name" }` |
-| PUT /api/settings/job-types/:id | 存在しない | 404 | `{ error: "not_found" }` |
-
-#### 非機能要件（API）
-
-| 観点 | 要件 | 検証方法 |
-|------|------|---------|
-| **レート制限** | 60/min | Supabase標準設定 |
-| **タイムアウト** | 30秒 | Vercel標準設定 |
-| **最大ペイロード** | 1MB | Next.js標準設定 |
-
-### 4.3 UI設計
-
-#### 画面一覧
+#### 4.4.1 画面一覧
 
 | 画面名 | パス | コンポーネント | 説明 |
 |-------|------|---------------|------|
 | 職種設定 | /admin/settings/job-types | JobTypeList | 職種一覧・CRUD |
+| DISC検査 | /assessment/disc/:token | DISCAssessment | 候補者向けDISC検査 |
+| DISC結果表示 | /admin/candidates/:id | CandidateDISCProfile | 候補者詳細にDISCタブ追加 |
 
-#### v0リンク・プレビュー
-
-| 項目 | 値 |
-|------|-----|
-| **v0 Link** | https://v0.app/chat/r7x2imPOhiz |
-| **デモURL** | https://demo-kzmpnj2bqd2uqw6vu0s3.vusercontent.net |
-
-> ✅ **GFD-Gateドメインベース**のUIを新規生成済み。
-> 5ドメインスライダー + パーソナリティ要件（DISC/ストレス/EQ/価値観）対応
-
-#### UI修正案（GFD-Gateドメインベース）
+#### 4.4.2 職種設定UI
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  職種を編集: 営業職                                  [×]   │
 ├─────────────────────────────────────────────────────────────┤
 │  職種名 *                                                   │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 営業職                                              │   │
-│  └─────────────────────────────────────────────────────┘   │
+│  [営業職                                              ]     │
 │                                                             │
 │  説明                                                       │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 顧客折衝・提案営業を担当                            │   │
-│  └─────────────────────────────────────────────────────┘   │
+│  [顧客折衝・提案営業を担当                            ]     │
 │                                                             │
-│  ── ドメイン重み付け ───────────────────────────────────   │
-│  （重要なドメインほど高い値に設定）                         │
+│  ══════════════════════════════════════════════════════════ │
+│  DISC理想プロファイル                                       │
+│  ══════════════════════════════════════════════════════════ │
 │                                                             │
-│  ガバナンス適合（GOV）                                      │
-│  ルール遵守、責任感、誠実性                                 │
-│  └──────────●──────────────────┘ 0.4                       │
+│  Dominance（主導性）                    重み: [0.6]         │
+│  結果志向、決断力、競争心                                   │
+│  理想スコア: [────────────●────] 70                        │
 │                                                             │
-│  対立処理（CONFLICT）                                       │
-│  意見表明と適切なエスカレーション                           │
-│  └────────────●────────────────┘ 0.6                       │
+│  Influence（影響力）                    重み: [0.9]         │
+│  社交性、説得力、楽観性                                     │
+│  理想スコア: [──────────────●──] 80                        │
 │                                                             │
-│  対人態度（REL）                                            │
-│  他者への敬意とフィードバック受容性                         │
-│  └───────────────────────●─────┘ 0.9                       │
+│  Steadiness（安定性）                   重み: [0.4]         │
+│  協調性、忍耐力、支援志向                                   │
+│  理想スコア: [────────●────────] 50                        │
 │                                                             │
-│  認知スタイル（COG）                                        │
-│  被害者意識の低さ、感情的安定性                             │
-│  └──────────────●──────────────┘ 0.7                       │
+│  Conscientiousness（慎重性）            重み: [0.3]         │
+│  分析力、正確性、質への拘り                                 │
+│  理想スコア: [──────●──────────] 40                        │
 │                                                             │
-│  業務遂行（WORK）                                           │
-│  勤勉さ、計画性、学習意欲                                   │
-│  └──────────●──────────────────┘ 0.5                       │
+│  ══════════════════════════════════════════════════════════ │
+│  価値観                                                     │
+│  ══════════════════════════════════════════════════════════ │
 │                                                             │
-│  ── パーソナリティ要件（オプション）───────────────────   │
-│                                                             │
-│  DISCタイプ                                                 │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ high-I（影響力タイプ）                         ▼   │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  最低ストレス耐性スコア                                     │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 60                                                  │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  最低EQスコア                                               │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 70                                                  │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  重視する価値観                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 達成志向                                       ▼   │   │
-│  └─────────────────────────────────────────────────────┘   │
+│  重視する価値観（複数選択可）                               │
+│  [✓] 達成志向  [ ] 安定志向  [ ] 成長志向                  │
+│  [ ] 社会貢献志向  [ ] 自律志向                            │
 │                                                             │
 │                              [キャンセル] [保存]           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-#### バリアント実装チェック
-
-| バリアント | 用途 | 実装確認 |
-|-----------|------|---------|
-| Default | 正常データ表示 | [x] V0生成済み（ドメイン修正必要） |
-| Loading | スケルトンUI | [x] V0生成済み |
-| Empty | データなし状態 | [x] V0生成済み |
-| Error | エラー + 再試行ボタン | [x] V0生成済み |
-
-#### data-testid命名規則
+#### 4.4.3 DISC検査UI（候補者向け）
 
 ```
+┌─────────────────────────────────────────────────────────────┐
+│  DISC行動特性検査                               進捗: 8/24  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  質問 8                                                     │
+│                                                             │
+│  以下の4つの記述について:                                   │
+│  • 「最も当てはまる」ものを1つ選んでください                 │
+│  • 「最も当てはまらない」ものを1つ選んでください             │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │ [M] [ ] [ ] [L]  困難な状況でも諦めずに結果を出す     │ │
+│  ├───────────────────────────────────────────────────────┤ │
+│  │ [ ] [M] [ ] [ ]  周囲を巻き込んで楽しい雰囲気を作る   │ │
+│  ├───────────────────────────────────────────────────────┤ │
+│  │ [ ] [ ] [ ] [ ]  チームメンバーをサポートし安定を保つ │ │
+│  ├───────────────────────────────────────────────────────┤ │
+│  │ [ ] [ ] [M] [ ]  正確な分析に基づいて慎重に判断する   │ │
+│  └───────────────────────────────────────────────────────┘ │
+│                                                             │
+│  M = 最も当てはまる  L = 最も当てはまらない                  │
+│                                                             │
+│  [◀ 前へ]                                      [次へ ▶]    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 4.4.4 バリアント実装チェック
+
+| バリアント | 用途 | data-testid |
+|-----------|------|-------------|
+| Default | 正常データ表示 | `job-type-list` / `disc-assessment` |
+| Loading | スケルトンUI | `*-skeleton` |
+| Empty | データなし状態 | `*-empty` |
+| Error | エラー + 再試行ボタン | `*-error` |
+
+#### 4.4.5 data-testid命名規則
+
+```
+# 職種設定
 data-testid="job-type-list"                    # 一覧コンテナ
 data-testid="add-job-type-button"              # 追加ボタン
 data-testid="job-type-form"                    # フォームダイアログ
 data-testid="job-type-name-input"              # 名前入力
-data-testid="weight-{domain}-slider"           # ドメイン重みスライダー
-data-testid="disc-type-select"                 # DISCタイプ選択
-data-testid="min-stress-input"                 # 最低ストレススコア
-data-testid="min-eq-input"                     # 最低EQスコア
-data-testid="primary-value-select"             # 価値観選択
+data-testid="ideal-dominance-slider"           # D理想スライダー
+data-testid="weight-dominance-input"           # D重み入力
+data-testid="ideal-influence-slider"           # I理想スライダー
+data-testid="weight-influence-input"           # I重み入力
+data-testid="ideal-steadiness-slider"          # S理想スライダー
+data-testid="weight-steadiness-input"          # S重み入力
+data-testid="ideal-conscientiousness-slider"   # C理想スライダー
+data-testid="weight-conscientiousness-input"   # C重み入力
+data-testid="preferred-values-checkbox"        # 価値観チェックボックス
 data-testid="edit-button-{id}"                 # 編集ボタン
 data-testid="delete-button-{id}"               # 削除ボタン
+
+# DISC検査
+data-testid="disc-assessment"                  # 検査コンテナ
+data-testid="disc-question-{n}"                # 質問
+data-testid="disc-option-{factor}"             # 選択肢
+data-testid="disc-most-like-{factor}"          # 最も当てはまる選択
+data-testid="disc-least-like-{factor}"         # 最も当てはまらない選択
+data-testid="disc-progress"                    # 進捗表示
+data-testid="disc-submit-button"               # 送信ボタン
 ```
 
-#### 画面遷移図（State Machine）
-
-```mermaid
-stateDiagram-v2
-    [*] --> 設定トップ
-    設定トップ --> 職種設定: 職種設定カードクリック
-    職種設定 --> 追加ダイアログ: 「職種を追加」クリック
-    追加ダイアログ --> 職種設定: 保存成功
-    追加ダイアログ --> 職種設定: キャンセル
-    職種設定 --> 編集ダイアログ: 「編集」クリック
-    編集ダイアログ --> 職種設定: 保存成功
-    編集ダイアログ --> 職種設定: キャンセル
-    職種設定 --> 削除確認: 「削除」クリック
-    削除確認 --> 職種設定: 削除成功
-    削除確認 --> 職種設定: キャンセル
-    職種設定 --> 設定トップ: 戻る
-```
-
-### 4.4 変更ファイル一覧
+### 4.5 変更ファイル一覧
 
 | ファイルパス | 変更種別 | 概要 |
 |-------------|---------|------|
+| **データベース** |
 | `supabase/migrations/20260107000001_create_job_types.sql` | 新規 | 職種テーブル・RLS |
-| `src/types/database.ts` | 修正 | JobType型定義追加 |
-| `src/types/job-type.ts` | 新規 | 職種関連型定義（weights/requirements） |
-| `src/lib/validations/job-type.ts` | 新規 | Zodスキーマ |
+| `supabase/migrations/20260107000002_create_disc_assessments.sql` | 新規 | DISC結果テーブル・RLS |
+| **型定義** |
+| `src/types/database.ts` | 修正 | JobType, DISCAssessment型追加 |
+| `src/types/job-type.ts` | 新規 | 職種関連型定義 |
+| `src/types/disc.ts` | 新規 | DISC関連型定義 |
+| **バリデーション** |
+| `src/lib/validations/job-type.ts` | 新規 | 職種Zodスキーマ |
+| `src/lib/validations/disc.ts` | 新規 | DISC Zodスキーマ |
+| **検査テンプレート** |
+| `src/lib/templates/disc-v1.ts` | 新規 | DISC検査テンプレート（24問） |
+| `src/lib/templates/disc-scoring.ts` | 新規 | DISCスコアリングロジック |
+| **職種設定UI** |
 | `src/app/admin/settings/page.tsx` | 修正 | 職種設定カード追加 |
 | `src/app/admin/settings/job-types/page.tsx` | 新規 | 職種設定画面 |
 | `src/components/settings/JobTypeList.tsx` | 新規 | 職種一覧コンポーネント |
-| `src/components/settings/JobTypeForm.tsx` | 新規 | 職種フォーム（ドメイン重み/要件UI） |
-| `src/components/settings/DomainWeightSlider.tsx` | 新規 | ドメイン重みスライダー |
+| `src/components/settings/JobTypeForm.tsx` | 新規 | 職種フォーム |
+| `src/components/settings/DISCProfileSlider.tsx` | 新規 | DISC理想プロファイルスライダー |
+| **DISC検査UI** |
+| `src/app/assessment/disc/[token]/page.tsx` | 新規 | DISC検査画面 |
+| `src/components/assessment/DISCQuestion.tsx` | 新規 | DISC質問コンポーネント |
+| `src/components/assessment/DISCProgress.tsx` | 新規 | 進捗表示 |
+| **候補者詳細** |
+| `src/app/admin/candidates/[id]/page.tsx` | 修正 | DISCタブ追加 |
+| `src/components/candidates/DISCProfileCard.tsx` | 新規 | DISCプロファイル表示 |
+| **API** |
 | `src/app/api/settings/job-types/route.ts` | 新規 | 職種一覧取得・作成API |
 | `src/app/api/settings/job-types/[id]/route.ts` | 新規 | 職種更新・削除API |
+| `src/app/api/assessments/disc/template/route.ts` | 新規 | DISC検査テンプレートAPI |
+| `src/app/api/assessments/disc/[candidateId]/route.ts` | 新規 | DISC結果保存API |
+| `src/app/api/candidates/[id]/disc/route.ts` | 新規 | 候補者DISC取得API |
 
 ---
 
 ## 5. Phase 5: テスト設計
 
-### 5.1 Gold E2E候補評価（4つのレンズ）
-
-| レンズ | 質問 | 回答 |
-|--------|------|------|
-| 行動フォーカス | 実装ではなくユーザー目標を検証しているか？ | はい |
-| 欺瞞耐性 | モック/スタブでは通過できないか？ | はい（DB操作必須） |
-| 明確な失敗説明 | 失敗理由を1文で説明できるか？ | はい |
-| リスク明示 | このテストがないと何を犠牲にするか説明できるか？ | はい（配属推薦の基盤） |
-
-### 5.2 トリアージスコアリング（Gold候補のみ）
-
-| 軸 | 説明 | 評価（1-5） | 理由 |
-|----|------|-----------|------|
-| **Impact（影響度）** | 壊れた時の影響 | 4 | 配属推薦機能が使用不可 |
-| **Frequency（頻度）** | どれくらい使われるか | 3 | 初期設定時に使用 |
-| **Detectability（検知性）** | 他で検知できるか | 2 | 単体テストでは検知困難 |
-| **Recovery Cost（復旧コスト）** | 壊れた時の修復難易度 | 3 | DB/API両方の修正必要 |
-| **合計** | | 12/20 | → Silver推奨（条件付きGold） |
-
-### 5.3 GWT仕様（Silver対象）
+### 5.1 GWT仕様（Silver対象）
 
 ```gherkin
 Feature: 職種マスター管理
@@ -456,11 +585,11 @@ Feature: 職種マスター管理
     Given Admin権限を持つユーザーでログイン済み
       And 職種設定画面（/admin/settings/job-types）を表示している
 
-  Scenario: 職種を新規作成する（ドメイン重み付け）
+  Scenario: 職種を新規作成する（DISC理想プロファイル）
     When 「職種を追加」ボタンをクリック
       And 職種名「営業職」を入力
-      And 対人態度（REL）の重みを「0.9」に設定
-      And DISCタイプで「high-I」を選択
+      And Influence（影響力）の理想スコアを「80」、重みを「0.9」に設定
+      And 価値観で「達成志向」をチェック
       And 「保存」ボタンをクリック
     Then ダイアログが閉じる
       And 一覧に「営業職」が表示される
@@ -468,105 +597,80 @@ Feature: 職種マスター管理
   Scenario: 職種プロファイルを編集する
     Given 「営業職」が登録されている
     When 「営業職」の編集ボタンをクリック
-      And ガバナンス適合（GOV）の重みを「0.8」に変更
+      And Dominance（主導性）の理想スコアを「75」に変更
       And 「保存」ボタンをクリック
     Then 一覧の「営業職」の設定が更新される
 
-  Scenario: 職種を削除する
-    Given 「営業職」が登録されている
-    When 「営業職」の削除ボタンをクリック
-      And 削除確認ダイアログで「削除」をクリック
-    Then 一覧から「営業職」が消える
+Feature: DISC検査
+
+  Background:
+    Given 候補者として検査画面にアクセス済み
+
+  Scenario: DISC検査を完了する
+    When 24問すべてに回答
+      And 「送信」ボタンをクリック
+    Then 検査完了画面が表示される
+      And DISCスコアがデータベースに保存される
+
+  Scenario: DISC検査結果を確認する
+    Given 候補者「山田太郎」のDISC検査が完了している
+    When 管理者として候補者詳細画面を開く
+    Then DISCプロファイル（D/I/S/Cスコア）が表示される
+      And プロファイルパターン（例: "ID"）が表示される
 ```
 
-### 5.4 単体テスト設計
+### 5.2 単体テスト設計
 
-| 対象関数/コンポーネント | テストケース | 期待結果 |
-|----------------------|------------|---------|
+| 対象 | テストケース | 期待結果 |
+|-----|------------|---------|
 | JobTypeForm | 正常系: 必須項目入力で送信可能 | 送信コールバック発火 |
 | JobTypeForm | 異常系: 名前空で送信不可 | バリデーションエラー表示 |
-| DomainWeightSlider | 重み値変更 | 0.0-1.0の範囲で更新 |
-| DomainWeightSlider | 範囲外値入力 | 自動クランプ |
-| JobTypeList | Loading状態 | スケルトン表示 |
-| JobTypeList | Empty状態 | 空メッセージ表示 |
-| JobTypeList | Error状態 | エラー + 再試行ボタン |
+| DISCProfileSlider | 理想スコア変更 | 0-100の範囲で更新 |
+| DISCProfileSlider | 重み変更 | 0.0-1.0の範囲で更新 |
+| calculateDISCScore | 正常スコアリング | 正規化された0-100スコア |
+| calculateDISCScore | 全てD選択 | D=100に近い値 |
+| validateJobType (Zod) | ideal範囲外 | バリデーションエラー |
 | validateJobType (Zod) | weight範囲外 | バリデーションエラー |
-| validateJobType (Zod) | disc_type不正値 | バリデーションエラー |
-
-### 5.5 トレーサビリティ（UC → テスト追跡）
-
-| UC-ID | GS-ID | PW File | CI Stage |
-|-------|-------|---------|----------|
-| UC-JOB-ADMIN-LIST-WEB | GS-JOB-001 | job-types.spec.ts | Silver |
-| UC-JOB-ADMIN-CREATE-WEB | GS-JOB-002 | job-types.spec.ts | Silver |
-| UC-JOB-ADMIN-UPDATE-WEB | GS-JOB-003 | job-types.spec.ts | Silver |
-| UC-JOB-ADMIN-DELETE-WEB | GS-JOB-004 | job-types.spec.ts | Silver |
-
-### 5.6 統合テスト設計
-
-#### 5.6.1 DB統合テスト
-
-| テスト対象 | テスト内容 | 前提条件 | 期待結果 |
-|-----------|-----------|---------|---------|
-| Create | job_typesにレコード挿入 | 認証済みAdmin | 201 Created + DB反映 |
-| Read | job_typesからレコード取得 | レコード存在 | 200 OK + weights正しくパース |
-| Update | job_typesのレコード更新 | 所有者として認証 | 200 OK + 更新反映 |
-| Delete | job_typesの論理削除 | Adminとして認証 | 200 OK + deleted_at設定 |
-| RLS検証 | 他組織のデータ操作 | 他組織ユーザー | データ取得不可 |
-| CHECK制約 | weight範囲外 | Admin | DBエラー |
-| CHECK制約 | disc_type不正値 | Admin | DBエラー |
-
-#### 5.6.2 API統合テスト
-
-| テスト対象 | テスト内容 | 入力 | 期待結果 |
-|-----------|-----------|------|---------|
-| 認証フロー | 未認証アクセス | Authヘッダーなし | 401 Unauthorized |
-| 権限チェック | Recruiterで作成試行 | Recruiterトークン | 403 Forbidden |
-| バリデーション | 不正なweight | weight: 1.5 | 400 + エラー詳細 |
-| バリデーション | 不正なdisc_type | disc_type: "invalid" | 400 + エラー詳細 |
-| 重複チェック | 同名職種作成 | 既存名 | 409 Conflict |
-
-#### 5.6.3 UI統合テスト
-
-| テスト対象 | テスト内容 | 操作 | 期待結果 |
-|-----------|-----------|------|---------|
-| 画面遷移 | 設定トップ → 職種設定 | カードクリック | 遷移成功 |
-| フォーム→API | 職種作成 | フォーム入力 + 保存 | API呼出 + 一覧更新 |
-| API→UI反映 | 一覧表示 | 画面表示 | DBデータがUI反映 |
-| スライダー | ドメイン重み変更 | スライダー操作 | 値が正しく反映 |
 
 ---
 
 ## 6. 受け入れ条件
 
 ### データベース
-- [ ] job_types テーブル作成（GFD-Gateドメイン重み設計）
-- [ ] CHECK制約設定（weight: 0.0-1.0, disc_type/primary_value: 列挙値）
+- [ ] job_types テーブル作成（DISC理想プロファイル設計）
+- [ ] disc_assessments テーブル作成
+- [ ] CHECK制約設定（ideal: 0-100, weight: 0.0-1.0, scores: 0-100）
 - [ ] RLSポリシー設定（organization_id ベース）
-- [ ] インデックス作成（organization_id）
-- [ ] ユニーク制約（organization_id, name）
+- [ ] インデックス作成
+- [ ] ユニーク制約（organization_id + name / candidate_id）
 
-### API
-- [ ] GET /api/settings/job-types 実装（weights/requirements形式でレスポンス）
+### DISC検査
+- [ ] DISC検査テンプレート（24問）作成
+- [ ] 強制選択式UI実装
+- [ ] スコアリングロジック実装
+- [ ] プロファイルパターン自動計算
+- [ ] 検査結果保存API実装
+
+### 職種マスターAPI
+- [ ] GET /api/settings/job-types 実装
 - [ ] POST /api/settings/job-types 実装
 - [ ] PUT /api/settings/job-types/:id 実装
 - [ ] DELETE /api/settings/job-types/:id 実装
-- [ ] Zod バリデーション実装（weights/requirements）
+- [ ] Zod バリデーション実装
 - [ ] エラーハンドリング（401/403/400/404/409）
 
 ### UI
 - [ ] 職種設定画面実装
 - [ ] 職種一覧表示（DataTable）
-- [ ] 職種追加ダイアログ
-- [ ] 職種編集フォーム（ドメイン重みスライダー + 要件セレクト）
-- [ ] DomainWeightSlider コンポーネント
-- [ ] 削除確認ダイアログ
+- [ ] 職種追加/編集ダイアログ（DISC理想プロファイルスライダー）
+- [ ] DISC検査画面（候補者向け）
+- [ ] 候補者詳細にDISCタブ追加
 - [ ] 4バリアント実装（Default/Loading/Empty/Error）
-- [ ] 設定トップにカード追加
 
 ### テスト
 - [ ] API単体テスト
 - [ ] UI単体テスト（Vitest）
+- [ ] スコアリングロジックテスト
 - [ ] RLS境界テスト
 - [ ] E2Eテスト（Silver）
 
@@ -578,9 +682,21 @@ Feature: 職種マスター管理
 - なし（Phase 1 = 最初の実装）
 
 **後続（このPRに依存）:**
-- #193 Phase 2 マッチングアルゴリズム（GFD-Gateドメイン重みベースのスコア算出）
+- #193 Phase 2 マッチングアルゴリズム（DISCスコアベースのマッチング計算）
 - #194 Phase 3 配属推薦表示UI
 - #195 Phase 4 部署推薦機能
 
 **マージ順序（Stacked PR）:**
-#192 (DB + API + UI) → #193 (アルゴリズム) → #194 (UI) → #195 (拡張)
+#192 (DB + 検査 + 職種マスター) → #193 (アルゴリズム) → #194 (UI) → #195 (拡張)
+
+---
+
+## 8. スコープ外（Phase 2以降）
+
+以下は本Issueのスコープ外:
+
+- マッチングアルゴリズム実装（#193で対応）
+- 候補者×職種マッチング表示（#194で対応）
+- 部署マスター・部署推薦（#195で対応）
+- ストレス耐性・EQの直接測定（将来拡張）
+- GFD-Gate検査の変更（変更なし）
