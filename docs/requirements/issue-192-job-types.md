@@ -423,6 +423,15 @@ function calculateDISCScore(responses: Response[]): DISCScores {
 | DISC検査 | /assessment/disc/:token | DISCAssessment | 候補者向けDISC検査 |
 | DISC結果表示 | /admin/candidates/:id | CandidateDISCProfile | 候補者詳細にDISCタブ追加 |
 
+#### V0 UIリンク
+
+| 項目 | URL |
+|------|-----|
+| **V0 Chat** | https://v0.app/chat/dKKC2svn36k |
+| **Demo** | https://demo-kzmiiguzj97ageuvaxx2.vusercontent.net |
+
+> ✅ DISC理想プロファイル版のUIを新規生成。4バリアント（Default/Loading/Empty/Error）対応。
+
 #### 4.4.2 職種設定UI
 
 ```
