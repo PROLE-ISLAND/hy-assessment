@@ -14,7 +14,7 @@
 #
 # 参考: docs/TEMPLATE_SYNC_GUIDE.md
 
-name: Sync Templates
+name: テンプレート同期
 
 on:
   schedule:
@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   sync-templates:
-    name: Sync Organization Templates
+    name: 組織テンプレート同期
     runs-on: ubuntu-latest
 
     steps:

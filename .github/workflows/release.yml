@@ -3,7 +3,7 @@
 # mainへのマージ時にバージョン判定・リリース作成
 # =====================================================
 
-name: 🚀 Release
+name: 🚀 リリース
 
 on:
   push:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   release:
-    name: 🚀 Semantic Release
+    name: 🚀 自動リリース
     runs-on: ubuntu-latest
     # リリースコミット自体では実行しない
     if: "!contains(github.event.head_commit.message, '[skip ci]')"

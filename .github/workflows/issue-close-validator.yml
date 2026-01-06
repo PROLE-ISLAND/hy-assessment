@@ -6,7 +6,7 @@
 # ロジックは組織リポジトリで一元管理:
 # PROLE-ISLAND/.github/.github/workflows/reusable-issue-close-validator.yml
 
-name: Issue Close Validator
+name: Issue終了検証
 
 on:
   issues:

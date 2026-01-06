@@ -1,4 +1,4 @@
-name: 🤖 E2E Test Generation
+name: 🤖 E2Eテスト生成
 
 on:
   pull_request:
@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   analyze-changes:
-    name: 🔍 Analyze Changes
+    name: 🔍 変更分析
     runs-on: ubuntu-latest
     outputs:
       test_targets: ${{ steps.analyze.outputs.test_targets }}
@@ -116,7 +116,7 @@ jobs:
           echo "🏗️ Project type: $PROJECT_TYPE"
 
   generate-tests:
-    name: 🧪 Generate E2E Tests
+    name: 🧪 E2Eテスト生成
     runs-on: ubuntu-latest
     needs: analyze-changes
     if: needs.analyze-changes.outputs.has_ui_changes == 'true' || github.event_name == 'workflow_dispatch'
@@ -359,7 +359,7 @@ jobs:
           retention-days: 7
 
   comment-pr:
-    name: 💬 Comment on PR
+    name: 💬 PRにコメント
     runs-on: ubuntu-latest
     needs: [analyze-changes, generate-tests]
     if: github.event_name == 'pull_request'

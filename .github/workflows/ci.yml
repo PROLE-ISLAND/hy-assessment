@@ -95,7 +95,7 @@ jobs:
   # Lint - ci:skip 以外で実行
   # =====================================================
   lint:
-    name: Lint
+    name: リント
     runs-on: ubuntu-latest
     needs: check-labels
     if: needs.check-labels.outputs.skip_ci != 'true'
