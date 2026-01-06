@@ -1,0 +1,97 @@
+# =====================================================
+# Auto Labeler Configuration
+# ファイルパスに基づく自動ラベリング
+# Ref: https://github.com/actions/labeler
+# =====================================================
+
+# === ドメインラベル（ファイルパスベース） ===
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+        - 'src/app/**/*.tsx'
+        - 'src/components/**'
+        - 'src/hooks/**'
+        - '**/*.css'
+        - 'tailwind.config.*'
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+        - 'src/app/api/**'
+        - 'src/lib/**'
+        - 'src/lib/inngest/**'
+        - 'src/server/**'
+
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+        - 'supabase/migrations/**'
+        - 'supabase/seed.sql'
+        - 'src/lib/supabase/**'
+        - 'src/types/database.ts'
+
+# === type: ラベル（ブランチ名ベース） ===
+'type:requirements':
+  - head-branch: ['^requirements/', '^plan/', '^design/']
+
+'type:implementation':
+  - head-branch: ['^feature/', '^feat/']
+
+'type:docs':
+  - head-branch: ['^docs/', '^documentation/']
+  - changed-files:
+      - all-globs-to-all-files:
+        - '**/*.md'
+        - 'docs/**'
+
+'type:refactor':
+  - head-branch: ['^refactor/']
+
+'type:bugfix':
+  - head-branch: ['^bugfix/', '^hotfix/', '^fix/']
+
+# === ci: ラベル（ファイルパスベース） ===
+'ci:skip':
+  - changed-files:
+      - all-globs-to-all-files:
+        - '**/*.md'
+        - '!README.md'
+        - '.github/*.md'
+
+'ci:e2e':
+  - changed-files:
+      - any-glob-to-any-file:
+        - 'e2e/**'
+        - 'playwright.config.ts'
+        - 'src/app/**/page.tsx'
+
+# === risk: ラベル ===
+'risk:migration':
+  - changed-files:
+      - any-glob-to-any-file:
+        - 'supabase/migrations/**'
+
+'risk:breaking':
+  - changed-files:
+      - any-glob-to-any-file:
+        - 'src/types/**'
+        - 'src/lib/supabase/schema.ts'
+        - 'package.json'
+
+# === 設定・インフラ ===
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+        - '.github/**'
+        - '*.config.*'
+        - '.env*'
+        - 'tsconfig*.json'
+        - '.eslintrc*'
+
+infrastructure:
+  - changed-files:
+      - any-glob-to-any-file:
+        - 'vercel.json'
+        - '.vercel/**'
+        - 'Dockerfile*'
+        - 'docker-compose*'

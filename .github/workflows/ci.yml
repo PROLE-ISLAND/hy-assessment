@@ -1,6 +1,17 @@
 # =====================================================
-# CI ワークフロー
+# CI ワークフロー（ラベル駆動版）
 # PR・プッシュ時に実行: lint, 型チェック, 単体テスト, ビルド
+#
+# ラベルによる制御:
+#   ci:skip  - CIスキップ（ドキュメントのみ変更時）
+#   ci:fast  - lint + 型チェックのみ
+#   ci:full  - フルCI（デフォルト）
+#   ci:e2e   - フルCI + E2Eテスト
+#
+# type別デフォルト:
+#   type:requirements - ci:skip（実装計画PRはコード変更なし）
+#   type:docs         - ci:skip（ドキュメントのみ）
+#   type:implementation/bugfix/refactor - ci:full
 # =====================================================
 
 name: CI
@@ -10,6 +21,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,38 +34,119 @@ permissions:
   contents: read
 
 jobs:
+  # =====================================================
+  # ラベルチェック - CI実行範囲を決定
+  # =====================================================
+  check-labels:
+    name: ラベルチェック
+    runs-on: ubuntu-latest
+    outputs:
+      skip_ci: ${{ steps.check.outputs.skip_ci }}
+      fast_only: ${{ steps.check.outputs.fast_only }}
+      run_e2e: ${{ steps.check.outputs.run_e2e }}
+    steps:
+      - name: Check CI labels
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request?.labels?.map(l => l.name) || [];
+            const isPush = context.eventName === 'push';
+
+            // Push to main/develop は常にフルCI
+            if (isPush) {
+              core.setOutput('skip_ci', 'false');
+              core.setOutput('fast_only', 'false');
+              core.setOutput('run_e2e', 'false');
+              core.setOutput('pr_type', 'push');
+              console.log('Push event: Full CI');
+              return;
+            }
+
+            // 明示的なci:ラベルをチェック
+            const hasCiLabel = labels.some(l => l.startsWith('ci:'));
+            const skipCiExplicit = labels.includes('ci:skip');
+            const fastOnly = labels.includes('ci:fast');
+            const runE2e = labels.includes('ci:e2e');
+
+            // type:ラベルを取得
+            const prType = labels.find(l => l.startsWith('type:'))?.replace('type:', '') || 'unknown';
+
+            // type別デフォルトCI判定（明示的ci:ラベルがない場合）
+            let skipCi = skipCiExplicit;
+            if (!hasCiLabel) {
+              // type:requirements, type:docs はデフォルトでci:skip
+              if (prType === 'requirements' || prType === 'docs') {
+                skipCi = true;
+                console.log(`type:${prType} detected, defaulting to ci:skip`);
+              }
+            }
+
+            core.setOutput('skip_ci', skipCi.toString());
+            core.setOutput('fast_only', fastOnly.toString());
+            core.setOutput('run_e2e', runE2e.toString());
+            core.setOutput('pr_type', prType);
+
+            console.log(`Labels: ${labels.join(', ')}`);
+            console.log(`PR Type: ${prType}`);
+            console.log(`skip_ci: ${skipCi}, fast_only: ${fastOnly}, run_e2e: ${runE2e}`);
+
+  # =====================================================
+  # Lint - ci:skip 以外で実行
+  # =====================================================
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    needs: check-labels
+    if: needs.check-labels.outputs.skip_ci != 'true'
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node
       - name: ESLint実行
         run: npm run lint
 
+  # =====================================================
+  # 型チェック - ci:skip 以外で実行
+  # =====================================================
   type-check:
     name: 型チェック
     runs-on: ubuntu-latest
+    needs: check-labels
+    if: needs.check-labels.outputs.skip_ci != 'true'
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node
       - name: TypeScript型チェック
         run: npx tsc --noEmit
 
+  # =====================================================
+  # 未使用export検出 - ci:skip, ci:fast 以外で実行
+  # =====================================================
   unused-exports:
     name: 未使用export検出
     runs-on: ubuntu-latest
+    needs: check-labels
+    if: |
+      needs.check-labels.outputs.skip_ci != 'true' &&
+      needs.check-labels.outputs.fast_only != 'true'
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node
       - name: 未使用export検出
         run: npm run check:unused-exports
-        # 警告のみ（エラーで落とさない）- 新規PRで段階的に対応
+        # 警告のみ（エラーで落とさない）
         continue-on-error: true
 
+  # =====================================================
+  # 単体テスト - ci:skip, ci:fast 以外で実行
+  # =====================================================
   unit-test:
     name: 単体テスト
     runs-on: ubuntu-latest
+    needs: check-labels
+    if: |
+      needs.check-labels.outputs.skip_ci != 'true' &&
+      needs.check-labels.outputs.fast_only != 'true'
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node
@@ -74,10 +167,16 @@ jobs:
           path: coverage/
           retention-days: 7
 
+  # =====================================================
+  # ビルド - ci:skip, ci:fast 以外で実行
+  # =====================================================
   build:
     name: ビルド
     runs-on: ubuntu-latest
-    needs: [lint, type-check, unit-test]
+    needs: [check-labels, lint, type-check, unit-test]
+    if: |
+      needs.check-labels.outputs.skip_ci != 'true' &&
+      needs.check-labels.outputs.fast_only != 'true'
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node
@@ -92,3 +191,48 @@ jobs:
           name: nextjs-build
           path: .next
           retention-days: 1
+
+  # =====================================================
+  # CI完了サマリー
+  # =====================================================
+  ci-summary:
+    name: CI完了
+    runs-on: ubuntu-latest
+    needs: [check-labels, lint, type-check, unused-exports, unit-test, build]
+    if: always()
+    steps:
+      - name: CIサマリー出力
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const skipCi = '${{ needs.check-labels.outputs.skip_ci }}' === 'true';
+            const fastOnly = '${{ needs.check-labels.outputs.fast_only }}' === 'true';
+            const prType = '${{ needs.check-labels.outputs.pr_type }}' || 'unknown';
+
+            let summary = '## CI Summary\n\n';
+            summary += `**PR Type:** \`type:${prType}\`\n\n`;
+
+            if (skipCi) {
+              if (prType === 'requirements') {
+                summary += '📋 **CI Skipped** (実装計画PR - コード変更なし)\n';
+                summary += '\n> 💡 type:requirements はデフォルトで ci:skip です。\n';
+                summary += '> 明示的に `ci:full` ラベルを追加するとフルCIを実行できます。\n';
+              } else if (prType === 'docs') {
+                summary += '📝 **CI Skipped** (ドキュメントPR)\n';
+              } else {
+                summary += '⏭️ **CI Skipped** (`ci:skip` label)\n';
+              }
+            } else if (fastOnly) {
+              summary += '⚡ **Fast CI** (`ci:fast` label)\n';
+              summary += '- ✅ Lint\n- ✅ Type Check\n';
+              summary += '- ⏭️ Unit Test (skipped)\n- ⏭️ Build (skipped)\n';
+            } else {
+              summary += '🔄 **Full CI**\n';
+              summary += '- Lint: ${{ needs.lint.result }}\n';
+              summary += '- Type Check: ${{ needs.type-check.result }}\n';
+              summary += '- Unit Test: ${{ needs.unit-test.result }}\n';
+              summary += '- Build: ${{ needs.build.result }}\n';
+            }
+
+            console.log(summary);
+            core.summary.addRaw(summary).write();

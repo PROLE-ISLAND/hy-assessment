@@ -1,0 +1,25 @@
+# =====================================================
+# PR Auto Labeler
+# ファイルパス・ブランチ名に基づく自動ラベリング
+# =====================================================
+
+name: PR Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Auto-label PR
+      uses: actions/labeler@v5
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        configuration-path: '.github/labeler.yml'
+        sync-labels: false  # 既存ラベルを削除しない
