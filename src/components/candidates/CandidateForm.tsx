@@ -3,6 +3,7 @@
 // =====================================================
 // Candidate Registration Form
 // Updated: Support desired_positions (multiple selection)
+// Updated: Use Server Action instead of direct Supabase client
 // =====================================================
 
 import { useState } from 'react';
@@ -21,32 +22,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { createClient } from '@/lib/supabase/client';
+import { createCandidate } from '@/lib/actions/candidates';
 import { POSITIONS } from '@/lib/constants/positions';
 
 interface CandidateFormProps {
   organizationId: string;
-}
-
-interface PersonInsert {
-  organization_id: string;
-  name: string;
-  email: string;
-}
-
-interface PersonRow {
-  id: string;
-  organization_id: string;
-  name: string;
-  email: string;
-}
-
-interface CandidateInsert {
-  organization_id: string;
-  person_id: string;
-  position: string;
-  desired_positions: string[];
-  notes: string | null;
 }
 
 export function CandidateForm({ organizationId }: CandidateFormProps) {
@@ -72,7 +52,7 @@ export function CandidateForm({ organizationId }: CandidateFormProps) {
     setIsLoading(true);
     setError(null);
 
-    // Validation
+    // Client-side validation
     if (selectedPositions.length === 0) {
       setError('希望職種を1つ以上選択してください');
       setIsLoading(false);
@@ -80,47 +60,18 @@ export function CandidateForm({ organizationId }: CandidateFormProps) {
     }
 
     try {
-      const supabase = createClient();
-
-      // 1. Create person record
-      const personData: PersonInsert = {
-        organization_id: organizationId,
+      // Call server action
+      const result = await createCandidate({
         name,
         email,
-      };
-      const { data: person, error: personError } = await supabase
-        .from('persons')
-        .insert(personData as never)
-        .select()
-        .single<PersonRow>();
-
-      if (personError) {
-        if (personError.code === '23505') {
-          setError('このメールアドレスは既に登録されています');
-        } else {
-          setError('登録に失敗しました: ' + personError.message);
-        }
-        return;
-      }
-
-      // Get position label for the first selected position
-      const firstPosition = POSITIONS.find(p => p.value === selectedPositions[0]);
-      const positionLabel = firstPosition?.label || selectedPositions[0];
-
-      // 2. Create candidate record
-      const candidateData: CandidateInsert = {
-        organization_id: organizationId,
-        person_id: person.id,
-        position: positionLabel, // For backward compatibility
-        desired_positions: selectedPositions,
+        selectedPositions,
         notes: notes || null,
-      };
-      const { error: candidateError } = await supabase
-        .from('candidates')
-        .insert(candidateData as never);
+        organizationId,
+      });
 
-      if (candidateError) {
-        setError('候補者の登録に失敗しました: ' + candidateError.message);
+      if (!result.success) {
+        setError(result.error || '登録に失敗しました');
+        setIsLoading(false);
         return;
       }
 
@@ -129,7 +80,6 @@ export function CandidateForm({ organizationId }: CandidateFormProps) {
       router.refresh();
     } catch {
       setError('予期しないエラーが発生しました');
-    } finally {
       setIsLoading(false);
     }
   };
