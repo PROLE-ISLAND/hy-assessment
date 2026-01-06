@@ -90,16 +90,3 @@ updates:
       prefix: "deps"
       include: "scope"
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Tokyo"
-    labels:
-      - "dependencies"
-      - "ci"
-      - "P3: Low"
-    commit-message:
-      prefix: "ci"
