@@ -90,10 +90,9 @@ export default function SettingsPage() {
         />
         <SettingCard
           title="セキュリティ"
-          description="2要素認証、ログイン履歴"
+          description="セッション管理、ログイン履歴"
           icon={<Shield className="h-5 w-5" />}
           href="/admin/settings/security"
-          disabled
         />
       </div>
 

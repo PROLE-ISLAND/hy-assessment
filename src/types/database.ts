@@ -435,6 +435,65 @@ export interface JWTClaims {
 }
 
 // =====================================================
+// Security Types (Issue #134)
+// =====================================================
+
+export type DeviceType = 'desktop' | 'mobile' | 'tablet' | 'unknown';
+
+export interface LoginHistory {
+  id: string;
+  user_id: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  device_type: DeviceType | null;
+  browser: string | null;
+  os: string | null;
+  country: string | null;
+  city: string | null;
+  success: boolean;
+  failure_reason: string | null;
+  created_at: string;
+}
+
+export interface UserSession {
+  id: string;
+  user_id: string;
+  session_token: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  device_type: DeviceType | null;
+  browser: string | null;
+  os: string | null;
+  country: string | null;
+  city: string | null;
+  is_current: boolean;
+  last_active_at: string;
+  expires_at: string;
+  created_at: string;
+}
+
+// API response types for security endpoints
+export interface SessionListItem {
+  id: string;
+  deviceType: DeviceType;
+  browser: string;
+  os: string;
+  location: string;
+  lastActiveAt: string;
+  isCurrent: boolean;
+}
+
+export interface LoginHistoryItem {
+  id: string;
+  timestamp: string;
+  location: string;
+  deviceType: string;
+  browser: string;
+  success: boolean;
+  failureReason?: string;
+}
+
+// =====================================================
 // Database Type Helpers (for Supabase client)
 // =====================================================
 
@@ -495,6 +554,16 @@ export interface Database {
         Row: PromptTemplate;
         Insert: Omit<PromptTemplate, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<PromptTemplate, 'id' | 'created_at'>>;
+      };
+      login_history: {
+        Row: LoginHistory;
+        Insert: Omit<LoginHistory, 'id' | 'created_at'>;
+        Update: never; // Login history should never be updated
+      };
+      user_sessions: {
+        Row: UserSession;
+        Insert: Omit<UserSession, 'id' | 'created_at'>;
+        Update: Partial<Omit<UserSession, 'id' | 'created_at'>>;
       };
     };
     Enums: {
