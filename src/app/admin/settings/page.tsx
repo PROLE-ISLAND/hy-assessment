@@ -80,7 +80,6 @@ export default function SettingsPage() {
           description="組織情報の確認・編集"
           icon={<Building2 className="h-5 w-5" />}
           href="/admin/settings/organization"
-          disabled
         />
         <SettingCard
           title="通知設定"
