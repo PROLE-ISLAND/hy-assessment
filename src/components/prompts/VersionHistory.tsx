@@ -98,11 +98,10 @@ export function VersionHistory({
 
     try {
       setIsReverting(true);
+      const encodedVersion = encodeURIComponent(revertTarget.version);
       const response = await fetch(
-        `/api/prompts/${promptId}/versions/${encodeURIComponent(revertTarget.version)}/revert`,
-        {
-          method: 'POST',
-        }
+        `/api/prompts/${promptId}/versions/${encodedVersion}/revert`,
+        { method: 'POST' }
       );
 
       if (!response.ok) {
@@ -110,7 +109,6 @@ export function VersionHistory({
         throw new Error(data.error || '復元に失敗しました');
       }
 
-      // Refresh and redirect
       router.refresh();
       setRevertTarget(null);
       fetchVersions();
@@ -125,7 +123,6 @@ export function VersionHistory({
     setExpandedVersion(expandedVersion === version ? null : version);
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <Card data-testid="version-history-skeleton">
@@ -147,7 +144,6 @@ export function VersionHistory({
     );
   }
 
-  // Error state
   if (error) {
     return (
       <Card data-testid="version-history-error">
@@ -162,12 +158,7 @@ export function VersionHistory({
             <AlertCircle className="h-4 w-4" />
             <span>{error}</span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-4"
-            onClick={fetchVersions}
-          >
+          <Button variant="outline" size="sm" className="mt-4" onClick={fetchVersions}>
             再試行
           </Button>
         </CardContent>
@@ -175,7 +166,6 @@ export function VersionHistory({
     );
   }
 
-  // Empty state
   if (versions.length === 0) {
     return (
       <Card data-testid="version-history-empty">
@@ -186,9 +176,7 @@ export function VersionHistory({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            まだバージョン履歴がありません
-          </p>
+          <p className="text-muted-foreground">まだバージョン履歴がありません</p>
         </CardContent>
       </Card>
     );
@@ -215,10 +203,7 @@ export function VersionHistory({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Badge
-                      variant={isCurrentVersion ? 'default' : 'secondary'}
-                      className="font-mono"
-                    >
+                    <Badge variant={isCurrentVersion ? 'default' : 'secondary'} className="font-mono">
                       {version.version}
                     </Badge>
                     {isCurrentVersion && (
@@ -231,24 +216,12 @@ export function VersionHistory({
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleExpand(version.version)}
-                    >
-                      {isExpanded ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
+                    <Button variant="ghost" size="sm" onClick={() => toggleExpand(version.version)}>
+                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       <Eye className="h-4 w-4 ml-1" />
                     </Button>
                     {!isCurrentVersion && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setRevertTarget(version)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => setRevertTarget(version)}>
                         <RotateCcw className="h-4 w-4 mr-1" />
                         復元
                       </Button>
@@ -259,13 +232,9 @@ export function VersionHistory({
                 <div className="mt-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-4">
                     <span>{formatDate(version.createdAt)}</span>
-                    {version.createdBy && (
-                      <span>{version.createdBy.email}</span>
-                    )}
+                    {version.createdBy && <span>{version.createdBy.email}</span>}
                   </div>
-                  {version.changeSummary && (
-                    <p className="mt-1">「{version.changeSummary}」</p>
-                  )}
+                  {version.changeSummary && <p className="mt-1">「{version.changeSummary}」</p>}
                 </div>
 
                 {isExpanded && (
@@ -276,12 +245,8 @@ export function VersionHistory({
                     {version.model && (
                       <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
                         <span>モデル: {version.model}</span>
-                        {version.temperature !== null && (
-                          <span>Temperature: {version.temperature}</span>
-                        )}
-                        {version.max_tokens !== null && (
-                          <span>Max Tokens: {version.max_tokens}</span>
-                        )}
+                        {version.temperature !== null && <span>Temperature: {version.temperature}</span>}
+                        {version.max_tokens !== null && <span>Max Tokens: {version.max_tokens}</span>}
                       </div>
                     )}
                   </div>
@@ -292,11 +257,7 @@ export function VersionHistory({
         </CardContent>
       </Card>
 
-      {/* Revert Confirmation Dialog */}
-      <AlertDialog
-        open={!!revertTarget}
-        onOpenChange={() => setRevertTarget(null)}
-      >
+      <AlertDialog open={!!revertTarget} onOpenChange={() => setRevertTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>バージョンを復元しますか？</AlertDialogTitle>
@@ -311,9 +272,7 @@ export function VersionHistory({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isReverting}>
-              キャンセル
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={isReverting}>キャンセル</AlertDialogCancel>
             <AlertDialogAction onClick={handleRevert} disabled={isReverting}>
               {isReverting ? (
                 <>
