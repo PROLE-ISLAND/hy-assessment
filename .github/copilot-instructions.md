@@ -1150,9 +1150,88 @@ e2e/
 │   ├── accessibility.spec.ts # アクセシビリティ
 │   └── ...
 │
+├── factories/               # 🏭 テストデータファクトリー
+│   ├── index.ts             # 共通エクスポート
+│   ├── candidate.ts         # 候補者ファクトリー
+│   ├── assessment.ts        # 検査ファクトリー
+│   └── ...
+│
 ├── fixtures.ts              # 共通フィクスチャ
 ├── helpers/                 # ヘルパー関数
 └── auth.setup.ts            # 認証セットアップ
+```
+
+### E2Eテストデータファクトリー
+
+環境変数に依存しない動的テストデータ生成パターン。
+
+**なぜファクトリーパターンか:**
+- 環境変数（E2E_TEST_CANDIDATE_ID等）への依存を排除
+- テストごとに独立したデータを生成
+- テスト間の干渉を防止
+- 並列実行が安全に
+
+**ファクトリー関数の命名規則:**
+```typescript
+// 単体エンティティ
+createCandidate()           // 候補者1人作成
+createAssessment()          // 検査1件作成
+
+// 関連エンティティ込み
+createCandidateWithAssessment()  // 候補者 + 検査作成
+createAssessmentWithResponses()  // 検査 + 回答作成
+```
+
+**ファクトリー使用例:**
+```typescript
+// e2e/gold/candidates.spec.ts
+import { createCandidate, cleanup } from '../factories';
+
+test.describe('候補者管理', () => {
+  let candidateId: string;
+
+  test.beforeEach(async () => {
+    const candidate = await createCandidate({ name: 'テスト太郎' });
+    candidateId = candidate.id;
+  });
+
+  test.afterEach(async () => {
+    await cleanup();
+  });
+
+  test('候補者詳細を表示', async ({ page }) => {
+    await page.goto(`/admin/candidates/${candidateId}`);
+    await expect(page.getByText('テスト太郎')).toBeVisible();
+  });
+});
+```
+
+**ファクトリー実装テンプレート:**
+```typescript
+// e2e/factories/candidate.ts
+import { createAdminClient } from '@/lib/supabase/admin';
+import type { Database } from '@/types/database';
+
+type CandidateInsert = Database['public']['Tables']['candidates']['Insert'];
+
+const defaults: Partial<CandidateInsert> = {
+  name: 'テスト候補者',
+  email: `test-${Date.now()}@example.com`,
+};
+
+export async function createCandidate(overrides?: Partial<CandidateInsert>) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('candidates')
+    .insert({ ...defaults, ...overrides })
+    .select()
+    .single();
+  if (error) throw error;
+
+  // クリーンアップ用に記録
+  createdIds.push(data.id);
+  return data;
+}
 ```
 
 ### Gold E2E選定基準（5つのレンズ）
