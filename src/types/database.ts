@@ -12,6 +12,9 @@ export type AssessmentStatus = 'pending' | 'in_progress' | 'completed' | 'expire
 export type AuditAction = 'view' | 'create' | 'update' | 'delete' | 'export';
 export type AuditEntityType = 'candidate' | 'assessment' | 'analysis' | 'template' | 'user';
 export type PromptKey = 'system' | 'analysis_user' | 'judgment' | 'candidate';
+export type StressRiskLevel = 'low' | 'medium' | 'high';
+export type DiscFactor = 'D' | 'I' | 'S' | 'C';
+export type ValuesType = 'achievement' | 'stability' | 'growth' | 'socialContribution' | 'autonomy';
 
 // =====================================================
 // Base Types
@@ -269,6 +272,101 @@ export interface AuditLog {
   created_at: string;
 }
 
+// =====================================================
+// Job Types (Issue #192)
+// =====================================================
+
+export interface JobType {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;
+  // DISC理想プロファイル
+  ideal_dominance: number | null;
+  weight_dominance: number;
+  ideal_influence: number | null;
+  weight_influence: number;
+  ideal_steadiness: number | null;
+  weight_steadiness: number;
+  ideal_conscientiousness: number | null;
+  weight_conscientiousness: number;
+  // ストレス耐性理想プロファイル
+  ideal_stress: number | null;
+  weight_stress: number;
+  max_stress_risk: StressRiskLevel;
+  // EQ理想プロファイル
+  ideal_eq: number | null;
+  weight_eq: number;
+  // 価値観理想プロファイル
+  ideal_achievement: number | null;
+  weight_achievement: number;
+  ideal_stability: number | null;
+  weight_stability: number;
+  ideal_growth: number | null;
+  weight_growth: number;
+  ideal_social_contribution: number | null;
+  weight_social_contribution: number;
+  ideal_autonomy: number | null;
+  weight_autonomy: number;
+  // メタデータ
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+// =====================================================
+// Personality Assessments (Issue #192)
+// =====================================================
+
+// ストレス耐性詳細
+export interface StressDetails {
+  pressureHandling: number;
+  recoverySpeed: number;
+  emotionalStability: number;
+  adaptability: number;
+}
+
+// EQ詳細
+export interface EQDetails {
+  selfAwareness: number;
+  selfManagement: number;
+  socialAwareness: number;
+  relationshipManagement: number;
+}
+
+export interface PersonalityAssessment {
+  id: string;
+  organization_id: string;
+  candidate_id: string;
+  // DISC
+  disc_dominance: number;
+  disc_influence: number;
+  disc_steadiness: number;
+  disc_conscientiousness: number;
+  disc_primary_factor: DiscFactor;
+  disc_profile_pattern: string;
+  // ストレス耐性
+  stress_overall: number;
+  stress_details: StressDetails;
+  stress_risk_level: StressRiskLevel;
+  // EQ
+  eq_overall: number;
+  eq_details: EQDetails;
+  // 価値観
+  values_achievement: number;
+  values_stability: number;
+  values_growth: number;
+  values_social_contribution: number;
+  values_autonomy: number;
+  values_primary: string;
+  // メタデータ
+  responses: Record<string, unknown>;
+  completed_at: string;
+  duration_seconds: number | null;
+  created_at: string;
+}
+
 export interface PromptTemplate {
   id: string;
   organization_id: string | null;
@@ -294,6 +392,9 @@ export interface PromptVersion {
   prompt_id: string;
   version: string;
   content: string;
+  model: string;
+  temperature: number;
+  max_tokens: number;
   change_summary: string | null;
   created_by: string | null;
   created_at: string;
@@ -581,6 +682,16 @@ export interface Database {
         Insert: Omit<UserSession, 'id' | 'created_at'>;
         Update: Partial<Omit<UserSession, 'id' | 'created_at'>>;
       };
+      job_types: {
+        Row: JobType;
+        Insert: Omit<JobType, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<JobType, 'id' | 'created_at'>>;
+      };
+      personality_assessments: {
+        Row: PersonalityAssessment;
+        Insert: Omit<PersonalityAssessment, 'id' | 'created_at'>;
+        Update: never; // Personality assessments should not be updated
+      };
     };
     Enums: {
       user_role: UserRole;
@@ -588,6 +699,8 @@ export interface Database {
       audit_action: AuditAction;
       audit_entity_type: AuditEntityType;
       prompt_key: PromptKey;
+      stress_risk_level: StressRiskLevel;
+      disc_factor: DiscFactor;
     };
   };
 }
