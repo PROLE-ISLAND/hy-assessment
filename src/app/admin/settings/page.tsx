@@ -17,6 +17,7 @@ import {
   Bell,
   Shield,
   ChevronRight,
+  Briefcase,
 } from 'lucide-react';
 
 interface SettingCardProps {
@@ -80,6 +81,12 @@ export default function SettingsPage() {
           description="組織情報の確認・編集"
           icon={<Building2 className="h-5 w-5" />}
           href="/admin/settings/organization"
+        />
+        <SettingCard
+          title="職種設定"
+          description="配属推薦用の職種マスター管理"
+          icon={<Briefcase className="h-5 w-5" />}
+          href="/admin/settings/job-types"
         />
         <SettingCard
           title="通知設定"
