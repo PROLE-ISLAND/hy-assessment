@@ -288,24 +288,15 @@ export interface PromptTemplate {
   deleted_at: string | null;
 }
 
+// Prompt version history (Issue #139)
 export interface PromptVersion {
   id: string;
   prompt_id: string;
   version: string;
   content: string;
-  model: string | null;
-  temperature: number | null;
-  max_tokens: number | null;
   change_summary: string | null;
   created_by: string | null;
   created_at: string;
-}
-
-export interface PromptVersionWithUser extends PromptVersion {
-  user?: {
-    email: string;
-    name: string;
-  };
 }
 
 // =====================================================
@@ -575,6 +566,11 @@ export interface Database {
         Insert: Omit<PromptTemplate, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<PromptTemplate, 'id' | 'created_at'>>;
       };
+      prompt_versions: {
+        Row: PromptVersion;
+        Insert: Omit<PromptVersion, 'id' | 'created_at'>;
+        Update: never; // Versions are immutable
+      };
       login_history: {
         Row: LoginHistory;
         Insert: Omit<LoginHistory, 'id' | 'created_at'>;
@@ -584,11 +580,6 @@ export interface Database {
         Row: UserSession;
         Insert: Omit<UserSession, 'id' | 'created_at'>;
         Update: Partial<Omit<UserSession, 'id' | 'created_at'>>;
-      };
-      prompt_versions: {
-        Row: PromptVersion;
-        Insert: Omit<PromptVersion, 'id' | 'created_at'>;
-        Update: never; // Versions are immutable
       };
     };
     Enums: {

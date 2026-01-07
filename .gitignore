@@ -54,3 +54,9 @@ playwright-report/
 e2e-results.json/
 e2e-output.log
 *.zip
+
+# Claude Code
+.claude/hooks/__pycache__/
+.claude/hooks/logs/
+.claude/hooks/security/
+.autonomous_cache/
