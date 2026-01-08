@@ -401,103 +401,6 @@ export interface PromptVersion {
 }
 
 // =====================================================
-// Job Types & Personality Assessment Types (Issue #192)
-// =====================================================
-
-export type StressRiskLevel = 'low' | 'medium' | 'high';
-export type DiscFactor = 'D' | 'I' | 'S' | 'C';
-export type ValuesType = 'achievement' | 'stability' | 'growth' | 'socialContribution' | 'autonomy';
-
-// Stress details for personality assessment
-export interface StressDetails {
-  pressureHandling: number;
-  recoverySpeed: number;
-  emotionalStability: number;
-  adaptability: number;
-}
-
-// EQ details for personality assessment
-export interface EQDetails {
-  selfAwareness: number;
-  selfManagement: number;
-  socialAwareness: number;
-  relationshipManagement: number;
-}
-
-// Job type master with ideal profile
-export interface JobType {
-  id: string;
-  organization_id: string;
-  name: string;
-  description: string | null;
-  // DISC ideal profile
-  ideal_dominance: number | null;
-  weight_dominance: number;
-  ideal_influence: number | null;
-  weight_influence: number;
-  ideal_steadiness: number | null;
-  weight_steadiness: number;
-  ideal_conscientiousness: number | null;
-  weight_conscientiousness: number;
-  // Stress tolerance ideal profile
-  ideal_stress: number | null;
-  weight_stress: number;
-  max_stress_risk: StressRiskLevel;
-  // EQ ideal profile
-  ideal_eq: number | null;
-  weight_eq: number;
-  // Values ideal profile
-  ideal_achievement: number | null;
-  weight_achievement: number;
-  ideal_stability: number | null;
-  weight_stability: number;
-  ideal_growth: number | null;
-  weight_growth: number;
-  ideal_social_contribution: number | null;
-  weight_social_contribution: number;
-  ideal_autonomy: number | null;
-  weight_autonomy: number;
-  // Metadata
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-}
-
-// Personality assessment results
-export interface PersonalityAssessment {
-  id: string;
-  organization_id: string;
-  candidate_id: string;
-  // DISC
-  disc_dominance: number;
-  disc_influence: number;
-  disc_steadiness: number;
-  disc_conscientiousness: number;
-  disc_primary_factor: DiscFactor;
-  disc_profile_pattern: string;
-  // Stress
-  stress_overall: number;
-  stress_details: StressDetails;
-  stress_risk_level: StressRiskLevel;
-  // EQ
-  eq_overall: number;
-  eq_details: EQDetails;
-  // Values
-  values_achievement: number;
-  values_stability: number;
-  values_growth: number;
-  values_social_contribution: number;
-  values_autonomy: number;
-  values_primary: string;
-  // Meta
-  responses: Record<string, unknown>;
-  duration_seconds: number | null;
-  completed_at: string;
-  created_at: string;
-}
-
-// =====================================================
 // Extended Types with Relations
 // =====================================================
 
@@ -778,16 +681,6 @@ export interface Database {
         Row: UserSession;
         Insert: Omit<UserSession, 'id' | 'created_at'>;
         Update: Partial<Omit<UserSession, 'id' | 'created_at'>>;
-      };
-      job_types: {
-        Row: JobType;
-        Insert: Omit<JobType, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<JobType, 'id' | 'created_at'>>;
-      };
-      personality_assessments: {
-        Row: PersonalityAssessment;
-        Insert: Omit<PersonalityAssessment, 'id' | 'created_at'>;
-        Update: never; // Personality assessments should not be updated
       };
       job_types: {
         Row: JobType;
