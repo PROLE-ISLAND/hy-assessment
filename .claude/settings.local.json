@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/usr/bin/git push -u origin feature/issue-215-direct-assessment)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
