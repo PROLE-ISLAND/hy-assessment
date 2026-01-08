@@ -11,11 +11,13 @@ const TRACE_ID_HEADER = 'x-trace-id';
 
 // Routes that don't require authentication
 const publicRoutes = [
+  '/',           // Landing page for direct assessment (Issue #215)
   '/login',
   '/auth/callback',
   '/assessment', // Public assessment pages (accessed via token)
   '/report',     // Public candidate report pages (accessed via token)
   '/api/health', // Health check endpoint for monitoring
+  '/api/candidates/register', // Anonymous candidate registration API (Issue #215)
 ];
 
 // Check if path matches any public route
