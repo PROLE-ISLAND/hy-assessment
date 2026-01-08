@@ -1,5 +1,7 @@
 // =====================================================
 // Candidate Validation Tests
+// Issue #215: UC-ASSESS-CANDIDATE-DIRECT-WEB
+// Includes anonymousCandidateRegisterSchema tests for direct assessment flow
 // =====================================================
 
 import { describe, it, expect } from 'vitest';
@@ -8,6 +10,8 @@ import {
   candidateUpdateSchema,
   candidateSearchSchema,
   validateCandidateCreate,
+  anonymousCandidateRegisterSchema,
+  validateAnonymousCandidateRegister,
 } from './candidate';
 
 describe('candidateCreateSchema', () => {
@@ -187,6 +191,171 @@ describe('validateCandidateCreate', () => {
       name: '',
       email: 'invalid',
       desiredPositions: [],
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
+// =====================================================
+// Anonymous Candidate Register Schema Tests (Issue #215)
+// For direct assessment flow from landing page
+// =====================================================
+
+describe('anonymousCandidateRegisterSchema', () => {
+  describe('Normal Cases', () => {
+    it('validates correct input with name and email only', () => {
+      const validInput = {
+        name: 'テスト太郎',
+        email: 'test@example.com',
+      };
+
+      const result = anonymousCandidateRegisterSchema.safeParse(validInput);
+      expect(result.success).toBe(true);
+    });
+
+    it('validates with optional desiredJobType', () => {
+      const validInput = {
+        name: 'テスト太郎',
+        email: 'test@example.com',
+        desiredJobType: 'エンジニア',
+      };
+
+      const result = anonymousCandidateRegisterSchema.safeParse(validInput);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.desiredJobType).toBe('エンジニア');
+      }
+    });
+
+    it('accepts null desiredJobType', () => {
+      const validInput = {
+        name: 'テスト太郎',
+        email: 'test@example.com',
+        desiredJobType: null,
+      };
+
+      const result = anonymousCandidateRegisterSchema.safeParse(validInput);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('Error Cases - Empty Name', () => {
+    it('rejects empty name', () => {
+      const invalidInput = {
+        name: '',
+        email: 'test@example.com',
+      };
+
+      const result = anonymousCandidateRegisterSchema.safeParse(invalidInput);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('氏名');
+      }
+    });
+  });
+
+  describe('Error Cases - Invalid Email', () => {
+    it('rejects invalid email format', () => {
+      const invalidInput = {
+        name: 'テスト太郎',
+        email: 'not-an-email',
+      };
+
+      const result = anonymousCandidateRegisterSchema.safeParse(invalidInput);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('メールアドレス');
+      }
+    });
+
+    it('rejects empty email', () => {
+      const invalidInput = {
+        name: 'テスト太郎',
+        email: '',
+      };
+
+      const result = anonymousCandidateRegisterSchema.safeParse(invalidInput);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('Boundary Cases - Name Length', () => {
+    it('accepts name with exactly 100 characters', () => {
+      const validInput = {
+        name: 'あ'.repeat(100),
+        email: 'test@example.com',
+      };
+
+      const result = anonymousCandidateRegisterSchema.safeParse(validInput);
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects name with 101 characters', () => {
+      const invalidInput = {
+        name: 'あ'.repeat(101),
+        email: 'test@example.com',
+      };
+
+      const result = anonymousCandidateRegisterSchema.safeParse(invalidInput);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('100文字');
+      }
+    });
+  });
+
+  describe('Boundary Cases - desiredJobType Length', () => {
+    it('accepts desiredJobType with exactly 100 characters', () => {
+      const validInput = {
+        name: 'テスト太郎',
+        email: 'test@example.com',
+        desiredJobType: 'a'.repeat(100),
+      };
+
+      const result = anonymousCandidateRegisterSchema.safeParse(validInput);
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects desiredJobType over 100 characters', () => {
+      const invalidInput = {
+        name: 'テスト太郎',
+        email: 'test@example.com',
+        desiredJobType: 'a'.repeat(101),
+      };
+
+      const result = anonymousCandidateRegisterSchema.safeParse(invalidInput);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('100文字');
+      }
+    });
+  });
+});
+
+describe('validateAnonymousCandidateRegister', () => {
+  it('returns success for valid data', () => {
+    const result = validateAnonymousCandidateRegister({
+      name: 'テスト太郎',
+      email: 'test@example.com',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('returns error for missing name', () => {
+    const result = validateAnonymousCandidateRegister({
+      name: '',
+      email: 'test@example.com',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('returns error for invalid email', () => {
+    const result = validateAnonymousCandidateRegister({
+      name: 'テスト太郎',
+      email: 'invalid-email',
     });
 
     expect(result.success).toBe(false);
