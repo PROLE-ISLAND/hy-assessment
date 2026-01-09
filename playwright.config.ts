@@ -83,9 +83,16 @@ export default defineConfig({
       // No storageState - tests login flow
     },
     {
+      name: 'gold-public',
+      testMatch: /gold\/direct-assessment\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+      // No storageState - public flow (no authentication required)
+      // No dependencies - runs independently
+    },
+    {
       name: 'gold',
       testDir: './e2e/gold',
-      testIgnore: /auth\.spec\.ts/,  // Auth tests run separately
+      testIgnore: [/auth\.spec\.ts/, /direct-assessment\.spec\.ts/],  // Auth and public tests run separately
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/user.json',

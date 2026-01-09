@@ -94,3 +94,24 @@ export function validateCandidateCreate(data: unknown) {
 export function validateCandidateUpdate(data: unknown) {
   return candidateUpdateSchema.safeParse(data);
 }
+
+// =====================================================
+// Anonymous Candidate Register Schema (Issue #215)
+// For direct assessment flow from landing page
+// =====================================================
+
+export const anonymousCandidateRegisterSchema = z.object({
+  name: nameSchema,
+  email: emailSchema,
+  desiredJobType: z
+    .string()
+    .max(100, '希望職種は100文字以内で入力してください')
+    .optional()
+    .nullable(),
+});
+
+export type AnonymousCandidateRegisterInput = z.infer<typeof anonymousCandidateRegisterSchema>;
+
+export function validateAnonymousCandidateRegister(data: unknown) {
+  return anonymousCandidateRegisterSchema.safeParse(data);
+}
