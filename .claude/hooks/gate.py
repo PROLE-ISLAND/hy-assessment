@@ -36,30 +36,6 @@ COMMAND_FILE_MARKERS = {
 # マーカーファイルの有効期間（秒）- 5分以内に作成されたファイルのみ有効
 MARKER_FILE_MAX_AGE_SECONDS = 300
 
-# Worktree 必須対象ブランチプレフィックス
-WORKTREE_REQUIRED_PREFIXES = ("feature/", "requirements/", "bugfix/", "hotfix/")
-
-
-def is_in_worktree() -> bool:
-    """現在のディレクトリがworktreeかどうかを判定"""
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--git-dir"],
-            capture_output=True, text=True, timeout=5
-        )
-        if result.returncode != 0:
-            return False
-        git_dir = result.stdout.strip()
-        # worktreeの場合: git-dir が絶対パスで worktrees を含む
-        return "worktrees" in git_dir
-    except Exception:
-        return False
-
-
-def is_worktree_required_branch(branch: str) -> bool:
-    """worktree必須のブランチかどうかを判定"""
-    return any(branch.startswith(prefix) for prefix in WORKTREE_REQUIRED_PREFIXES)
-
 
 def is_command_routed(body_file: Optional[str]) -> Tuple[bool, Optional[str]]:
     """
@@ -907,15 +883,8 @@ def handle_pr_create(args: List[str], guardrails: Dict[str, Any]) -> None:
         errors.append(f"   └─ 直接 gh pr create は禁止されています")
         errors.append(f"   └─ /req: 要件定義PR、/dev: 実装PR")
 
-    # === Worktree チェック（開発ブランチでは worktree 必須） ===
-    current_branch = get_current_branch()
-    if is_worktree_required_branch(current_branch) and not is_in_worktree():
-        errors.append(f"❌ 開発ブランチでは worktree での作業が必須です")
-        errors.append(f"   └─ 現在: メインリポジトリで作業中")
-        errors.append(f"   └─ 推奨: git gtr new {current_branch}")
-        errors.append(f"   └─       git gtr ai {current_branch}")
-
     # === ブランチ名 → テンプレートチェック ===
+    current_branch = get_current_branch()
     is_template_ok, expected_template, branch_prefix = check_branch_template_match(current_branch, args)
 
     if not is_template_ok and expected_template:
@@ -1072,21 +1041,6 @@ def handle_git_commit(args: List[str], guardrails: Dict[str, Any]) -> None:
 def handle_git_push(command: str, args: List[str], guardrails: Dict[str, Any]) -> None:
     push = get(guardrails, "push", default={}) or {}
     protected = push.get("protected_branches", ["main", "master"]) or ["main", "master"]
-
-    # === Worktree チェック（開発ブランチでは worktree 必須） ===
-    current_branch = get_current_branch()
-    if is_worktree_required_branch(current_branch) and not is_in_worktree():
-        print("🚫 GIT PUSH BLOCKED")
-        print("=" * 60)
-        print(f"  ❌ 開発ブランチでは worktree での作業が必須です")
-        print(f"     └─ 現在: メインリポジトリで作業中")
-        print(f"     └─ ブランチ: {current_branch}")
-        print(f"")
-        print(f"  💡 worktree で作業を開始してください:")
-        print(f"     $ git gtr new {current_branch}")
-        print(f"     $ git gtr ai {current_branch}")
-        print("=" * 60)
-        sys.exit(2)
 
     has_force = ("--force" in args) or ("-f" in args)
     to_protected = is_push_to_protected(args, protected)

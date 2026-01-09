@@ -52,33 +52,6 @@ def get_branch_type(branch: str) -> str:
     return "other"
 
 
-def is_in_worktree() -> bool:
-    """現在のディレクトリがworktreeかどうかを判定"""
-    try:
-        # git rev-parse --git-dir が .git ファイル（worktree）か .git ディレクトリ（通常）かで判定
-        result = subprocess.run(
-            ["git", "rev-parse", "--git-dir"],
-            capture_output=True, text=True, timeout=5
-        )
-        if result.returncode != 0:
-            return False
-        git_dir = result.stdout.strip()
-        # worktreeの場合: .git はファイルで、内容が "gitdir: /path/to/.git/worktrees/xxx"
-        # 通常リポジトリの場合: .git はディレクトリ
-        git_path = Path(git_dir)
-        if git_path.is_absolute():
-            # 絶対パス = worktree（.git/worktrees/xxx を指している）
-            return "worktrees" in git_dir
-        return False
-    except Exception:
-        return False
-
-
-def get_worktree_command(branch: str) -> str:
-    """worktree作成コマンドを生成"""
-    return f"git gtr new {branch}"
-
-
 def get_lock_file(issue_number: str) -> Path:
     """Issue用のロックファイルパス"""
     return LOCK_DIR / f"issue-{issue_number}.lock"
@@ -132,17 +105,14 @@ def main():
     branch = get_current_branch()
     issue_number = extract_issue_number(branch)
     branch_type = get_branch_type(branch)
-    in_worktree = is_in_worktree()
-
+    
     # セッション情報を表示
     print("\n" + "=" * 60, file=sys.stderr)
     print("🚀 Claude Code Session Started", file=sys.stderr)
     print("=" * 60, file=sys.stderr)
     print(f"📁 Directory: {os.getcwd()}", file=sys.stderr)
     print(f"🌿 Branch: {branch}", file=sys.stderr)
-    if in_worktree:
-        print(f"🌳 Worktree: ✅ 有効", file=sys.stderr)
-
+    
     if issue_number:
         print(f"📋 Issue: #{issue_number}", file=sys.stderr)
         print(f"📝 Type: {branch_type}", file=sys.stderr)
@@ -164,15 +134,6 @@ def main():
             print(f"🔒 Session locked for Issue #{issue_number}", file=sys.stderr)
     else:
         print("⚠️  Issue番号なし（main/developブランチ?）", file=sys.stderr)
-
-    # Worktree推奨（開発ブランチでworktree外の場合）
-    if not in_worktree and branch_type in ("requirements", "feature", "bugfix"):
-        print("-" * 60, file=sys.stderr)
-        print("⚠️  Worktree推奨:", file=sys.stderr)
-        print(f"   現在のディレクトリはメインリポジトリです", file=sys.stderr)
-        print(f"   並行開発のため worktree での作業を推奨:", file=sys.stderr)
-        print(f"   $ git gtr new {branch}", file=sys.stderr)
-        print(f"   $ git gtr ai {branch}", file=sys.stderr)
 
     # 開発ルール表示
     print("-" * 60, file=sys.stderr)
