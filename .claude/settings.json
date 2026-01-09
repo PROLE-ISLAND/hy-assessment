@@ -29,6 +29,28 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/quality-ts.py",
+            "timeout": 120000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/review.py",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": ".*",
@@ -37,6 +59,11 @@
             "type": "command",
             "command": "python3 .claude/hooks/session_cleanup.py",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/dod-check.py",
+            "timeout": 10000
           }
         ]
       }
