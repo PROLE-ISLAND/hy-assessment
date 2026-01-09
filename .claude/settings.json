@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/auto-approve.py",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "matcher": ".*",
@@ -37,6 +49,11 @@
             "type": "command",
             "command": "python3 .claude/hooks/quality-ts.py",
             "timeout": 120000
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/quality-gate-hook.py",
+            "timeout": 10000
           }
         ]
       },
