@@ -34,19 +34,19 @@ type FlowStep = 'candidate-info' | 'loading' | 'assessment-select' | 'assessment
 // Assessment type selection
 type AssessmentType = 'gate' | 'personality';
 
-// Job type options for selection
+// Job type options for selection (日本語表記)
 const JOB_TYPE_OPTIONS = [
-  { value: 'account_manager', label: 'Account Manager' },
-  { value: 'marketing_director', label: 'Marketing Director' },
-  { value: 'content_planner', label: 'Content Planner' },
-  { value: 'growth_manager', label: 'Growth Manager' },
-  { value: 'inside_sales', label: 'Inside Sales' },
-  { value: 'field_sales', label: 'Field Sales' },
-  { value: 'customer_success', label: 'Customer Success' },
-  { value: 'corporate_staff', label: 'Corporate Staff' },
-  { value: 'operation_director', label: 'Operation Director' },
-  { value: 'ai_director', label: 'AI Director' },
-  { value: 'other', label: 'Other' },
+  { value: 'inside-sales', label: 'インサイドセールス' },
+  { value: 'field-sales', label: 'フィールドセールス' },
+  { value: 'account-manager', label: 'アカウントマネージャー' },
+  { value: 'marketing-director', label: 'マーケティングディレクター' },
+  { value: 'content-director', label: 'コンテンツディレクター' },
+  { value: 'production-director', label: '制作ディレクター' },
+  { value: 'operation-director', label: 'オペレーションディレクター' },
+  { value: 'web-designer', label: 'Webデザイナー' },
+  { value: 'recruiting', label: 'リクルーティング' },
+  { value: 'growth-manager', label: 'グロースマネージャー' },
+  { value: 'corporate', label: 'コーポレート' },
 ];
 
 interface CandidateData {
