@@ -454,6 +454,41 @@ def validate_scope_sections(
     return errors, warnings
 
 
+# セクション最低行数（充実度チェック用）
+SECTION_MIN_LINES = {
+    "phase1": 5,   # Phase 1: 調査レポート
+    "phase2": 8,   # Phase 2: 要件定義
+    "phase3": 6,   # Phase 3: 品質基準
+    "phase4": 10,  # Phase 4: 技術設計
+    "phase5": 8,   # Phase 5: テスト設計
+}
+
+
+def check_section_richness(body: str, section_pattern: str, min_lines: int = 5) -> Tuple[bool, int]:
+    """
+    セクションの充実度をチェック（行数）
+
+    Returns:
+        (is_rich_enough, actual_line_count)
+    """
+    match = re.search(section_pattern, body, re.IGNORECASE | re.MULTILINE)
+    if not match:
+        return False, 0
+
+    start = match.end()
+
+    # 次のセクション（## N.）までの内容を取得
+    next_section = re.search(r"\n## \d+\.", body[start:], re.MULTILINE)
+    if next_section:
+        section_content = body[start:start + next_section.start()]
+    else:
+        section_content = body[start:]
+
+    # 空行・空白行を除いた行数をカウント
+    lines = [l for l in section_content.strip().split("\n") if l.strip()]
+    return len(lines) >= min_lines, len(lines)
+
+
 def validate_pr_body_for_type(
     body: str,
     required_sections: List[Dict[str, Any]],
@@ -536,6 +571,13 @@ def validate_pr_body_for_type(
                 phase_errors.append(f"❌ 必須セクション不足: {name}")
                 if desc:
                     phase_errors.append(f"   └─ {desc}")
+
+            # 充実度チェック（type:requirements のみ）
+            if found and pr_type == "requirements" and pattern:
+                min_lines = SECTION_MIN_LINES.get(phase, 5)
+                is_rich, line_count = check_section_richness(body, pattern, min_lines)
+                if not is_rich:
+                    phase_warnings.append(f"⚠️ {name}: 内容不足（{line_count}行 < 最低{min_lines}行）")
 
             # minimum_count チェック（例: Pre-mortem は3つ以上）
             if found and minimum_count:
