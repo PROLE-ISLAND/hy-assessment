@@ -76,9 +76,9 @@
     "recharts": "^3.6.0",
     "resend": "^6.6.0",
     "sonner": "^2.0.7",
-    "survey-core": "^2.5.4",
-    "survey-creator-core": "^2.5.4",
-    "survey-creator-react": "^2.5.4",
+    "survey-core": "^2.5.5",
+    "survey-creator-core": "^2.5.5",
+    "survey-creator-react": "^2.5.5",
     "survey-react-ui": "^2.5.1",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.3.5"
