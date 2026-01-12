@@ -1,92 +1,127 @@
 # =====================================================
-# Dependabot 設定
-# 依存関係の自動更新（毎週月曜 9:00 JST）
+# dependabot.yml - 自動生成ファイル
+# 組織テンプレート + ローカル拡張のマージ結果
+#
+# 編集方法:
+#   - 組織共通設定: PROLE-ISLAND/.github の dependabot.yml.template
+#   - リポジトリ固有設定: .github/dependabot.local.yml に追記
 # =====================================================
 
 version: 2
-
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Tokyo"
-    open-pull-requests-limit: 10
-    groups:
-      # SurveyJS関連（peer dependency があるため一括更新必須）
-      surveyjs:
-        patterns:
-          - "survey-*"
-        update-types:
-          - "minor"
-          - "patch"
-      # Next.js関連
-      nextjs:
-        patterns:
-          - "next*"
-        update-types:
-          - "minor"
-          - "patch"
-      # Supabase関連
-      supabase:
-        patterns:
-          - "@supabase/*"
-        update-types:
-          - "minor"
-          - "patch"
-      # React関連
-      react:
-        patterns:
-          - "react*"
-          - "@types/react*"
-        update-types:
-          - "minor"
-          - "patch"
-      # UI コンポーネント
-      ui:
-        patterns:
-          - "@radix-ui/*"
-          - "tailwind*"
-          - "lucide-react"
-        update-types:
-          - "minor"
-          - "patch"
-      # 型定義
-      types:
-        patterns:
-          - "@types/*"
-        update-types:
-          - "minor"
-          - "patch"
-      # テストツール
-      testing:
-        patterns:
-          - "vitest*"
-          - "@vitest/*"
-          - "@testing-library/*"
-          - "@playwright/*"
-          - "playwright*"
-        update-types:
-          - "minor"
-          - "patch"
-      # Lint/Format
-      linting:
-        patterns:
-          - "eslint*"
-          - "@eslint/*"
-          - "prettier*"
-          - "@typescript-eslint/*"
-        update-types:
-          - "minor"
-          - "patch"
-    labels:
-      - "dependencies"
-      - "P3: Low"
-    reviewers:
-      - "PROLE-ISLAND/developers"
-    commit-message:
-      prefix: "deps"
-      include: "scope"
-
+- package-ecosystem: npm
+  directory: /
+  schedule:
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: Asia/Tokyo
+  open-pull-requests-limit: 10
+  groups:
+    nextjs:
+      patterns:
+      - next*
+      - '@next/*'
+      update-types:
+      - minor
+      - patch
+    react:
+      patterns:
+      - react
+      - react-dom
+      - '@types/react*'
+      update-types:
+      - minor
+      - patch
+    supabase:
+      patterns:
+      - '@supabase/*'
+      update-types:
+      - minor
+      - patch
+    ui-components:
+      patterns:
+      - '@radix-ui/*'
+      - tailwindcss*
+      - tailwind*
+      - lucide-react
+      - class-variance-authority
+      - clsx
+      update-types:
+      - minor
+      - patch
+    testing:
+      patterns:
+      - vitest*
+      - '@vitest/*'
+      - '@testing-library/*'
+      - '@playwright/*'
+      - playwright*
+      update-types:
+      - minor
+      - patch
+    linting:
+      patterns:
+      - eslint*
+      - '@eslint/*'
+      - prettier*
+      - '@typescript-eslint/*'
+      update-types:
+      - minor
+      - patch
+    types:
+      patterns:
+      - '@types/*'
+      exclude-patterns:
+      - '@types/react*'
+      update-types:
+      - minor
+      - patch
+    build-tools:
+      patterns:
+      - typescript
+      - vite*
+      - esbuild*
+      - turbo*
+      update-types:
+      - minor
+      - patch
+    surveyjs:
+      patterns:
+      - survey-*
+      update-types:
+      - minor
+      - patch
+    recharts:
+      patterns:
+      - recharts*
+      update-types:
+      - minor
+      - patch
+    openai:
+      patterns:
+      - openai*
+      update-types:
+      - minor
+      - patch
+  labels:
+  - dependencies
+  - 'P3: Low'
+  reviewers:
+  - PROLE-ISLAND/devops
+  commit-message:
+    prefix: deps
+    include: scope
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: Asia/Tokyo
+  labels:
+  - dependencies
+  - ci
+  - 'P3: Low'
+  commit-message:
+    prefix: ci
